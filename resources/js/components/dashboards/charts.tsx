@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 /** Brand palette used across dashboard charts. */
-export const CHART_COLORS = ['#1e3a8a', '#2563eb', '#60a5fa', '#93c5fd', '#bfdbfe'];
+export const CHART_COLORS = ['#7c3aed', '#0ea5e9', '#16a34a', '#f59e0b', '#e11d48'];
 export const STATUS_COLORS = ['#16a34a', '#f59e0b', '#dc2626', '#6b7280', '#7c3aed'];
 
 /**
@@ -169,7 +169,7 @@ export function BarList({
                     >
                         {it.label}
                     </span>
-                    <div className="relative h-5 flex-1 overflow-hidden rounded-md bg-gray-100 dark:bg-gray-800">
+                    <div className="relative h-5 flex-1 overflow-hidden rounded-md bg-muted">
                         <div
                             className="h-full rounded-md transition-[width] duration-700 ease-out"
                             style={{
@@ -179,7 +179,7 @@ export function BarList({
                         />
                     </div>
                     {showValue && (
-                        <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums text-gray-700 dark:text-gray-200">
+                        <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums text-foreground/85">
                             {it.value}
                             {unit}
                         </span>
@@ -247,8 +247,8 @@ export function DonutChart({
                 {data.map((d, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs">
                         <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: colors[i % colors.length] }} />
-                        <span className="text-gray-600 dark:text-gray-300">{d.name}</span>
-                        <span className="font-semibold tabular-nums text-gray-900 dark:text-white">
+                        <span className="text-muted-foreground">{d.name}</span>
+                        <span className="font-semibold tabular-nums text-foreground">
                             {d.value}
                             <span className="ml-1 font-normal text-gray-400">({Math.round((d.value / total) * 100)}%)</span>
                         </span>

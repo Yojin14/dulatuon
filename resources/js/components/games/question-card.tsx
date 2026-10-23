@@ -1,6 +1,7 @@
+import { AnswerTile, type AnswerTileState } from '@/components/game/quiz/answer-tile';
 import { Button } from '@/components/ui/button';
 import { sfxClick, sfxCorrect, sfxWrong } from '@/lib/game-audio';
-import { ArrowRight, CheckCircle2, Lightbulb, XCircle } from 'lucide-react';
+import { ArrowRight, Lightbulb } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 export interface GameItem {
@@ -73,56 +74,40 @@ export function QuestionCard({
     };
 
     return (
-        <div className="flex flex-col gap-4">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">{item.prompt}</h2>
-            <div className="flex flex-col gap-2">
-                {options.map((option) => {
+        <div className="flex flex-col gap-5">
+            <h2 className="font-display text-xl leading-snug font-bold tracking-[-0.02em] text-foreground">{item.prompt}</h2>
+            <div className="flex flex-col gap-2.5">
+                {options.map((option, index) => {
                     const isWrong = wrong.includes(option);
                     const isSelected = selected === option;
-                    let tone = 'border-gray-200 bg-gray-50 hover:border-violet-400 hover:bg-violet-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700';
+                    let state: AnswerTileState = 'idle';
                     if (solved && isSelected) {
-                        tone = 'border-emerald-400 bg-emerald-50 dark:border-emerald-500 dark:bg-emerald-950/40';
+                        state = 'correct';
                     } else if (isWrong) {
-                        tone = 'border-red-300 bg-red-50 opacity-70 dark:border-red-500/60 dark:bg-red-950/40';
+                        state = 'wrong';
                     } else if (mode === 'predict' && isSelected) {
-                        tone = 'border-violet-500 bg-violet-50 dark:border-violet-400 dark:bg-violet-950/40';
+                        state = 'selected';
                     }
 
-                    return (
-                        <button
-                            key={option}
-                            type="button"
-                            disabled={isWrong || solved}
-                            onClick={() => pick(option)}
-                            className={`flex items-center justify-between gap-3 rounded-xl border-2 px-4 py-3 text-left text-sm font-semibold text-gray-800 transition dark:text-gray-100 ${tone}`}
-                        >
-                            {option}
-                            {solved && isSelected && <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />}
-                            {isWrong && <XCircle className="h-5 w-5 shrink-0 text-red-400" />}
-                        </button>
-                    );
+                    return <AnswerTile key={option} label={option} index={index} state={state} disabled={isWrong || solved} onClick={() => pick(option)} />;
                 })}
             </div>
 
             {mode === 'check' && wrong.length > 0 && !solved && hint && (
-                <p className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-                    <Lightbulb className="mt-0.5 h-4 w-4 shrink-0" />
+                <p className="flex animate-pop-in items-start gap-2.5 rounded-2xl bg-amber-50 p-3.5 text-sm font-medium text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
+                    <Lightbulb className="mt-0.5 size-4 shrink-0" />
                     {hint}
                 </p>
             )}
 
             {mode === 'predict' ? (
-                <Button
-                    disabled={selected === null}
-                    onClick={() => selected !== null && onDone(selected)}
-                    className="h-11 bg-violet-600 font-bold text-white hover:bg-violet-700"
-                >
+                <Button size="lg" disabled={selected === null} onClick={() => selected !== null && onDone(selected)} className="w-full">
                     Lock in my prediction
                 </Button>
             ) : (
                 solved && (
-                    <Button onClick={() => firstPick !== null && onDone(firstPick)} className="h-11 bg-violet-600 font-bold text-white hover:bg-violet-700">
-                        Continue <ArrowRight className="h-4 w-4" />
+                    <Button size="lg" onClick={() => firstPick !== null && onDone(firstPick)} className="w-full animate-pop-in">
+                        Continue <ArrowRight />
                     </Button>
                 )
             )}

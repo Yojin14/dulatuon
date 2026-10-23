@@ -108,7 +108,7 @@ function stressStatus(stress: number): { label: string; detail: string; tone: st
         return { label: 'Stress building', detail: 'The rocks are starting to bend.', tone: 'text-sky-600 dark:text-sky-400' };
     }
 
-    return { label: 'Fault stable', detail: 'No force yet.', tone: 'text-gray-500 dark:text-gray-400' };
+    return { label: 'Fault stable', detail: 'No force yet.', tone: 'text-muted-foreground' };
 }
 
 export default function FaultLab({ items, onFinish }: FaultLabProps) {
@@ -205,7 +205,7 @@ export default function FaultLab({ items, onFinish }: FaultLabProps) {
 
     const renderPanel = () => {
         if (unsupported) {
-            return <p className="text-sm text-gray-600 dark:text-gray-300">This device cannot show 3D graphics, so Fault Lab cannot run here. Try another browser or device.</p>;
+            return <p className="text-sm text-muted-foreground">This device cannot show 3D graphics, so Fault Lab cannot run here. Try another browser or device.</p>;
         }
 
         switch (step.name) {
@@ -213,11 +213,11 @@ export default function FaultLab({ items, onFinish }: FaultLabProps) {
                 return (
                     <div className="flex flex-col gap-4">
                         <div>
-                            <p className="text-xs font-bold tracking-wider text-violet-600 uppercase dark:text-violet-300">
+                            <p className="text-eyebrow text-violet-600 dark:text-violet-300">
                                 Experiment {completed.length + 1} of {KINDS.length}
                             </p>
-                            <h2 className="mt-1 text-lg font-bold text-gray-900 dark:text-white">Choose a force</h2>
-                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">The fault is calm. Add a force and make an earthquake.</p>
+                            <h2 className="mt-1.5 font-display text-xl leading-snug font-bold tracking-[-0.02em] text-foreground">Choose a force</h2>
+                            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">The fault is calm. Add a force and make an earthquake.</p>
                         </div>
                         <div className="flex flex-col gap-2">
                             {KINDS.map((kind) => {
@@ -234,7 +234,7 @@ export default function FaultLab({ items, onFinish }: FaultLabProps) {
                                         <span className="flex h-10 w-14 shrink-0 items-center justify-center rounded-lg bg-amber-100 font-mono text-base font-bold text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">
                                             {EXPERIMENTS[kind].glyph}
                                         </span>
-                                        <span className="flex-1 text-sm font-bold text-gray-800 dark:text-gray-100">{EXPERIMENTS[kind].label}</span>
+                                        <span className="flex-1 text-sm font-bold text-foreground">{EXPERIMENTS[kind].label}</span>
                                         {done && <CheckCircle2 className="h-5 w-5 text-emerald-500" />}
                                     </button>
                                 );
@@ -275,9 +275,9 @@ export default function FaultLab({ items, onFinish }: FaultLabProps) {
                 return (
                     <div className="flex flex-col gap-4">
                         <div>
-                            <p className="text-xs font-bold tracking-wider text-violet-600 uppercase dark:text-violet-300">Build the stress</p>
-                            <h2 className="mt-1 text-lg font-bold text-gray-900 dark:text-white">{EXPERIMENTS[step.kind].action}</h2>
-                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Hold the button and watch the road bend.</p>
+                            <p className="text-eyebrow text-violet-600 dark:text-violet-300">Build the stress</p>
+                            <h2 className="mt-1.5 font-display text-xl leading-snug font-bold tracking-[-0.02em] text-foreground">{EXPERIMENTS[step.kind].action}</h2>
+                            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">Hold the button and watch the road bend.</p>
                         </div>
 
                         <div>
@@ -294,7 +294,7 @@ export default function FaultLab({ items, onFinish }: FaultLabProps) {
                                 className="h-4 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
                             >
                                 <div
-                                    className="h-full rounded-full bg-gradient-to-r from-sky-400 via-amber-400 to-red-500"
+                                    className="h-full rounded-full bg-linear-to-r from-sky-400 via-amber-400 to-red-500"
                                     style={{ width: `${stress * 100}%` }}
                                 />
                             </div>
@@ -309,7 +309,7 @@ export default function FaultLab({ items, onFinish }: FaultLabProps) {
                             <>
                                 <div aria-live="polite">
                                     <p className={`text-sm font-bold ${status.tone}`}>{status.label}</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">{status.detail}</p>
+                                    <p className="text-sm text-muted-foreground">{status.detail}</p>
                                 </div>
                                 <button
                                     type="button"
@@ -333,7 +333,7 @@ export default function FaultLab({ items, onFinish }: FaultLabProps) {
                                     }}
                                     onBlur={() => push(false)}
                                     onContextMenu={(event) => event.preventDefault()}
-                                    className="flex h-14 touch-none items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-base font-extrabold text-white shadow-lg transition select-none active:scale-[0.98] active:from-amber-600 active:to-orange-700"
+                                    className="flex h-14 touch-none items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-amber-500 to-orange-600 text-base font-extrabold text-white shadow-lg transition select-none active:scale-[0.98] active:from-amber-600 active:to-orange-700"
                                 >
                                     <Hand className="h-5 w-5" />
                                     Hold to add force
@@ -351,11 +351,11 @@ export default function FaultLab({ items, onFinish }: FaultLabProps) {
                 return (
                     <div className="flex flex-col gap-4">
                         <div>
-                            <p className="text-xs font-bold tracking-wider text-violet-600 uppercase dark:text-violet-300">You made a</p>
-                            <h2 className="mt-1 text-2xl font-extrabold text-gray-900 dark:text-white">{experiment.fault}</h2>
+                            <p className="text-eyebrow text-violet-600 dark:text-violet-300">You made a</p>
+                            <h2 className="mt-1 text-2xl font-extrabold text-foreground">{experiment.fault}</h2>
                         </div>
                         <p className="rounded-xl bg-violet-50 p-3 text-sm font-semibold text-violet-800 dark:bg-violet-950/40 dark:text-violet-200">{experiment.chain}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">{experiment.explanation}</p>
+                        <p className="text-sm text-muted-foreground">{experiment.explanation}</p>
                         <p
                             className={`flex items-start gap-2 rounded-xl p-3 text-sm ${correct ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200' : 'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200'}`}
                         >
@@ -365,7 +365,7 @@ export default function FaultLab({ items, onFinish }: FaultLabProps) {
                                 {correct ? 'That is what happened.' : `What really happened: ${items[experiment.predictItem].answer.toLowerCase()}.`}
                             </span>
                         </p>
-                        <Button onClick={() => finishExperiment(step.kind)} className="h-11 bg-violet-600 font-bold text-white hover:bg-violet-700">
+                        <Button onClick={() => finishExperiment(step.kind)} className="h-12 w-full text-base">
                             Continue <ArrowRight className="h-4 w-4" />
                         </Button>
                     </div>
@@ -387,12 +387,12 @@ export default function FaultLab({ items, onFinish }: FaultLabProps) {
                 return (
                     <div className="flex flex-col gap-4">
                         <div>
-                            <p className="text-xs font-bold tracking-wider text-violet-600 uppercase dark:text-violet-300">Earthquake built</p>
-                            <h2 className="mt-1 text-lg font-bold text-gray-900 dark:text-white">Every earthquake follows these steps</h2>
+                            <p className="text-eyebrow text-violet-600 dark:text-violet-300">Earthquake built</p>
+                            <h2 className="mt-1.5 font-display text-xl leading-snug font-bold tracking-[-0.02em] text-foreground">Every earthquake follows these steps</h2>
                         </div>
                         <ol className="flex flex-col gap-2">
                             {SEQUENCE.map((line, index) => (
-                                <li key={line} className="flex items-center gap-3 text-sm font-medium text-gray-700 dark:text-gray-200">
+                                <li key={line} className="flex items-center gap-3 text-sm font-medium text-foreground/85">
                                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-100 text-xs font-bold text-violet-700 dark:bg-violet-500/20 dark:text-violet-200">
                                         {index + 1}
                                     </span>
@@ -400,7 +400,7 @@ export default function FaultLab({ items, onFinish }: FaultLabProps) {
                                 </li>
                             ))}
                         </ol>
-                        <Button onClick={() => onFinish(answers)} className="h-11 bg-violet-600 font-bold text-white hover:bg-violet-700">
+                        <Button onClick={() => onFinish(answers)} className="h-12 w-full text-base">
                             See my score <ArrowRight className="h-4 w-4" />
                         </Button>
                     </div>
@@ -433,16 +433,16 @@ export default function FaultLab({ items, onFinish }: FaultLabProps) {
                 </span>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px] max-lg:landscape:grid-cols-[minmax(0,1fr)_300px] max-lg:landscape:gap-3">
-                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-sky-300 via-sky-100 to-amber-100 ring-1 ring-white/20">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px] max-lg:landscape:grid-cols-[minmax(0,1fr)_300px] max-lg:landscape:gap-3">
+                <div className="relative overflow-hidden rounded-4xl bg-world-sky ring-1 ring-white/20">
                     <div ref={mount} className="h-[50svh] min-h-72 w-full lg:h-[calc(100svh-11rem)] lg:min-h-[520px] max-lg:landscape:h-[calc(100svh-7.5rem)] max-lg:landscape:min-h-48" />
-                    <p className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-slate-900/60 px-2.5 py-1 text-[11px] font-semibold text-white">
+                    <p className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-slate-900/70 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">
                         <Rotate3d className="h-3.5 w-3.5" />
                         Drag to look around
                     </p>
                 </div>
 
-                <div className="rounded-3xl bg-white p-5 shadow-2xl sm:p-6 dark:bg-gray-900 max-lg:landscape:max-h-[calc(100svh-7.5rem)] max-lg:landscape:min-h-48 max-lg:landscape:overflow-y-auto max-lg:landscape:p-4">{renderPanel()}</div>
+                <div className="rounded-4xl border bg-card p-5 text-card-foreground shadow-float sm:p-7 max-lg:landscape:max-h-[calc(100svh-7.5rem)] max-lg:landscape:min-h-48 max-lg:landscape:overflow-y-auto max-lg:landscape:p-4">{renderPanel()}</div>
             </div>
         </div>
     );

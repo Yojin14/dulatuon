@@ -1,7 +1,11 @@
+import { AnswerTile } from '@/components/game/quiz/answer-tile';
 import { Button } from '@/components/ui/button';
+import { WorldChip } from '@/components/world/world-scope';
+import { SIMULATION_WORLD, WORLDS } from '@/lib/worlds';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { isMuted, setMuted as setAudioMuted, sfxCorrect, sfxLose, sfxMedal, sfxPop, sfxWin, sfxWrong, startMusic, stopMusic, unlockAudio } from '@/lib/game-audio';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { ArrowLeft, CheckCircle2, Clock, Eye, Heart, Lock, Medal, RotateCcw, Sparkles, Trophy, Users, Volume2, VolumeX, XCircle } from 'lucide-react';
+import { ArrowLeft, Brain, Building2, CheckCircle2, Clock, Crown, Eye, Grid3x3, Heart, Layers, LifeBuoy, Lock, Map as MapIcon, Medal, Mountain, RotateCcw, ShieldCheck, Shuffle, Sparkles, Trophy, Users, Volume2, VolumeX, Waves, Zap, type LucideIcon } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // three.js is only downloaded when a student opens the 3D simulation.
@@ -69,18 +73,18 @@ interface AttemptResponse {
     leaderboard: Leaderboard;
 }
 
-const GAME_META: Record<GameType, { label: string; icon: string }> = {
-    quiz_quest: { label: 'Quiz Quest', icon: '⚡' },
-    memory_match: { label: 'Memory Match', icon: '🧠' },
-    word_scramble: { label: 'Word Scramble', icon: '🔤' },
-    crossword: { label: 'Crossword', icon: '🧩' },
-    hangman: { label: 'Word Rescue', icon: '🪢' },
-    fault_lab: { label: 'Fault Lab · 3D simulation', icon: '🌋' },
-    shake_town: { label: 'Shake Town · 3D simulation', icon: '🏘️' },
-    wave_tank: { label: 'Wave Tank · 3D simulation', icon: '🌊' },
-    quake_tracker: { label: 'Quake Tracker · 3D simulation', icon: '🗺️' },
-    ground_test: { label: 'Ground Test · 3D simulation', icon: '⛰️' },
-    quake_ready: { label: 'Quake Ready · 3D simulation', icon: '🎒' },
+const GAME_META: Record<GameType, { label: string; icon: LucideIcon }> = {
+    quiz_quest: { label: 'Quiz Quest', icon: Zap },
+    memory_match: { label: 'Memory Match', icon: Brain },
+    word_scramble: { label: 'Word Scramble', icon: Shuffle },
+    crossword: { label: 'Crossword', icon: Grid3x3 },
+    hangman: { label: 'Word Rescue', icon: LifeBuoy },
+    fault_lab: { label: 'Fault Lab · 3D simulation', icon: Layers },
+    shake_town: { label: 'Shake Town · 3D simulation', icon: Building2 },
+    wave_tank: { label: 'Wave Tank · 3D simulation', icon: Waves },
+    quake_tracker: { label: 'Quake Tracker · 3D simulation', icon: MapIcon },
+    ground_test: { label: 'Ground Test · 3D simulation', icon: Mountain },
+    quake_ready: { label: 'Quake Ready · 3D simulation', icon: ShieldCheck },
 };
 
 const QUIZ_SECONDS = 20;
@@ -262,12 +266,12 @@ function useStopwatch(active: boolean): number {
 
 function LivesPips({ remaining, total }: { remaining: number | null; total: number }) {
     if (remaining === null) {
-        return <span className="inline-flex items-center gap-1 text-xs font-bold text-white/80"><Heart className="h-3.5 w-3.5 fill-rose-500 text-rose-500" />∞</span>;
+        return <span className="inline-flex items-center gap-1 text-xs font-bold text-white/80" aria-label="Unlimited lives"><Heart className="size-4 fill-rose-500 text-rose-500" />∞</span>;
     }
     return (
-        <span className="inline-flex items-center gap-0.5">
+        <span className="inline-flex items-center gap-0.5" aria-label={`${remaining} of ${total} lives left`}>
             {Array.from({ length: total }).map((_, i) => (
-                <Heart key={i} className={`h-3.5 w-3.5 ${i < remaining ? 'fill-rose-500 text-rose-500' : 'fill-white/10 text-white/20'}`} />
+                <Heart key={i} className={`size-4 transition-all duration-300 ${i < remaining ? 'fill-rose-500 text-rose-500' : 'scale-90 fill-white/10 text-white/25'}`} />
             ))}
         </span>
     );
@@ -322,44 +326,30 @@ function QuizQuest({ items, onFinish }: { items: GameItem[]; onFinish: (answers:
 
     return (
         <div className="mx-auto w-full max-w-2xl">
-            <div className="mb-6 flex items-center justify-between gap-4">
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/15">
-                    <div className="h-full rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-400 transition-all duration-300" style={{ width: `${pct}%` }} />
+            <div className="mb-5 flex items-center gap-4">
+                <div className="h-3 flex-1 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
+                    <div className="h-full rounded-full bg-amber-400 transition-[width] duration-500 ease-out" style={{ width: `${pct}%` }} />
                 </div>
-                <span className="shrink-0 text-sm font-semibold text-white/80">{current + 1}/{rounds.length}</span>
+                <span className="shrink-0 text-sm font-bold text-white/80 tabular-nums">{current + 1}/{rounds.length}</span>
             </div>
 
             <div className="mb-4 flex items-center justify-between">
-                <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${streak >= 2 ? 'bg-amber-400 text-amber-950' : 'bg-white/10 text-white/70'}`}>
-                    🔥 Streak {streak}
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${streak >= 2 ? 'bg-amber-400 text-amber-950' : 'bg-white/10 text-white/70'}`}>
+                    <Zap className="size-3.5" />Streak {streak}
                 </span>
-                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-bold tabular-nums ${seconds <= 5 ? 'bg-red-500 text-white' : 'bg-white/10 text-white'}`}>
-                    <Clock className="h-3.5 w-3.5" />{seconds}s
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold tabular-nums transition-colors ${seconds <= 5 ? 'bg-red-500 text-white' : 'bg-white/10 text-white'}`} aria-label={`${seconds} seconds left`}>
+                    <Clock className="size-4" />{seconds}s
                 </span>
             </div>
 
-            <div className="rounded-3xl bg-white p-6 shadow-2xl dark:bg-gray-900 sm:p-8">
-                <h2 className="mb-6 text-center text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{round.prompt}</h2>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div key={current} className="animate-pop-in rounded-4xl border bg-card p-6 text-card-foreground shadow-float sm:p-8">
+                <p className="text-eyebrow text-violet-600 dark:text-violet-300">Question {current + 1}</p>
+                <h2 className="mt-2 mb-6 font-display text-xl leading-snug font-bold tracking-[-0.02em] sm:text-2xl">{round.prompt}</h2>
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                     {round.options.map((opt, i) => {
-                        const isPicked = picked === opt;
-                        const isAnswer = opt === round.answer;
                         const reveal = picked !== null;
-                        let cls = 'border-gray-200 bg-gray-50 hover:border-violet-400 hover:bg-violet-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700';
-                        if (reveal && isAnswer) { cls = 'border-emerald-400 bg-emerald-50 dark:border-emerald-500 dark:bg-emerald-950/40'; }
-                        else if (reveal && isPicked && !isAnswer) { cls = 'border-red-400 bg-red-50 dark:border-red-500 dark:bg-red-950/40'; }
-                        return (
-                            <button
-                                key={i}
-                                disabled={reveal}
-                                onClick={() => advance(opt)}
-                                className={`flex items-center justify-between gap-2 rounded-2xl border-2 px-4 py-3.5 text-left text-sm font-medium text-gray-800 transition-all dark:text-gray-100 ${cls}`}
-                            >
-                                <span>{opt}</span>
-                                {reveal && isAnswer && <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />}
-                                {reveal && isPicked && !isAnswer && <XCircle className="h-5 w-5 shrink-0 text-red-500" />}
-                            </button>
-                        );
+                        const state = reveal && opt === round.answer ? 'correct' : reveal && picked === opt ? 'wrong' : 'idle';
+                        return <AnswerTile key={i} label={opt} index={i} state={state} disabled={reveal} onClick={() => advance(opt)} />;
                     })}
                 </div>
             </div>
@@ -437,7 +427,7 @@ function MemoryMatch({ items, onFinish }: { items: GameItem[]; onFinish: (answer
                                         ? 'bg-red-400 text-white'
                                         : isUp
                                             ? 'bg-white text-gray-900 dark:bg-gray-100'
-                                            : 'bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white/30 hover:from-violet-400 hover:to-fuchsia-500'
+                                            : 'bg-linear-to-br from-violet-500 to-fuchsia-600 text-white/30 hover:from-violet-400 hover:to-fuchsia-500'
                             }`}
                         >
                             {isUp ? <span className="leading-snug">{card.text}</span> : <Sparkles className="h-6 w-6" />}
@@ -491,14 +481,14 @@ function WordScramble({ items, onFinish }: { items: GameItem[]; onFinish: (answe
         <div className="mx-auto w-full max-w-xl">
             <div className="mb-6 flex items-center justify-between gap-4">
                 <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/15">
-                    <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 transition-all" style={{ width: `${(current / items.length) * 100}%` }} />
+                    <div className="h-full rounded-full bg-linear-to-r from-cyan-400 to-violet-400 transition-all" style={{ width: `${(current / items.length) * 100}%` }} />
                 </div>
                 <span className="shrink-0 text-sm font-semibold text-white/80">{current + 1}/{items.length}</span>
             </div>
 
-            <div className="rounded-3xl bg-white p-6 shadow-2xl dark:bg-gray-900 sm:p-8">
-                <p className="mb-2 text-center text-xs font-semibold uppercase tracking-widest text-cyan-500">Clue</p>
-                <h2 className="mb-6 text-center text-lg font-bold text-gray-900 dark:text-white">{item.prompt}</h2>
+            <div className="rounded-4xl border bg-card p-6 text-card-foreground shadow-float sm:p-8">
+                <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wider text-cyan-500">Clue</p>
+                <h2 className="mb-6 text-center text-lg font-bold text-foreground">{item.prompt}</h2>
 
                 <div className="mb-6 flex flex-wrap justify-center gap-1.5">
                     {scrambles[current].split('').map((ch, i) => (
@@ -522,7 +512,7 @@ function WordScramble({ items, onFinish }: { items: GameItem[]; onFinish: (answe
                     }`}
                 />
                 {feedback === 'wrong' && <p className="mb-4 text-center text-sm font-medium text-red-500">Answer: <strong>{item.answer}</strong></p>}
-                {feedback === 'correct' && <p className="mb-4 text-center text-sm font-medium text-emerald-500">Correct! 🎉</p>}
+                {feedback === 'correct' && <p className="mb-4 animate-pop-in text-center text-sm font-bold text-emerald-600 dark:text-emerald-400">Correct.</p>}
 
                 <Button onClick={submit} disabled={!value.trim() || !!feedback} className="h-11 w-full bg-cyan-600 text-base hover:bg-cyan-700">
                     {current + 1 >= items.length ? 'Finish' : 'Submit'}
@@ -713,7 +703,7 @@ function Crossword({ items, onFinish }: { items: GameItem[]; onFinish: (answers:
             <div className="space-y-4 text-sm text-white/90">
                 {[{ label: 'Across', list: acrossClues }, { label: 'Down', list: downClues }].map(({ label, list }) => list.length > 0 && (
                     <div key={label}>
-                        <p className="mb-1.5 text-xs font-bold uppercase tracking-widest text-emerald-300">{label}</p>
+                        <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-emerald-300">{label}</p>
                         <ul className="space-y-1">
                             {list.map((p) => (
                                 <li key={`${p.dir}-${p.num}`} className="leading-snug"><span className="font-bold text-white">{p.num}.</span> {p.clue}</li>
@@ -727,9 +717,9 @@ function Crossword({ items, onFinish }: { items: GameItem[]; onFinish: (answers:
         {confirming && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => setConfirming(false)}>
                 <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl dark:bg-gray-900" onClick={(e) => e.stopPropagation()}>
-                    <div className="mb-2 text-4xl">🧩</div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Submit your answers?</h3>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    <Grid3x3 className="mx-auto mb-3 size-10 text-violet-500" />
+                    <h3 className="text-lg font-bold text-foreground">Submit your answers?</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
                         You've filled {filledCount} of {cellMeta.size} cells. This will lock in your crossword and use one heart.
                     </p>
                     <div className="mt-5 flex gap-2">
@@ -800,9 +790,9 @@ function Hangman({ items, onFinish }: { items: GameItem[]; onFinish: (answers: R
                 </span>
             </div>
 
-            <div className="rounded-3xl bg-white p-6 shadow-2xl dark:bg-gray-900 sm:p-8">
-                <p className="mb-1 text-center text-xs font-semibold uppercase tracking-widest text-amber-500">Clue</p>
-                <h2 className="mb-6 text-center text-lg font-bold text-gray-900 dark:text-white">{item.prompt}</h2>
+            <div className="rounded-4xl border bg-card p-6 text-card-foreground shadow-float sm:p-8">
+                <p className="mb-1 text-center text-xs font-semibold uppercase tracking-wider text-amber-500">Clue</p>
+                <h2 className="mb-6 text-center text-lg font-bold text-foreground">{item.prompt}</h2>
 
                 <div className="mb-7 flex flex-wrap justify-center gap-1.5">
                     {target.split('').map((ch, i) => {
@@ -810,7 +800,7 @@ function Hangman({ items, onFinish }: { items: GameItem[]; onFinish: (answers: R
                         const reveal = guessed.has(ch) || status !== 'playing';
                         return (
                             <span key={i} className={`flex h-11 w-9 items-center justify-center border-b-4 text-xl font-extrabold ${
-                                status === 'lost' && !guessed.has(ch) ? 'border-red-300 text-red-400' : 'border-amber-300 text-gray-900 dark:text-white'
+                                status === 'lost' && !guessed.has(ch) ? 'border-red-300 text-red-400' : 'border-amber-300 text-foreground'
                             }`}>
                                 {reveal ? ch : ''}
                             </span>
@@ -818,7 +808,7 @@ function Hangman({ items, onFinish }: { items: GameItem[]; onFinish: (answers: R
                     })}
                 </div>
 
-                {status === 'won' && <p className="mb-4 text-center text-sm font-bold text-emerald-500">Solved! 🎉</p>}
+                {status === 'won' && <p className="mb-4 animate-pop-in text-center text-sm font-bold text-emerald-600 dark:text-emerald-400">Solved.</p>}
                 {status === 'lost' && <p className="mb-4 text-center text-sm font-bold text-red-500">The word was “{target}”.</p>}
 
                 <div className="flex flex-wrap justify-center gap-1.5">
@@ -848,59 +838,72 @@ function Hangman({ items, onFinish }: { items: GameItem[]; onFinish: (answers: R
 }
 
 // ─── Medals (top 5) ──────────────────────────────────────────────────────────────
-interface Medal { name: string; emoji: string; chip: string; glow: string; }
+interface Medal { name: string; chip: string; edge: string; }
 
 const MEDALS: Record<number, Medal> = {
-    1: { name: 'Crown', emoji: '👑', chip: 'from-yellow-300 via-amber-400 to-fuchsia-500 text-white', glow: 'shadow-amber-400/60' },
-    2: { name: 'Gold', emoji: '🥇', chip: 'from-amber-300 via-yellow-400 to-amber-500 text-amber-950', glow: 'shadow-amber-400/50' },
-    3: { name: 'Silver', emoji: '🥈', chip: 'from-slate-200 via-gray-300 to-slate-400 text-slate-800', glow: 'shadow-slate-300/50' },
-    4: { name: 'Bronze', emoji: '🥉', chip: 'from-orange-300 via-amber-600 to-amber-800 text-white', glow: 'shadow-orange-500/50' },
-    5: { name: 'Copper', emoji: '🟤', chip: 'from-orange-400 via-rose-500 to-rose-700 text-white', glow: 'shadow-rose-500/50' },
+    1: { name: 'Crown', chip: 'from-amber-200 via-amber-400 to-orange-500 text-amber-950', edge: 'var(--color-orange-700)' },
+    2: { name: 'Gold', chip: 'from-yellow-200 via-amber-300 to-amber-500 text-amber-950', edge: 'var(--color-amber-700)' },
+    3: { name: 'Silver', chip: 'from-slate-100 via-slate-300 to-slate-400 text-slate-800', edge: 'var(--color-slate-500)' },
+    4: { name: 'Bronze', chip: 'from-orange-200 via-orange-400 to-amber-700 text-orange-950', edge: 'var(--color-amber-900)' },
+    5: { name: 'Copper', chip: 'from-rose-300 via-orange-500 to-rose-700 text-white', edge: 'var(--color-rose-900)' },
 };
 
 function medalFor(rank: number | null | undefined): Medal | null {
     return rank != null ? MEDALS[rank] ?? null : null;
 }
 
-function rankBadge(rank: number): string {
-    return MEDALS[rank]?.emoji ?? `#${rank}`;
+const HEX = '[clip-path:polygon(50%_0,93%_25%,93%_75%,50%_100%,7%_75%,7%_25%)]';
+
+/** Hexagonal medal, sized for lists (sm) or celebrations (lg). */
+function MedalHex({ rank, size = 'sm' }: { rank: number; size?: 'sm' | 'lg' }) {
+    const medal = medalFor(rank);
+    const dims = size === 'lg' ? 'size-32' : 'size-7';
+    if (!medal) {
+        return <span className="w-7 text-center text-sm font-bold text-white/60 tabular-nums">{rank}</span>;
+    }
+
+    return (
+        <span className={`grid shrink-0 place-items-center bg-linear-to-b font-display font-extrabold ${HEX} ${dims} ${medal.chip}`} aria-label={`${medal.name} medal, rank ${rank}`}>
+            {rank === 1 ? <Crown className={size === 'lg' ? 'size-14' : 'size-3.5'} strokeWidth={2.5} /> : <span className={size === 'lg' ? 'text-5xl' : 'text-xs'}>{rank}</span>}
+        </span>
+    );
 }
 
 // ─── Leaderboard ─────────────────────────────────────────────────────────────────
 function LeaderboardPanel({ leaderboard, myId }: { leaderboard: Leaderboard; myId: number | null }) {
     const meInTop = leaderboard.top.some((e) => e.userId === myId);
     return (
-        <div className="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
-            <div className="mb-3 flex items-center justify-between">
-                <h3 className="flex items-center gap-2 text-sm font-bold text-white"><Trophy className="h-4 w-4 text-amber-400" />Leaderboard</h3>
-                <span className="inline-flex items-center gap-1 text-xs text-white/50"><Users className="h-3.5 w-3.5" />{leaderboard.totalPlayers}</span>
+        <section aria-label="Leaderboard" className="rounded-4xl bg-white/5 p-5 ring-1 ring-white/10">
+            <div className="mb-4 flex items-center justify-between">
+                <h2 className="flex items-center gap-2 font-display text-lg font-bold text-white"><Trophy className="size-5 text-amber-400" />Class board</h2>
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-white/60"><Users className="size-4" />{leaderboard.totalPlayers} {leaderboard.totalPlayers === 1 ? 'player' : 'players'}</span>
             </div>
             {leaderboard.top.length === 0 ? (
-                <p className="py-6 text-center text-sm text-white/50">No scores yet — be the first!</p>
+                <p className="rounded-2xl bg-white/5 py-8 text-center text-sm font-semibold text-white/60">No scores yet. Set the first one.</p>
             ) : (
-                <ol className="space-y-1">
+                <ol className="space-y-1.5">
                     {leaderboard.top.map((e) => {
                         const isMe = e.userId === myId;
                         return (
-                            <li key={e.userId} className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${isMe ? 'bg-violet-500/20 ring-1 ring-violet-400/40' : ''}`}>
-                                <span className="w-7 shrink-0 text-center text-base font-bold text-white/80">{rankBadge(e.rank)}</span>
-                                <span className={`flex-1 truncate ${isMe ? 'font-bold text-white' : 'text-white/80'}`}>{e.name}{isMe && ' (you)'}</span>
-                                <span className="shrink-0 font-bold tabular-nums text-amber-300">{e.score}</span>
-                                <span className="w-12 shrink-0 text-right text-xs tabular-nums text-white/40">{formatTime(e.timeSpent)}</span>
+                            <li key={e.userId} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm ${isMe ? 'bg-violet-600 shadow-[0_3px_0_0_var(--color-violet-900)]' : 'bg-white/[0.03]'}`}>
+                                <MedalHex rank={e.rank} />
+                                <span className={`flex-1 truncate ${isMe ? 'font-bold text-white' : 'font-semibold text-white/85'}`}>{e.name}{isMe && ' (you)'}</span>
+                                <span className="shrink-0 font-bold text-amber-300 tabular-nums">{e.score}</span>
+                                <span className="w-12 shrink-0 text-right text-xs text-white/50 tabular-nums">{formatTime(e.timeSpent)}</span>
                             </li>
                         );
                     })}
                 </ol>
             )}
             {leaderboard.me && !meInTop && (
-                <div className="mt-2 flex items-center gap-3 rounded-lg bg-violet-500/20 px-3 py-2 text-sm ring-1 ring-violet-400/40">
-                    <span className="w-7 shrink-0 text-center font-bold text-white/80">{rankBadge(leaderboard.me.rank)}</span>
+                <div className="mt-2 flex items-center gap-3 rounded-xl bg-violet-600 px-3 py-2.5 text-sm shadow-[0_3px_0_0_var(--color-violet-900)]">
+                    <MedalHex rank={leaderboard.me.rank} />
                     <span className="flex-1 font-bold text-white">You</span>
-                    <span className="shrink-0 font-bold tabular-nums text-amber-300">{leaderboard.me.score}</span>
-                    <span className="w-12 shrink-0 text-right text-xs tabular-nums text-white/40">{formatTime(leaderboard.me.timeSpent)}</span>
+                    <span className="shrink-0 font-bold text-amber-300 tabular-nums">{leaderboard.me.score}</span>
+                    <span className="w-12 shrink-0 text-right text-xs text-white/60 tabular-nums">{formatTime(leaderboard.me.timeSpent)}</span>
                 </div>
             )}
-        </div>
+        </section>
     );
 }
 
@@ -921,6 +924,41 @@ function useCountdown(target: string | null): string | null {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
+// ─── Shared screen parts ─────────────────────────────────────────────────────────
+function GameEmblem({ gameType }: { gameType: GameType }) {
+    const Icon = GAME_META[gameType].icon;
+    const world = WORLDS[SIMULATION_WORLD[gameType] ?? 'default'];
+    return (
+        <div className="flex flex-col items-center gap-3">
+            <span className={`grid size-20 place-items-center text-white ${HEX}`} style={{ backgroundColor: world.accent }}>
+                <Icon className="size-9" strokeWidth={2.25} />
+            </span>
+            {world.key !== 'default' && <WorldChip world={world} />}
+        </div>
+    );
+}
+
+function StatChip({ children }: { children: React.ReactNode }) {
+    return <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-sm font-bold text-white ring-1 ring-white/10 [&_svg]:size-4">{children}</span>;
+}
+
+function OutOfLives({ countdown }: { countdown: string | null }) {
+    return (
+        <div className="rounded-2xl bg-rose-500/15 p-4 ring-1 ring-rose-400/30">
+            <p className="flex items-center justify-center gap-2 text-sm font-bold text-rose-200"><Lock className="size-4" />Out of hearts</p>
+            <p className="mt-1 text-xs text-white/70">{countdown ? <>Next heart in <span className="font-bold text-white tabular-nums">{countdown}</span></> : 'Refreshing…'}</p>
+        </div>
+    );
+}
+
+function BackToCourse({ courseId }: { courseId: number }) {
+    return (
+        <Button asChild variant="ghost" size="lg" className="w-full text-white/80 hover:bg-white/10 hover:text-white">
+            <Link href={`/my-course/${courseId}`}><ArrowLeft />Back to course</Link>
+        </Button>
+    );
+}
+
 // ─── Intro ───────────────────────────────────────────────────────────────────────
 function IntroScreen({ game, me, leaderboard, myId, onStart }: { game: GameProp; me: MeState; leaderboard: Leaderboard; myId: number | null; onStart: () => void }) {
     const meta = GAME_META[game.gameType];
@@ -928,33 +966,30 @@ function IntroScreen({ game, me, leaderboard, myId, onStart }: { game: GameProp;
     const countdown = useCountdown(locked ? me.nextResetAt : null);
 
     return (
-        <div className="mx-auto grid w-full max-w-3xl gap-5 lg:grid-cols-2">
-            <div className="rounded-3xl bg-white/5 p-6 text-center ring-1 ring-white/10 sm:p-8">
-                <div className="mb-3 text-5xl">{meta.icon}</div>
-                <h1 className="text-2xl font-extrabold text-white">{game.title}</h1>
-                <p className="mt-1 text-sm text-white/60">{meta.label}</p>
-                {game.description && <p className="mt-3 text-sm text-white/70">{game.description}</p>}
+        <div className="mx-auto grid w-full max-w-4xl gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+            <section className="rounded-4xl bg-white/5 p-6 text-center ring-1 ring-white/10 sm:p-9">
+                <GameEmblem gameType={game.gameType} />
+                <p className="mt-5 text-sm font-bold text-violet-300">{meta.label}</p>
+                <h1 className="mt-1 font-display text-[clamp(1.75rem,4vw,2.5rem)] leading-tight font-extrabold tracking-[-0.03em] text-white">{game.title}</h1>
+                {game.description && <p className="mx-auto mt-3 max-w-[42ch] text-white/70">{game.description}</p>}
 
-                <div className="mt-5 flex flex-wrap justify-center gap-2 text-sm">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 font-semibold text-white"><Trophy className="h-4 w-4 text-amber-400" />{game.points} pts</span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 font-semibold text-white"><LivesPips remaining={me.livesRemaining} total={me.livesTotal} /></span>
-                    {me.bestScore !== null && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 font-semibold text-white">Best {me.bestScore} · {formatTime(me.bestTime)}</span>
-                    )}
+                <div className="mt-6 flex flex-wrap justify-center gap-2">
+                    <StatChip><Trophy className="text-amber-400" />{game.points} pts</StatChip>
+                    <StatChip><LivesPips remaining={me.livesRemaining} total={me.livesTotal} /></StatChip>
+                    {me.bestScore !== null && <StatChip>Best {me.bestScore} · {formatTime(me.bestTime)}</StatChip>}
                 </div>
 
-                {locked ? (
-                    <div className="mt-6 rounded-2xl bg-rose-500/15 p-4 ring-1 ring-rose-400/30">
-                        <p className="flex items-center justify-center gap-2 text-sm font-bold text-rose-300"><Lock className="h-4 w-4" />Out of lives</p>
-                        <p className="mt-1 text-xs text-white/60">{countdown ? <>Next life in <span className="font-mono font-bold text-white">{countdown}</span></> : 'Refreshing…'}</p>
-                    </div>
-                ) : (
-                    <Button onClick={onStart} className="mt-6 h-12 w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-base font-bold hover:from-violet-500 hover:to-fuchsia-500">
-                        Start Game
-                    </Button>
-                )}
-                <p className="mt-3 text-xs text-white/40">{SIMULATION_GAMES.includes(game.gameType) ? 'Your first answer at each checkpoint is the one that counts.' : 'Questions are shuffled every match.'}</p>
-            </div>
+                <div className="mt-7">
+                    {locked ? (
+                        <OutOfLives countdown={countdown} />
+                    ) : (
+                        <Button onClick={onStart} variant="play" size="lg" className="h-14 w-full text-lg">
+                            Start game
+                        </Button>
+                    )}
+                </div>
+                <p className="mt-4 text-xs font-medium text-white/50">{SIMULATION_GAMES.includes(game.gameType) ? 'Your first answer at each checkpoint is the one that counts.' : 'Questions are shuffled every match.'}</p>
+            </section>
 
             <LeaderboardPanel leaderboard={leaderboard} myId={myId} />
         </div>
@@ -968,39 +1003,27 @@ function LeaderboardScreen({ game, me, leaderboard, myId, courseId, onPlay }: { 
     const countdown = useCountdown(!canPlay ? me.nextResetAt : null);
 
     return (
-        <div className="mx-auto grid w-full max-w-3xl gap-5 lg:grid-cols-2">
-            <div className="rounded-3xl bg-white/5 p-6 text-center ring-1 ring-white/10 sm:p-8">
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-violet-500/20 px-3 py-1 text-xs font-bold text-violet-200 ring-1 ring-violet-400/40">
-                    <CheckCircle2 className="h-3.5 w-3.5" />Completed
-                </div>
-                <div className="mb-2 text-5xl">{meta.icon}</div>
-                <h1 className="text-2xl font-extrabold text-white">{game.title}</h1>
-                <p className="mt-1 text-sm text-white/60">{meta.label}</p>
+        <div className="mx-auto grid w-full max-w-4xl gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+            <section className="rounded-4xl bg-white/5 p-6 text-center ring-1 ring-white/10 sm:p-9">
+                <GameEmblem gameType={game.gameType} />
+                <p className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold text-emerald-300"><CheckCircle2 className="size-4" />Cleared · {meta.label}</p>
+                <h1 className="mt-1 font-display text-[clamp(1.75rem,4vw,2.5rem)] leading-tight font-extrabold tracking-[-0.03em] text-white">{game.title}</h1>
 
-                <div className="mt-5 flex flex-wrap justify-center gap-2 text-sm">
-                    {me.bestScore !== null && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 font-semibold text-white"><Trophy className="h-4 w-4 text-amber-400" />Best {me.bestScore} · {formatTime(me.bestTime)}</span>
-                    )}
-                    {leaderboard.me && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 font-semibold text-white"><Medal className="h-4 w-4 text-amber-400" />Rank #{leaderboard.me.rank}</span>
-                    )}
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 font-semibold text-white"><LivesPips remaining={me.livesRemaining} total={me.livesTotal} /></span>
+                <div className="mt-6 flex flex-wrap justify-center gap-2">
+                    {me.bestScore !== null && <StatChip><Trophy className="text-amber-400" />Best {me.bestScore} · {formatTime(me.bestTime)}</StatChip>}
+                    {leaderboard.me && <StatChip><Medal className="text-amber-400" />Rank {leaderboard.me.rank}</StatChip>}
+                    <StatChip><LivesPips remaining={me.livesRemaining} total={me.livesTotal} /></StatChip>
                 </div>
 
-                <div className="mt-6 flex flex-col gap-2">
+                <div className="mt-7 flex flex-col gap-2">
                     {canPlay ? (
-                        <Button onClick={onPlay} className="h-11 gap-2 bg-violet-600 hover:bg-violet-700"><RotateCcw className="h-4 w-4" />Play Again</Button>
+                        <Button onClick={onPlay} size="lg" className="w-full"><RotateCcw />Play again</Button>
                     ) : (
-                        <div className="rounded-2xl bg-rose-500/15 p-3 text-sm ring-1 ring-rose-400/30">
-                            <p className="flex items-center justify-center gap-2 font-bold text-rose-300"><Lock className="h-4 w-4" />Out of lives</p>
-                            {countdown && <p className="mt-1 text-xs text-white/60">Next life in <span className="font-mono font-bold text-white">{countdown}</span></p>}
-                        </div>
+                        <OutOfLives countdown={countdown} />
                     )}
-                    <Link href={`/my-course/${courseId}`}>
-                        <Button variant="outline" className="h-11 w-full gap-2 border-white/20 bg-transparent text-white hover:bg-white/10"><ArrowLeft className="h-4 w-4" />Back to Course</Button>
-                    </Link>
+                    <BackToCourse courseId={courseId} />
                 </div>
-            </div>
+            </section>
 
             <LeaderboardPanel leaderboard={leaderboard} myId={myId} />
         </div>
@@ -1011,7 +1034,7 @@ function LeaderboardScreen({ game, me, leaderboard, myId, courseId, onPlay }: { 
 function ResultScreen({ result, leaderboard, me, myId, courseId, onReplay }: { result: AttemptResponse; leaderboard: Leaderboard; me: MeState; myId: number | null; courseId: number; onReplay: () => void }) {
     const ratio = result.totalCount > 0 ? result.correctCount / result.totalCount : 0;
     const stars = ratio >= 0.9 ? 3 : ratio >= 0.6 ? 2 : ratio > 0 ? 1 : 0;
-    const heading = ratio >= 0.9 ? 'Outstanding! 🏆' : ratio >= 0.6 ? 'Well done! 🎉' : ratio > 0 ? 'Good effort! 💪' : 'Keep practicing! 📚';
+    const heading = ratio >= 0.9 ? 'Outstanding.' : ratio >= 0.6 ? 'Well played.' : ratio > 0 ? 'Good effort.' : 'Keep practicing.';
     const rank = leaderboard.me?.rank ?? null;
     const canReplay = me.livesRemaining === null || me.livesRemaining > 0;
     const countdown = useCountdown(!canReplay ? me.nextResetAt : null);
@@ -1025,56 +1048,50 @@ function ResultScreen({ result, leaderboard, me, myId, courseId, onReplay }: { r
     }, [stars]);
 
     return (
-        <div className="mx-auto grid w-full max-w-3xl gap-5 lg:grid-cols-2">
-            <div className="rounded-3xl bg-white/5 p-6 text-center ring-1 ring-white/10 sm:p-8">
-                <div className="mb-3 flex justify-center gap-1.5 text-4xl">
+        <div className="mx-auto grid w-full max-w-4xl gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+            <section className="rounded-4xl bg-white/5 p-6 text-center ring-1 ring-white/10 sm:p-9">
+                <div className="flex items-end justify-center gap-2" aria-label={`${stars} of 3 stars`}>
                     {[0, 1, 2].map((i) => (
-                        <span key={i} className={i < stars ? 'animate-bounce' : 'opacity-20'} style={{ animationDelay: `${i * 120}ms` }}>⭐</span>
+                        <Sparkles
+                            key={i}
+                            className={`${i === 1 ? 'size-14' : 'size-10'} ${i < stars ? 'animate-pop-in fill-amber-300 text-amber-400' : 'text-white/15'}`}
+                            style={{ animationDelay: `${i * 140}ms` }}
+                            aria-hidden
+                        />
                     ))}
                 </div>
-                <h1 className="text-2xl font-extrabold text-white">{heading}</h1>
+                <h1 className="mt-4 font-display text-[clamp(2rem,5vw,3rem)] leading-none font-extrabold tracking-[-0.035em] text-white">{heading}</h1>
+                <p className="mt-2 font-semibold text-white/70">{result.correctCount} of {result.totalCount} correct</p>
 
-                <div className="my-5 flex flex-wrap items-center justify-center gap-3">
-                    <div className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 px-5 py-3 text-white shadow-lg">
-                        <Trophy className="h-6 w-6" />
-                        <span className="text-3xl font-black tabular-nums">{result.score}</span>
-                        <span className="text-sm font-medium opacity-80">/ {result.maxScore}</span>
+                <div className="my-7 flex flex-wrap items-center justify-center gap-3">
+                    <div className="rounded-3xl bg-violet-600 px-6 py-4 text-left shadow-[0_4px_0_0_var(--color-violet-900)]">
+                        <p className="text-xs font-bold text-violet-200">Score</p>
+                        <p className="font-display text-4xl leading-none font-extrabold text-white tabular-nums">{result.score}<span className="text-lg font-bold text-violet-200"> / {result.maxScore}</span></p>
                     </div>
-                    {rank !== null && (medalFor(rank) ? (
-                        <div className={`inline-flex items-center gap-2 rounded-2xl bg-gradient-to-br px-5 py-3 shadow-lg ${medalFor(rank)!.chip}`}>
-                            <span className="text-2xl">{medalFor(rank)!.emoji}</span>
-                            <span className="text-lg font-black">{medalFor(rank)!.name}</span>
-                            <span className="text-sm font-bold opacity-70">#{rank}</span>
+                    {rank !== null && (
+                        <div className="flex items-center gap-3 rounded-3xl bg-white/10 px-5 py-4 text-left ring-1 ring-white/10">
+                            <MedalHex rank={rank} />
+                            <div>
+                                <p className="text-xs font-bold text-white/60">{medalFor(rank)?.name ?? 'Rank'}</p>
+                                <p className="font-display text-2xl leading-none font-extrabold text-white">#{rank}</p>
+                            </div>
                         </div>
-                    ) : (
-                        <div className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 text-white">
-                            <Medal className="h-6 w-6 text-amber-400" />
-                            <span className="text-2xl font-black">#{rank}</span>
-                        </div>
-                    ))}
+                    )}
                 </div>
 
-                <p className="mb-1 text-sm text-white/60">
-                    {result.correctCount} of {result.totalCount} correct
-                </p>
-                <p className="mb-5 inline-flex items-center justify-center gap-1.5 text-sm text-white/60">
-                    Lives left: <LivesPips remaining={me.livesRemaining} total={me.livesTotal} />
+                <p className="mb-6 inline-flex items-center justify-center gap-2 text-sm font-semibold text-white/70">
+                    Hearts left <LivesPips remaining={me.livesRemaining} total={me.livesTotal} />
                 </p>
 
                 <div className="flex flex-col gap-2">
                     {canReplay ? (
-                        <Button onClick={onReplay} className="h-11 gap-2 bg-violet-600 hover:bg-violet-700"><RotateCcw className="h-4 w-4" />Play Again</Button>
+                        <Button onClick={onReplay} size="lg" className="w-full"><RotateCcw />Play again</Button>
                     ) : (
-                        <div className="rounded-2xl bg-rose-500/15 p-3 text-sm ring-1 ring-rose-400/30">
-                            <p className="flex items-center justify-center gap-2 font-bold text-rose-300"><Lock className="h-4 w-4" />Out of lives</p>
-                            {countdown && <p className="mt-1 text-xs text-white/60">Next life in <span className="font-mono font-bold text-white">{countdown}</span></p>}
-                        </div>
+                        <OutOfLives countdown={countdown} />
                     )}
-                    <Link href={`/my-course/${courseId}`}>
-                        <Button variant="outline" className="h-11 w-full gap-2 border-white/20 bg-transparent text-white hover:bg-white/10"><ArrowLeft className="h-4 w-4" />Back to Course</Button>
-                    </Link>
+                    <BackToCourse courseId={courseId} />
                 </div>
-            </div>
+            </section>
 
             <LeaderboardPanel leaderboard={leaderboard} myId={myId} />
         </div>
@@ -1096,24 +1113,19 @@ function MedalPopup({ rank, onClose }: { rank: number; onClose: () => void }) {
     if (!medal) { return null; }
 
     return (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose}>
-            <div
-                className="relative w-full max-w-sm overflow-hidden rounded-3xl bg-gradient-to-b from-slate-800 to-slate-900 p-8 text-center shadow-2xl ring-1 ring-white/15"
-                onClick={(e) => e.stopPropagation()}
-                style={{ animation: 'medalPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
-            >
-                <style>{`@keyframes medalPop{0%{transform:scale(0.5);opacity:0}100%{transform:scale(1);opacity:1}}@keyframes medalSpin{0%{transform:rotate(-8deg) scale(1)}50%{transform:rotate(8deg) scale(1.08)}100%{transform:rotate(-8deg) scale(1)}}`}</style>
-                <p className="text-sm font-bold uppercase tracking-[0.3em] text-amber-300">Congratulations!</p>
-                <div className={`mx-auto mt-5 flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br text-6xl shadow-2xl ${medal.chip} ${medal.glow}`} style={{ animation: 'medalSpin 2s ease-in-out infinite' }}>
-                    {medal.emoji}
+        <Dialog open onOpenChange={(open) => { if (!open) { onClose(); } }}>
+            <DialogContent className="max-w-sm border-white/10 bg-game-night p-8 text-center text-white [&>button]:bg-white/10 [&>button]:text-white">
+                <p className="text-sm font-bold text-amber-300">New medal</p>
+                <div className="animate-pop-in mx-auto mt-5 drop-shadow-[0_20px_30px_rgba(251,191,36,0.35)]">
+                    <MedalHex rank={rank} size="lg" />
                 </div>
-                <h1 className="mt-6 text-3xl font-extrabold text-white">{medal.name} Medal!</h1>
-                <p className="mt-2 text-sm text-white/70">You reached <span className="font-bold text-white">rank #{rank}</span> on the leaderboard. Keep it up! 🎉</p>
-                <Button onClick={onClose} className={`mt-6 h-12 w-full bg-gradient-to-r text-base font-bold ${medal.chip}`}>
-                    Awesome!
-                </Button>
-            </div>
-        </div>
+                <DialogTitle className="mt-6 text-3xl font-extrabold text-white">{medal.name} medal</DialogTitle>
+                <DialogDescription className="text-white/75">
+                    You reached <span className="font-bold text-white">rank {rank}</span> on the class board.
+                </DialogDescription>
+                <Button onClick={onClose} variant="play" size="lg" className="mt-2 w-full">Keep going</Button>
+            </DialogContent>
+        </Dialog>
     );
 }
 
@@ -1244,49 +1256,49 @@ export default function GamePlay() {
     };
 
     return (
-        <div className="min-h-svh bg-gradient-to-br from-slate-900 via-violet-950 to-slate-900">
+        <div className="min-h-svh bg-game-night">
             <Head title={`${game.title} — Game`} />
 
             <header className="flex items-center justify-between gap-3 px-4 py-4 sm:px-6">
-                <Link href={`/my-course/${game.courseId}`} className="inline-flex items-center gap-1.5 text-sm font-medium text-white/70 transition hover:text-white">
-                    <ArrowLeft className="h-4 w-4" />Exit
+                <Link href={`/my-course/${game.courseId}`} className="inline-flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white">
+                    <ArrowLeft className="size-4" />Exit
                 </Link>
                 {phase === 'playing' ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-sm font-bold tabular-nums text-white">
-                        <Clock className="h-3.5 w-3.5" />{formatTime(elapsed)}
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-1.5 text-sm font-bold text-white tabular-nums ring-1 ring-white/10" aria-label="Time elapsed">
+                        <Clock className="size-4" />{formatTime(elapsed)}
                     </span>
                 ) : (
-                    <div className="flex items-center gap-2 text-white">
-                        <span className="text-lg">{meta.icon}</span>
-                        <span className="text-sm font-bold sm:text-base">{game.title}</span>
+                    <div className="flex min-w-0 items-center gap-2 text-white">
+                        <meta.icon className="size-5 shrink-0 text-violet-300" />
+                        <span className="truncate font-display text-base font-bold">{game.title}</span>
                     </div>
                 )}
                 <div className="flex items-center gap-2">
                     <button
                         onClick={toggleMute}
                         aria-label={muted ? 'Unmute' : 'Mute'}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 hover:text-white"
+                        className="inline-flex size-10 items-center justify-center rounded-xl bg-white/10 text-white/80 transition hover:bg-white/20 hover:text-white"
                     >
                         {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                     </button>
-                    <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white">
+                    <span className="inline-flex h-10 items-center gap-2 rounded-xl bg-white/10 px-3 text-xs font-bold text-white">
                         <LivesPips remaining={me.livesRemaining} total={me.livesTotal} />
                     </span>
                 </div>
             </header>
 
             {isPreview && (
-                <div className="flex items-center justify-center gap-2 border-y border-amber-400/30 bg-amber-400/10 px-4 py-2 text-center text-xs font-semibold text-amber-200">
-                    <Eye className="h-3.5 w-3.5 shrink-0" />
-                    Preview mode — you're testing this game as an instructor. Your scores won't appear on the student leaderboard.
+                <div className="flex items-center justify-center gap-2 border-y border-amber-400/25 bg-amber-400/10 px-4 py-2 text-center text-xs font-semibold text-amber-200">
+                    <Eye className="size-4 shrink-0" />
+                    Preview mode. You're testing this game as an instructor, so your scores won't appear on the student leaderboard.
                 </div>
             )}
 
             <main className="flex min-h-[calc(100svh-72px)] items-center justify-center px-4 py-6 sm:px-6">
                 {submitting ? (
                     <div className="text-center text-white/80">
-                        <Sparkles className="mx-auto mb-3 h-10 w-10 animate-pulse" />
-                        <p className="text-sm font-medium">Tallying your score…</p>
+                        <Sparkles className="mx-auto mb-3 size-10 animate-pulse text-amber-300" />
+                        <p className="font-display text-lg font-bold">Tallying your score…</p>
                     </div>
                 ) : game.items.length === 0 ? (
                     <div className="text-center text-white/70"><p className="text-sm">This game has no questions yet.</p></div>

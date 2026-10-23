@@ -143,7 +143,7 @@ export default function WaveTank({ items, onFinish }: WaveTankProps) {
     const last = finished[finished.length - 1];
 
     const continueButton = (
-        <Button onClick={next} className="h-11 bg-violet-600 font-bold text-white hover:bg-violet-700">
+        <Button onClick={next} className="h-12 w-full text-base">
             Continue <ArrowRight className="h-4 w-4" />
         </Button>
     );
@@ -153,7 +153,7 @@ export default function WaveTank({ items, onFinish }: WaveTankProps) {
             type="button"
             disabled={running}
             onClick={() => send(run)}
-            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-base font-extrabold text-white shadow-lg transition active:scale-[0.98] disabled:opacity-60"
+            className="pressable flex h-14 items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-amber-500 to-orange-600 text-base font-extrabold text-white [--press:var(--color-orange-800)] hover:brightness-105 disabled:opacity-60"
         >
             <Waves className="h-5 w-5" />
             {running ? 'Wave travelling…' : label}
@@ -228,14 +228,14 @@ export default function WaveTank({ items, onFinish }: WaveTankProps) {
                                 { label: 'Run with the station near', met: near },
                                 { label: 'Run with the station far', met: far },
                             ].map((goal) => (
-                                <li key={goal.label} className={`flex items-center gap-2 text-sm font-medium ${goal.met ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-600 dark:text-gray-300'}`}>
+                                <li key={goal.label} className={`flex items-center gap-2 text-sm font-medium ${goal.met ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
                                     {goal.met ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <Circle className="h-4 w-4 shrink-0" />}
                                     {goal.label}
                                 </li>
                             ))}
                         </ul>
                         <label className="block">
-                            <span className="mb-1 flex items-center justify-between text-xs font-bold text-gray-600 dark:text-gray-300">
+                            <span className="mb-1 flex items-center justify-between text-xs font-bold text-muted-foreground">
                                 <span>Station distance</span>
                                 <span>{station <= 0.3 ? 'Near' : station >= 0.7 ? 'Far' : 'Middle'}</span>
                             </span>
@@ -252,14 +252,14 @@ export default function WaveTank({ items, onFinish }: WaveTankProps) {
                                     setStation(value);
                                     scene.current?.configure({ ...RACE, station: value });
                                 }}
-                                className="w-full accent-violet-600 disabled:opacity-50"
+                                className="h-2 w-full cursor-pointer accent-violet-600 disabled:opacity-50"
                             />
                         </label>
                         {sendButton('Start the race', { ...RACE, station })}
                         {finished.length > 0 && (
                             <table className="w-full text-left text-xs">
                                 <thead>
-                                    <tr className="text-gray-500 dark:text-gray-400">
+                                    <tr className="text-muted-foreground">
                                         <th className="py-1 font-semibold">Station</th>
                                         <th className="py-1 font-semibold">P arrives</th>
                                         <th className="py-1 font-semibold">S arrives</th>
@@ -289,13 +289,13 @@ export default function WaveTank({ items, onFinish }: WaveTankProps) {
                         <StepHeading eyebrow="Waves tested" title="What you found out" />
                         <ul className="flex flex-col gap-2">
                             {TAKEAWAYS.map((line) => (
-                                <li key={line} className="flex items-start gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+                                <li key={line} className="flex items-start gap-2 text-sm font-medium text-foreground/85">
                                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
                                     {line}
                                 </li>
                             ))}
                         </ul>
-                        <Button onClick={() => onFinish(answers)} className="h-11 bg-violet-600 font-bold text-white hover:bg-violet-700">
+                        <Button onClick={() => onFinish(answers)} className="h-12 w-full text-base">
                             See my score <ArrowRight className="h-4 w-4" />
                         </Button>
                     </div>

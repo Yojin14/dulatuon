@@ -84,7 +84,7 @@ export default function CourseShow() {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
                 <Head title="Course Not Found" />
-                <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-6">
+                <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-8 flex flex-1 flex-col gap-6 py-8">
                     <div className="flex h-64 items-center justify-center">
                         <div className="text-center">
                             <BookOpen className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
@@ -111,7 +111,7 @@ export default function CourseShow() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`${course.title} - Course Details`} />
-            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-6">
+            <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-8 flex flex-1 flex-col gap-6 py-8">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
@@ -124,10 +124,10 @@ export default function CourseShow() {
                             Back to Courses
                         </Button>
                         <div>
-                            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+                            <h1 className="text-3xl font-bold tracking-tight text-foreground">
                                 {course.title}
                             </h1>
-                            <p className="mt-1 text-gray-600 dark:text-gray-300">
+                            <p className="mt-1 text-muted-foreground">
                                 by {(course as any).teachers?.[0]?.name ?? 'No instructor'}
                             </p>
                         </div>
@@ -162,7 +162,7 @@ export default function CourseShow() {
                         {/* Course Overview */}
                         <Card className="border-2 transition-all duration-300 hover:border-green-600 hover:shadow-lg dark:hover:border-green-400">
                             <CardHeader>
-                                <CardTitle className="text-gray-900 dark:text-white">
+                                <CardTitle className="text-foreground">
                                     Course Overview
                                 </CardTitle>
                             </CardHeader>
@@ -202,7 +202,7 @@ export default function CourseShow() {
                                                         key={index}
                                                         className="flex items-start space-x-2"
                                                     >
-                                                        <BookOpen className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-500" />
+                                                        <BookOpen className="mt-0.5 h-4 w-4 flex-shrink-0 text-violet-500" />
                                                         <span>
                                                             {prerequisite}
                                                         </span>
@@ -218,7 +218,7 @@ export default function CourseShow() {
                         {/* Course Modules */}
                         <Card className="border-2 transition-all duration-300 hover:border-green-600 hover:shadow-lg dark:hover:border-green-400">
                             <CardHeader>
-                                <CardTitle className="text-gray-900 dark:text-white">
+                                <CardTitle className="text-foreground">
                                     Course Modules
                                 </CardTitle>
                                 <CardDescription>
@@ -234,11 +234,11 @@ export default function CourseShow() {
                                         >
                                             <div className="flex-1 space-y-2">
                                                 <div className="flex items-center space-x-3">
-                                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30">
+                                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30">
                                                         <BookOpen className="h-5 w-5 text-green-700 dark:text-green-400" />
                                                     </div>
                                                     <div>
-                                                        <h3 className="font-semibold text-gray-900 dark:text-white">
+                                                        <h3 className="font-semibold text-foreground">
                                                             {module.title}
                                                         </h3>
                                                         <p className="text-sm text-muted-foreground">
@@ -307,7 +307,7 @@ export default function CourseShow() {
                         {/* Course Stats */}
                         <Card className="border-2 transition-all duration-300 hover:border-green-600 hover:shadow-lg dark:hover:border-green-400">
                             <CardHeader>
-                                <CardTitle className="text-gray-900 dark:text-white">
+                                <CardTitle className="text-foreground">
                                     Course Statistics
                                 </CardTitle>
                             </CardHeader>
@@ -361,7 +361,7 @@ export default function CourseShow() {
                         {/* Course Info */}
                         <Card className="border-2 transition-all duration-300 hover:border-green-600 hover:shadow-lg dark:hover:border-green-400">
                             <CardHeader>
-                                <CardTitle className="text-gray-900 dark:text-white">
+                                <CardTitle className="text-foreground">
                                     Course Information
                                 </CardTitle>
                             </CardHeader>

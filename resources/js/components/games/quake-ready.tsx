@@ -171,7 +171,7 @@ export default function QuakeReady({ items, onFinish }: QuakeReadyProps) {
 
     const checklist = (title: string, entries: { id: Findable; label: string }[]) => (
         <div>
-            <p className="mb-1 text-xs font-bold text-gray-600 dark:text-gray-300">
+            <p className="mb-1 text-xs font-bold text-muted-foreground">
                 {title} · {entries.filter((entry) => found.includes(entry.id)).length} of {entries.length}
             </p>
             <ul className="flex flex-col gap-1">
@@ -179,7 +179,7 @@ export default function QuakeReady({ items, onFinish }: QuakeReadyProps) {
                     const done = found.includes(entry.id);
 
                     return (
-                        <li key={entry.id} className={`flex items-center gap-2 text-sm font-medium ${done ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                        <li key={entry.id} className={`flex items-center gap-2 text-sm font-medium ${done ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground/80'}`}>
                             {done ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <Circle className="h-4 w-4 shrink-0" />}
                             {done || timeUp ? entry.label : '?'}
                         </li>
@@ -190,7 +190,7 @@ export default function QuakeReady({ items, onFinish }: QuakeReadyProps) {
     );
 
     const continueButton = (label: string, onClick: () => void) => (
-        <Button onClick={onClick} className="h-11 bg-violet-600 font-bold text-white hover:bg-violet-700">
+        <Button onClick={onClick} className="h-12 w-full text-base">
             {label} <ArrowRight className="h-4 w-4" />
         </Button>
     );
@@ -239,7 +239,7 @@ export default function QuakeReady({ items, onFinish }: QuakeReadyProps) {
                             {actions.map((action, index) => (
                                 <li
                                     key={action}
-                                    className={`flex items-center gap-2 text-sm font-semibold ${index < stage || (index === 2 && holdDone) ? 'text-emerald-600 dark:text-emerald-400' : index === stage ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}
+                                    className={`flex items-center gap-2 text-sm font-semibold ${index < stage || (index === 2 && holdDone) ? 'text-emerald-600 dark:text-emerald-400' : index === stage ? 'text-foreground' : 'text-muted-foreground/80'}`}
                                 >
                                     {index < stage || (index === 2 && holdDone) ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <Circle className="h-4 w-4 shrink-0" />}
                                     {action}
@@ -248,7 +248,7 @@ export default function QuakeReady({ items, onFinish }: QuakeReadyProps) {
                         </ol>
 
                         {message && (
-                            <p className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                            <p className="flex animate-pop-in items-start gap-2.5 rounded-2xl bg-amber-50 p-3.5 text-sm font-medium text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
                                 <Lightbulb className="mt-0.5 h-4 w-4 shrink-0" />
                                 {message}
                             </p>
@@ -277,7 +277,7 @@ export default function QuakeReady({ items, onFinish }: QuakeReadyProps) {
                                     onKeyUp={() => setHolding(false)}
                                     onBlur={() => setHolding(false)}
                                     onContextMenu={(event) => event.preventDefault()}
-                                    className="flex h-14 touch-none items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-base font-extrabold text-white shadow-lg transition select-none active:scale-[0.98]"
+                                    className="flex h-14 touch-none items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-amber-500 to-orange-600 text-base font-extrabold text-white shadow-lg transition select-none active:scale-[0.98]"
                                 >
                                     <Hand className="h-5 w-5" />
                                     Hold on
@@ -323,7 +323,7 @@ export default function QuakeReady({ items, onFinish }: QuakeReadyProps) {
             case 'question':
                 return (
                     <div className="flex flex-col gap-3">
-                        <p className="text-xs font-bold tracking-wider text-violet-600 uppercase dark:text-violet-300">{step.eyebrow}</p>
+                        <p className="text-eyebrow text-violet-600 dark:text-violet-300">{step.eyebrow}</p>
                         <QuestionCard
                             key={`question-${step.item}`}
                             item={items[step.item]}
@@ -343,13 +343,13 @@ export default function QuakeReady({ items, onFinish }: QuakeReadyProps) {
                         <StepHeading eyebrow="Quake ready" title="What to remember" />
                         <ul className="flex flex-col gap-2">
                             {TAKEAWAYS.map((line) => (
-                                <li key={line} className="flex items-start gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+                                <li key={line} className="flex items-start gap-2 text-sm font-medium text-foreground/85">
                                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
                                     {line}
                                 </li>
                             ))}
                         </ul>
-                        <Button onClick={() => onFinish(answers)} className="h-11 bg-violet-600 font-bold text-white hover:bg-violet-700">
+                        <Button onClick={() => onFinish(answers)} className="h-12 w-full text-base">
                             See my score <ArrowRight className="h-4 w-4" />
                         </Button>
                     </div>

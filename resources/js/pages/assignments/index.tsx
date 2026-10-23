@@ -1,4 +1,3 @@
-import { PORTAL_GRADIENT } from '@/components/dashboards/shared';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,6 +14,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { PageHeader } from '@/components/page-header';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
@@ -33,6 +33,10 @@ import {
     Trash2,
     Users,
     XCircle,
+    FolderOpen,
+    Laptop,
+    HelpCircle,
+    PenLine,
 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -126,15 +130,15 @@ export default function AssignmentsIndex() {
     const getTypeIcon = (type: string) => {
         switch (type) {
             case 'project':
-                return '📁';
+                return FolderOpen;
             case 'coding':
-                return '💻';
+                return Laptop;
             case 'report':
-                return '📄';
+                return FileText;
             case 'quiz':
-                return '❓';
+                return HelpCircle;
             default:
-                return '📝';
+                return PenLine;
         }
     };
 
@@ -161,7 +165,7 @@ export default function AssignmentsIndex() {
                 } else {
                     return {
                         status: 'pending',
-                        color: 'text-blue-600',
+                        color: 'text-violet-600',
                         icon: Clock,
                     };
                 }
@@ -192,24 +196,15 @@ export default function AssignmentsIndex() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Assignments" />
-            <div className="min-h-full bg-white dark:bg-gray-950">
+            <div className="min-h-full pb-10">
 
                 {/* Header */}
-                <div className="px-4 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8" style={{ background: PORTAL_GRADIENT }}>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-yellow-300/80">
-                        {user.role === 'student' ? 'Student Portal' : 'Teacher Portal'}
-                    </p>
-                    <h1 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">
-                        {user.role === 'student' ? 'My Assignments' : 'Assignments'}
-                    </h1>
-                    <p className="mt-1 text-sm text-blue-200/50">
-                        {user.role === 'student'
-                            ? 'Track your assignment submissions and grades'
-                            : 'Manage course assignments and review submissions'}
-                    </p>
-                </div>
+                <PageHeader
+                    title={user.role === 'student' ? 'My assignments' : 'Assignments'}
+                    description={user.role === 'student' ? 'Track your submissions and grades.' : 'Manage course assignments and review submissions.'}
+                />
 
-                <div className="space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+                <div className="mx-auto w-full max-w-[1600px] space-y-8 px-5 py-8 sm:px-8">
 
                 {/* Toolbar */}
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -230,7 +225,7 @@ export default function AssignmentsIndex() {
                             Filters
                         </Button>
                         {canCreateAssignment && (
-                            <Button size="sm" className="bg-blue-900 hover:bg-blue-800">
+                            <Button size="sm" className="bg-violet-900 hover:bg-violet-800">
                                 <Plus className="mr-2 h-4 w-4" />
                                 Create Assignment
                             </Button>
@@ -253,9 +248,14 @@ export default function AssignmentsIndex() {
                                 <CardHeader className="pb-3">
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-center space-x-3">
-                                            <div className="text-2xl">
-                                                {getTypeIcon(assignment.type)}
-                                            </div>
+                                            {(() => {
+                                                const TypeIcon = getTypeIcon(assignment.type);
+                                                return (
+                                                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
+                                                        <TypeIcon className="size-5" />
+                                                    </span>
+                                                );
+                                            })()}
                                             <div>
                                                 <CardTitle className="text-lg">
                                                     {assignment.title}

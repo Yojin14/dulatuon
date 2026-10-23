@@ -12,7 +12,7 @@ export default function TextLink({
     return (
         <Link
             className={cn(
-                'text-blue-600 underline decoration-blue-300 underline-offset-4 transition-colors duration-300 ease-out hover:text-blue-800 hover:decoration-current! dark:text-blue-400 dark:decoration-blue-700 dark:hover:text-blue-300',
+                'font-bold text-primary underline decoration-primary/30 underline-offset-4 transition-colors duration-200 ease-out hover:decoration-current! dark:text-violet-300',
                 className,
             )}
             {...props}

@@ -1,7 +1,7 @@
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import { send } from '@/routes/verification';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Transition } from '@headlessui/react';
+import { CheckCircle2 } from 'lucide-react';
 import { Form, Head, Link, usePage } from '@inertiajs/react';
 
 import DeleteUser from '@/components/delete-user';
@@ -124,17 +124,12 @@ export default function Profile({
                                         Save
                                     </Button>
 
-                                    <Transition
-                                        show={recentlySuccessful}
-                                        enter="transition ease-in-out"
-                                        enterFrom="opacity-0"
-                                        leave="transition ease-in-out"
-                                        leaveTo="opacity-0"
-                                    >
-                                        <p className="text-sm text-neutral-600">
+                                    {recentlySuccessful && (
+                                        <p className="animate-pop-in inline-flex items-center gap-1.5 text-sm font-bold text-emerald-700 dark:text-emerald-400" role="status">
+                                            <CheckCircle2 className="size-4" />
                                             Saved
                                         </p>
-                                    </Transition>
+                                    )}
                                 </div>
                             </>
                         )}

@@ -1,5 +1,4 @@
 @import 'tailwindcss';
-@import './sweetalert2-custom.css';
 
 @plugin 'tailwindcss-animate';
 
@@ -33,14 +32,35 @@ html[data-text-scale='extra-large'] { font-size: 125%;   }  /* 20px */
 
 @theme {
     --font-sans:
-        'Inter', ui-sans-serif, system-ui, sans-serif,
+        'Figtree', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
-    --font-heading: 'Lora', Georgia, 'Times New Roman', serif;
+    --font-display: 'Bricolage Grotesque', 'Figtree', ui-sans-serif, system-ui, sans-serif;
+    --font-heading: var(--font-display);
 
     --radius-lg: var(--radius);
-    --radius-md: calc(var(--radius) - 2px);
-    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 4px);
+    --radius-sm: calc(var(--radius) - 8px);
+
+    /* World palette — sampled from the three.js low-poly simulations */
+    --color-sky: #7dd3fc;
+    --color-sky-soft: #e0f2fe;
+    --color-sand: #fef3c7;
+    --color-grass: #38a352;
+    --color-grass-deep: #2f8f46;
+    --color-earth: #a0703f;
+    --color-earth-mid: #7b4a2a;
+    --color-earth-deep: #55301c;
+    --color-xp: #fbbf24;
+    --color-play-from: #f97316;
+    --color-play-to: #ef4444;
+    --color-night: #0f172a;
+    --color-night-violet: #2e1065;
+
+    --shadow-press: 0 4px 0 0 var(--press, rgb(15 23 42 / 0.18));
+    --shadow-press-sm: 0 2px 0 0 var(--press, rgb(15 23 42 / 0.18));
+    --shadow-panel: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -12px rgb(15 23 42 / 0.12);
+    --shadow-float: 0 24px 48px -20px rgb(46 16 101 / 0.35);
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -86,76 +106,79 @@ html[data-text-scale='extra-large'] { font-size: 125%;   }  /* 20px */
     --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* Day — bright low-poly "toy world" workspace */
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
+    --background: oklch(0.982 0.008 240);
+    --foreground: oklch(0.208 0.042 265.755);
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
+    --card-foreground: oklch(0.208 0.042 265.755);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.208 0.042 265.755);
+    --primary: oklch(0.541 0.281 293.009);
+    --primary-foreground: oklch(0.99 0 0);
+    --secondary: oklch(0.962 0.018 293);
+    --secondary-foreground: oklch(0.38 0.18 292);
+    --muted: oklch(0.968 0.007 247.896);
+    --muted-foreground: oklch(0.446 0.043 257.281);
+    --accent: oklch(0.969 0.016 293.756);
+    --accent-foreground: oklch(0.491 0.27 292.581);
     --destructive: oklch(0.577 0.245 27.325);
     --destructive-foreground: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.87 0 0);
-    --chart-1: oklch(0.646 0.222 41.116);
-    --chart-2: oklch(0.6 0.118 184.704);
-    --chart-3: oklch(0.398 0.07 227.392);
-    --chart-4: oklch(0.828 0.189 84.429);
-    --chart-5: oklch(0.769 0.188 70.08);
-    --radius: 0.625rem;
-    /* Light sidebar — calm slate text, brand blue reserved for active/hover */
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.45 0.02 264);
-    --sidebar-primary: oklch(0.50 0.16 264);
+    --border: oklch(0.929 0.013 255.508);
+    --input: oklch(0.9 0.016 255);
+    --ring: oklch(0.606 0.25 292.717);
+    --chart-1: oklch(0.541 0.281 293.009);
+    --chart-2: oklch(0.746 0.16 232.661);
+    --chart-3: oklch(0.627 0.17 149.214);
+    --chart-4: oklch(0.795 0.184 86.047);
+    --chart-5: oklch(0.705 0.213 47.604);
+    --radius: 1rem;
+    --press: oklch(0.38 0.2 292);
+    --sidebar: oklch(1 0 0);
+    --sidebar-foreground: oklch(0.372 0.044 257.287);
+    --sidebar-primary: oklch(0.541 0.281 293.009);
     --sidebar-primary-foreground: oklch(0.99 0 0);
-    --sidebar-accent: oklch(0.95 0.03 264);
-    --sidebar-accent-foreground: oklch(0.48 0.17 264);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.62 0.15 264);
+    --sidebar-accent: oklch(0.962 0.018 293);
+    --sidebar-accent-foreground: oklch(0.432 0.232 292.759);
+    --sidebar-border: oklch(0.929 0.013 255.508);
+    --sidebar-ring: oklch(0.606 0.25 292.717);
 }
 
+/* Night — the violet "game mode" from the simulation pages */
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.145 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.145 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.396 0.141 25.723);
-    --destructive-foreground: oklch(0.637 0.237 25.331);
-    --border: oklch(0.269 0 0);
-    --input: oklch(0.269 0 0);
-    --ring: oklch(0.439 0 0);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.70 0.02 264);
-    --sidebar-primary: oklch(0.70 0.14 264);
+    --background: oklch(0.165 0.035 284);
+    --foreground: oklch(0.968 0.01 290);
+    --card: oklch(0.215 0.045 286);
+    --card-foreground: oklch(0.968 0.01 290);
+    --popover: oklch(0.225 0.048 286);
+    --popover-foreground: oklch(0.968 0.01 290);
+    --primary: oklch(0.606 0.25 292.717);
+    --primary-foreground: oklch(0.99 0 0);
+    --secondary: oklch(0.28 0.06 290);
+    --secondary-foreground: oklch(0.92 0.04 293);
+    --muted: oklch(0.26 0.045 287);
+    --muted-foreground: oklch(0.76 0.03 290);
+    --accent: oklch(0.3 0.08 292);
+    --accent-foreground: oklch(0.894 0.057 293.283);
+    --destructive: oklch(0.637 0.237 25.331);
+    --destructive-foreground: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 0.1);
+    --input: oklch(1 0 0 / 0.15);
+    --ring: oklch(0.702 0.183 293.541);
+    --chart-1: oklch(0.702 0.183 293.541);
+    --chart-2: oklch(0.828 0.111 230.318);
+    --chart-3: oklch(0.792 0.209 151.711);
+    --chart-4: oklch(0.852 0.199 91.936);
+    --chart-5: oklch(0.75 0.183 55.934);
+    --press: oklch(0.32 0.16 292);
+    --sidebar: oklch(0.19 0.042 285);
+    --sidebar-foreground: oklch(0.8 0.03 290);
+    --sidebar-primary: oklch(0.606 0.25 292.717);
     --sidebar-primary-foreground: oklch(0.99 0 0);
-    --sidebar-accent: oklch(0.27 0.05 264);
-    --sidebar-accent-foreground: oklch(0.85 0.10 264);
-    --sidebar-border: oklch(0.269 0 0);
-    --sidebar-ring: oklch(0.62 0.15 264);
+    --sidebar-accent: oklch(0.27 0.07 291);
+    --sidebar-accent-foreground: oklch(0.92 0.05 293);
+    --sidebar-border: oklch(1 0 0 / 0.08);
+    --sidebar-ring: oklch(0.702 0.183 293.541);
 }
 
 @layer base {
@@ -165,13 +188,61 @@ html[data-text-scale='extra-large'] { font-size: 125%;   }  /* 20px */
 
     body {
         @apply bg-background text-foreground;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    h1, h2, h3 {
+        font-family: var(--font-display);
+        letter-spacing: -0.02em;
+    }
+
+    button:not(:disabled), [role='button']:not([aria-disabled='true']), a[href] {
+        cursor: pointer;
     }
 }
 
-/* Lora only on top-level headings — h3 and below stay Inter */
-h1, h2 {
-    font-family: var(--font-heading);
-    letter-spacing: -0.01em;
+/* World surfaces — reuse the simulation stage gradient and the night page */
+@utility bg-world-sky {
+    background-image: linear-gradient(180deg, var(--color-sky) 0%, var(--color-sky-soft) 55%, var(--color-sand) 100%);
+}
+@utility bg-game-night {
+    background-image: linear-gradient(135deg, var(--color-night) 0%, var(--color-night-violet) 55%, var(--color-night) 100%);
+}
+@utility bg-play {
+    background-image: linear-gradient(90deg, var(--color-play-from), var(--color-play-to));
+}
+@utility text-eyebrow {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* Pressable "block" depth — solid bottom edge that compresses on press */
+/* --press is read on the element itself, so each variant can set its own edge colour. */
+@utility pressable {
+    box-shadow: 0 3px 0 0 var(--press, rgb(15 23 42 / 0.18));
+    transition: transform 120ms ease-out, box-shadow 120ms ease-out, background-color 150ms ease-out, filter 150ms ease-out;
+    &:active:not(:disabled) {
+        transform: translateY(2px);
+        box-shadow: 0 1px 0 0 var(--press, rgb(15 23 42 / 0.18));
+    }
+}
+
+@keyframes pop-in {
+    0% { opacity: 0; transform: scale(0.92); }
+    60% { opacity: 1; transform: scale(1.03); }
+    100% { opacity: 1; transform: scale(1); }
+}
+@keyframes float-y {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+.animate-pop-in { animation: pop-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.animate-float { animation: float-y 4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+    .animate-pop-in, .animate-float { animation: none; }
 }
 
 @keyframes stroke-draw {
@@ -231,7 +302,7 @@ h1, h2 {
 .rte-content p,
 .rte-render p { margin: 0.25rem 0; }
 .rte-content a,
-.rte-render a { color: var(--color-blue-600, #2563eb); text-decoration: underline; }
+.rte-render a { color: var(--color-primary); text-decoration: underline; }
 .rte-content strong,
 .rte-render strong { font-weight: 700; }
 .rte-content em,
@@ -239,3 +310,33 @@ h1, h2 {
 .rte-content u,
 .rte-render u { text-decoration: underline; }
 .rte-render { font-size: 0.875rem; line-height: 1.625; color: var(--color-gray-700, #374151); }
+
+/* Flipbook pages: paper, readable body type and the page-turn leaf */
+.flipbook-paper { background: #fffdf8; color: #1f2937; }
+.dark .flipbook-paper { background: #1c1b22; color: #e5e7eb; }
+.flipbook-prose { font-size: 1rem; line-height: 1.7; text-wrap: pretty; }
+.flipbook-prose p { margin: 0 0 0.75rem; }
+.flipbook-prose ul { list-style: disc; padding-left: 1.4rem; margin: 0 0 0.75rem; }
+.flipbook-prose ol { list-style: decimal; padding-left: 1.4rem; margin: 0 0 0.75rem; }
+.flipbook-prose li { margin: 0.25rem 0; }
+.flipbook-prose strong, .flipbook-prose b { font-weight: 700; }
+.flipbook-prose em, .flipbook-prose i { font-style: italic; }
+.flipbook-prose u { text-decoration: underline; }
+.flipbook-prose a { color: var(--color-primary); text-decoration: underline; }
+.flipbook-prose > :last-child { margin-bottom: 0; }
+
+.flipbook-stage { perspective: 2400px; }
+.flipbook-leaf { transform-style: preserve-3d; will-change: transform; }
+.flipbook-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.flipbook-face-back { transform: rotateY(180deg); }
+@keyframes flipbook-turn-next { from { transform: rotateY(0deg); } to { transform: rotateY(-180deg); } }
+@keyframes flipbook-turn-prev { from { transform: rotateY(0deg); } to { transform: rotateY(180deg); } }
+@keyframes flipbook-turn-in { from { transform: rotateY(-180deg); } to { transform: rotateY(0deg); } }
+.flipbook-leaf[data-turn='next'] { transform-origin: left center; animation: flipbook-turn-next 620ms cubic-bezier(0.45, 0.05, 0.25, 1) forwards; }
+.flipbook-leaf[data-turn='prev'] { transform-origin: right center; animation: flipbook-turn-prev 620ms cubic-bezier(0.45, 0.05, 0.25, 1) forwards; }
+.flipbook-leaf[data-turn='in'] { transform-origin: left center; animation: flipbook-turn-in 620ms cubic-bezier(0.45, 0.05, 0.25, 1) forwards; }
+.flipbook-leaf .flipbook-shade { animation: flipbook-shade 620ms ease-in-out forwards; }
+@keyframes flipbook-shade { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+    .flipbook-leaf[data-turn] { animation-duration: 1ms; }
+}

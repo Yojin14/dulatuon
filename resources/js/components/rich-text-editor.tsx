@@ -53,7 +53,7 @@ export function RichTextEditor({ value, onChange, placeholder, editable = true }
                 link: {
                     openOnClick: false,
                     autolink: true,
-                    HTMLAttributes: { class: 'text-blue-600 underline dark:text-blue-400' },
+                    HTMLAttributes: { class: 'text-violet-600 underline dark:text-violet-400' },
                 },
             }),
         ],
@@ -112,7 +112,7 @@ export function RichTextEditor({ value, onChange, placeholder, editable = true }
     }
 
     return (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
             <div className="flex flex-wrap items-center gap-0.5 border-b border-gray-100 bg-gray-50/60 px-2 py-1.5 dark:border-gray-800 dark:bg-gray-900/60">
                 <ToolbarButton label="Bold (Ctrl+B)" active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
                     <Bold className="h-4 w-4" />

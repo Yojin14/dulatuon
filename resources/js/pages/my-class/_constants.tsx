@@ -1,11 +1,12 @@
-import { File, FileText, PlayCircle, Video } from 'lucide-react';
+import { BookOpen, File, FileText, PlayCircle, Video } from 'lucide-react';
 import type { ContentType } from './_types';
 
 export const CONTENT_META: Record<ContentType, { label: string; icon: React.ReactNode; badge: string }> = {
     pdf:     { label: 'PDF',     icon: <FileText className="h-3.5 w-3.5" />,   badge: 'bg-red-100 text-red-700' },
-    word:    { label: 'Word',    icon: <File className="h-3.5 w-3.5" />,       badge: 'bg-blue-100 text-blue-700' },
+    word:    { label: 'Word',    icon: <File className="h-3.5 w-3.5" />,       badge: 'bg-violet-100 text-violet-700' },
     video:   { label: 'Video',   icon: <Video className="h-3.5 w-3.5" />,      badge: 'bg-violet-100 text-violet-700' },
     youtube: { label: 'YouTube', icon: <PlayCircle className="h-3.5 w-3.5" />, badge: 'bg-rose-100 text-rose-700' },
+    flipbook: { label: 'Flipbook', icon: <BookOpen className="h-3.5 w-3.5" />, badge: 'bg-violet-100 text-violet-700' },
 };
 
 export const ACCEPTED_TYPES = '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp,.heic';
@@ -16,6 +17,7 @@ export const FILE_ACCEPT: Record<ContentType, string> = {
     word:    '.docx,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword',
     video:   'video/mp4,video/webm,video/ogg,video/quicktime,.mp4,.webm,.mov',
     youtube: '',
+    flipbook: '',
 };
 
 export const WORLD_ZONES = [

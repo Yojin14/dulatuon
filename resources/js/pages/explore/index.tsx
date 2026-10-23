@@ -1,12 +1,14 @@
-import { PORTAL_GRADIENT } from '@/components/dashboards/shared';
 import { ACCENT_POOL, CourseCard } from '@/components/course-card';
+import { EmptyState } from '@/components/game/empty-state';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import { toast } from '@/lib/toast';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Head, router, usePage } from '@inertiajs/react';
-import { BookOpen, CheckCircle2, ChevronRight, GraduationCap, Layers, Search, Users } from 'lucide-react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { ArrowRight, BookOpen, CheckCircle2, GraduationCap, Layers, Search, Users } from 'lucide-react';
 import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -45,30 +47,13 @@ function EnrollButton({ course, isStudent }: { course: Course; isStudent: boolea
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [successOpen, setSuccessOpen] = useState(false);
 
-    const gradientBtnStyle = {
-        background: `linear-gradient(white, white) padding-box, ${PORTAL_GRADIENT} border-box`,
-        border: '1.5px solid transparent',
-    };
-    const gradientBtnClass =
-        'flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-semibold text-[#1e3a8a] transition-all duration-200 hover:opacity-80 active:scale-[0.98]';
-
-    if (!isStudent) {
+    if (!isStudent || course.enrollment?.status === 'active') {
         return (
-            <a href={`/courses/${course.id}`} className="block">
-                <button className={gradientBtnClass} style={gradientBtnStyle}>
-                    View Course <ChevronRight className="h-4 w-4" />
-                </button>
-            </a>
-        );
-    }
-
-    if (course.enrollment?.status === 'active') {
-        return (
-            <a href={`/my-course/${course.id}`} className="block">
-                <button className={gradientBtnClass} style={gradientBtnStyle}>
-                    View Course <ChevronRight className="h-4 w-4" />
-                </button>
-            </a>
+            <Button asChild variant="outline" className="w-full">
+                <Link href={isStudent ? `/my-course/${course.id}` : `/courses/${course.id}`}>
+                    {isStudent ? 'Open course' : 'View course'} <ArrowRight />
+                </Link>
+            </Button>
         );
     }
 
@@ -94,60 +79,51 @@ function EnrollButton({ course, isStudent }: { course: Course; isStudent: boolea
 
     return (
         <>
-            <button
-                onClick={() => setConfirmOpen(true)}
-                disabled={loading}
-                className={gradientBtnClass}
-                style={gradientBtnStyle}
-            >
-                Enroll Now
-            </button>
+            <Button onClick={() => setConfirmOpen(true)} disabled={loading} className="w-full">
+                Join course
+            </Button>
 
             {/* ── Confirm enrollment modal ── */}
             <Dialog open={confirmOpen} onOpenChange={(open) => { if (!loading) setConfirmOpen(open); }}>
-                <DialogContent className="max-w-sm p-0 overflow-hidden">
-                    <DialogTitle className="sr-only">Confirm enrollment</DialogTitle>
-                    <div className="flex flex-col items-center px-6 pt-6 pb-6 text-center">
-                        <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#1e3a8a]">
-                            <GraduationCap className="h-5 w-5 text-white" />
-                        </div>
-                        <h2 className="text-base font-bold text-gray-900 dark:text-white">Enroll in this course?</h2>
-                        <p className="mt-1.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-                            You're about to enroll in <span className="font-semibold text-gray-700 dark:text-gray-300">"{course.title}"</span>. You'll get access right away.
+                <DialogContent className="max-w-sm">
+                    <div className="grid size-12 place-items-center rounded-2xl bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
+                        <GraduationCap className="size-6" />
+                    </div>
+                    <div>
+                        <DialogTitle>Join this course?</DialogTitle>
+                        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                            You'll get access to <span className="font-bold text-foreground">{course.title}</span> right away, and your progress starts counting.
                         </p>
-                        <div className="mt-5 flex w-full gap-2">
-                            <Button variant="outline" className="flex-1 h-9" onClick={() => setConfirmOpen(false)} disabled={loading}>
-                                Cancel
-                            </Button>
-                            <Button
-                                className="flex-1 h-9 gap-1.5 bg-[#1e3a8a] hover:bg-[#1e3a8a]/90 text-white font-semibold"
-                                onClick={handleConfirmEnroll}
-                                disabled={loading}
-                            >
-                                {loading ? 'Enrolling…' : 'Confirm Enroll'}
-                            </Button>
-                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button variant="outline" className="flex-1" onClick={() => setConfirmOpen(false)} disabled={loading}>
+                            Not now
+                        </Button>
+                        <Button className="flex-1" onClick={handleConfirmEnroll} disabled={loading}>
+                            {loading ? 'Joining…' : 'Join course'}
+                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>
 
             {/* ── Enrollment success modal ── */}
             <Dialog open={successOpen} onOpenChange={setSuccessOpen}>
-                <DialogContent className="max-w-sm p-0 overflow-hidden">
-                    <DialogTitle className="sr-only">Enrollment complete</DialogTitle>
-                    <div className="flex flex-col items-center px-6 pt-6 pb-6 text-center">
-                        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100">
-                            <CheckCircle2 className="h-6 w-6 text-emerald-600" />
-                        </div>
-                        <h2 className="text-base font-bold text-gray-900 dark:text-white">You're enrolled!</h2>
-                        <p className="mt-1.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-                            You now have access to <span className="font-semibold text-gray-700 dark:text-gray-300">"{course.title}"</span>. Find it under My Course.
+                <DialogContent className="max-w-sm">
+                    <div className="animate-pop-in grid size-12 place-items-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                        <CheckCircle2 className="size-6" />
+                    </div>
+                    <div>
+                        <DialogTitle>You're in.</DialogTitle>
+                        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                            <span className="font-bold text-foreground">{course.title}</span> is now in My Course. Your first lesson is ready.
                         </p>
-                        <Button
-                            className="mt-5 w-full h-9 bg-[#1e3a8a] hover:bg-[#1e3a8a]/90 text-white font-semibold"
-                            onClick={() => setSuccessOpen(false)}
-                        >
-                            Got it
+                    </div>
+                    <div className="flex gap-2">
+                        <Button variant="outline" className="flex-1" onClick={() => setSuccessOpen(false)}>
+                            Keep browsing
+                        </Button>
+                        <Button asChild className="flex-1">
+                            <Link href={`/my-course/${course.id}`}>Start now</Link>
                         </Button>
                     </div>
                 </DialogContent>
@@ -176,58 +152,40 @@ export default function ExploreIndex({ courses }: PageProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Explore Courses" />
-            <div className="min-h-full bg-white dark:bg-gray-950">
-
-                {/* Header */}
-                <div className="px-4 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8" style={{ background: PORTAL_GRADIENT }}>
-                    <div className="flex items-start justify-between gap-4">
-                        <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-yellow-300/80">Student Portal</p>
-                            <h1 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">Explore Courses</h1>
-                            <p className="mt-1 text-sm text-blue-200/50">Browse available courses and enroll.</p>
-                        </div>
+            <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-8 py-8">
+                <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
+                    <div>
+                        <h1 className="font-display text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-extrabold tracking-[-0.035em]">Explore courses</h1>
+                        <p className="mt-1.5 text-muted-foreground">
+                            {courses.length} {courses.length === 1 ? 'course' : 'courses'} open to join. Each one is packed with lessons, 3D labs and checkpoints.
+                        </p>
                     </div>
-                </div>
-
-                <div className="space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-
-                {/* Search + Level Filter */}
-                <div className="flex flex-wrap items-center gap-3">
-                    <div className="relative min-w-[200px] flex-1 max-w-xs">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Search courses…"
+                    <div className="relative w-full sm:w-72">
+                        <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            type="search"
+                            placeholder="Search by title, code or teacher"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full rounded-lg border border-gray-200 bg-white pl-9 pr-4 py-2 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                            className="pl-10"
+                            aria-label="Search courses"
                         />
                     </div>
-                    <div className="flex items-center gap-1">
-                        {LEVELS.map((l) => (
-                            <button
-                                key={l}
-                                onClick={() => setLevel(l)}
-                                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-                                    level === l
-                                        ? 'bg-blue-900 text-white'
-                                        : 'border border-gray-200 bg-white text-gray-500 hover:border-blue-300 dark:border-gray-700 dark:bg-gray-900'
-                                }`}
-                            >
-                                {l}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+                </header>
 
-                {/* Cards */}
-                <div>
+                <Tabs value={level} onValueChange={(value) => setLevel(value as (typeof LEVELS)[number])} className="mt-6">
+                    <TabsList aria-label="Filter by level" className="max-w-full overflow-x-auto">
+                        {LEVELS.map((l) => (
+                            <TabsTrigger key={l} value={l}>
+                                {l}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                </Tabs>
+
+                <div className="mt-8">
                     {filtered.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-center">
-                            <BookOpen className="h-10 w-10 text-gray-300 mb-3" />
-                            <p className="text-sm font-medium text-gray-500">No courses found</p>
-                            <p className="text-xs text-gray-400 mt-1">Try adjusting your search or filter.</p>
-                        </div>
+                        <EmptyState title="No courses match" description="Try another search or switch the level filter back to All." />
                     ) : (
                         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                             {filtered.map((course, idx) => {
@@ -243,22 +201,18 @@ export default function ExploreIndex({ courses }: PageProps) {
                                         badge={
                                             <div className="flex flex-col items-end gap-1.5">
                                                 {course.enrollment?.status === 'active' && (
-                                                    <span className="rounded-full bg-green-100 px-2.5 py-1 text-[11px] font-semibold text-green-700 shadow-sm dark:bg-green-900/30 dark:text-green-400">
-                                                        Enrolled
-                                                    </span>
+                                                    <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white">Joined</span>
                                                 )}
-                                                <span className="rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-gray-700 shadow-sm backdrop-blur-sm dark:bg-gray-900/80 dark:text-gray-200">
-                                                    {course.level}
-                                                </span>
+                                                <span className="rounded-full bg-slate-900/75 px-2.5 py-1 text-xs font-bold text-white backdrop-blur-sm">{course.level}</span>
                                             </div>
                                         }
                                         stats={[
-                                            { icon: Layers, value: course.modules_count,     label: 'Modules'  },
-                                            { icon: Users,  value: course.enrollments_count, label: 'Enrolled' },
+                                            { icon: Layers, value: course.modules_count, label: 'modules' },
+                                            { icon: Users, value: course.enrollments_count, label: 'learners' },
                                         ]}
                                         meta={[
-                                            { icon: GraduationCap, text: course.instructor?.name ?? 'No instructor' },
-                                            { icon: BookOpen,      text: <span className="font-mono">{course.course_code}</span> },
+                                            { icon: GraduationCap, text: course.instructor?.name ?? 'No instructor yet' },
+                                            { icon: BookOpen, text: course.course_code },
                                         ]}
                                         cta={<EnrollButton course={course} isStudent={isStudent} />}
                                     />
@@ -266,8 +220,6 @@ export default function ExploreIndex({ courses }: PageProps) {
                             })}
                         </div>
                     )}
-                </div>
-
                 </div>
             </div>
         </AppLayout>

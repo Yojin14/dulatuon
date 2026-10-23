@@ -1,27 +1,23 @@
+import AppLogoIcon from '@/components/app-logo-icon';
+import { cn } from '@/lib/utils';
+
 export default function AppLogo({ inverted = false }: { inverted?: boolean }) {
     return (
         <>
             <div
-                className={`flex shrink-0 aspect-square size-9 items-center justify-center rounded-xl shadow-md overflow-hidden ${
-                    inverted ? 'bg-white ring-1 ring-white/15' : 'bg-blue-900'
-                }`}
+                className={cn(
+                    'flex aspect-square size-9 shrink-0 items-center justify-center rounded-xl',
+                    inverted ? 'bg-white/10 ring-1 ring-white/15' : 'bg-sky-100 ring-1 ring-sky-200 dark:bg-white/10 dark:ring-white/10',
+                )}
             >
-                <img src="/ccrc-logo.png" alt="Dulatuon Logo" className="size-7 object-contain" />
+                <AppLogoIcon className="size-7" />
             </div>
             <div className="ml-2 flex flex-col leading-none group-data-[collapsible=icon]:hidden">
-                <span
-                    className={`text-[10px] font-semibold tracking-wider uppercase ${
-                        inverted ? 'text-white/60' : 'text-gray-400 dark:text-gray-400'
-                    }`}
-                >
-                    Learning Platform
-                </span>
-                <span
-                    className={`-mt-0.5 text-base font-bold ${
-                        inverted ? 'text-white' : 'text-blue-900 dark:text-white'
-                    }`}
-                >
+                <span className={cn('font-display text-lg font-semibold tracking-tight', inverted ? 'text-white' : 'text-foreground')}>
                     Dulatuon
+                </span>
+                <span className={cn('text-[10px] font-extrabold tracking-[0.14em] uppercase', inverted ? 'text-white/60' : 'text-primary')}>
+                    Learn by playing
                 </span>
             </div>
         </>

@@ -1,20 +1,17 @@
 type ToastType = 'success' | 'info' | 'error';
 
-const COLORS: Record<ToastType, { bar: string; icon: string; svg: string }> = {
+const TONES: Record<ToastType, { tile: string; svg: string }> = {
     success: {
-        bar: '#0d9488',
-        icon: '#0d9488',
-        svg: '<path d="M5 12l5 5L20 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+        tile: '#16a34a',
+        svg: '<path d="M5 12l5 5L20 7" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
     },
     info: {
-        bar: '#1e3a8a',
-        icon: '#1e3a8a',
-        svg: '<path d="M12 8v4m0 4h.01" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/>',
+        tile: '#7c3aed',
+        svg: '<path d="M12 8v.01M12 11v5" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"/>',
     },
     error: {
-        bar: '#ef4444',
-        icon: '#ef4444',
-        svg: '<path d="M6 6l12 12M6 18L18 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
+        tile: '#ef4444',
+        svg: '<path d="M7 7l10 10M7 17L17 7" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"/>',
     },
 };
 
@@ -23,57 +20,63 @@ let container: HTMLDivElement | null = null;
 function ensureContainer(): HTMLDivElement {
     if (container && document.body.contains(container)) return container;
     container = document.createElement('div');
+    container.setAttribute('role', 'status');
+    container.setAttribute('aria-live', 'polite');
     container.style.cssText =
-        'position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;';
+        'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;width:max-content;max-width:calc(100vw - 32px);';
     document.body.appendChild(container);
     return container;
 }
 
+/**
+ * Small game-HUD style toast: a dark pill with a coloured icon tile, rising
+ * from the bottom centre. Theme-neutral, so it reads in light and dark mode.
+ */
 export function toast(
     message: string,
     type: ToastType = 'info',
     duration = 2500,
 ): void {
     const root = ensureContainer();
-    const { bar, icon, svg } = COLORS[type];
+    const { tile, svg } = TONES[type];
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const el = document.createElement('div');
     el.style.cssText = [
         'display:flex',
         'align-items:center',
         'gap:10px',
-        'min-width:240px',
-        'max-width:360px',
-        'padding:10px 14px 10px 12px',
-        'background:#fff',
-        'color:#111827',
-        'border-radius:10px',
-        'border:1px solid #e5e7eb',
-        `border-left:3px solid ${bar}`,
-        'box-shadow:0 8px 24px rgba(0,0,0,0.10),0 2px 6px rgba(0,0,0,0.06)',
-        'font:500 13px/1.4 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif',
+        'max-width:420px',
+        'padding:8px 16px 8px 8px',
+        'background:rgba(15,23,42,0.94)',
+        'color:#f8fafc',
+        'border-radius:999px',
+        'box-shadow:0 18px 40px -16px rgba(46,16,101,0.55),0 0 0 1px rgba(255,255,255,0.08)',
+        "font:700 14px/1.35 'Figtree',ui-sans-serif,system-ui,sans-serif",
         'pointer-events:auto',
         'opacity:0',
-        'transform:translateX(12px)',
-        'transition:opacity .18s ease,transform .18s ease',
+        reduceMotion ? 'transform:none' : 'transform:translateY(12px) scale(0.98)',
+        'transition:opacity .2s cubic-bezier(.25,1,.5,1),transform .25s cubic-bezier(.25,1,.5,1)',
     ].join(';');
 
     el.innerHTML = `
-        <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;color:${icon};flex-shrink:0;">
-            <svg viewBox="0 0 24 24" width="20" height="20">${svg}</svg>
+        <span style="display:inline-grid;place-items:center;width:28px;height:28px;border-radius:999px;background:${tile};color:#fff;flex-shrink:0;">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">${svg}</svg>
         </span>
-        <span style="color:#111827;">${message.replace(/</g, '&lt;')}</span>
+        <span>${message.replace(/</g, '&lt;')}</span>
     `;
 
     root.appendChild(el);
     requestAnimationFrame(() => {
         el.style.opacity = '1';
-        el.style.transform = 'translateX(0)';
+        el.style.transform = 'none';
     });
 
     window.setTimeout(() => {
         el.style.opacity = '0';
-        el.style.transform = 'translateX(12px)';
-        window.setTimeout(() => el.remove(), 200);
+        if (!reduceMotion) {
+            el.style.transform = 'translateY(8px)';
+        }
+        window.setTimeout(() => el.remove(), 220);
     }, duration);
 }

@@ -136,7 +136,7 @@ function RunTable({ runs }: { runs: Run[] }) {
         <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
                 <thead>
-                    <tr className="text-gray-500 dark:text-gray-400">
+                    <tr className="text-muted-foreground">
                         <th className="py-1 pr-2 font-semibold">Earthquake</th>
                         {TOWNS.map((town) => (
                             <th key={town.id} className="px-1 py-1 text-center font-semibold">
@@ -150,7 +150,7 @@ function RunTable({ runs }: { runs: Run[] }) {
                 </thead>
                 <tbody>
                     {runs.slice(-3).map((run, index) => (
-                        <tr key={index} className="border-t border-gray-100 dark:border-gray-800">
+                        <tr key={index} className="border-t border-border">
                             <td className="py-1.5 pr-2 font-semibold text-gray-700 tabular-nums dark:text-gray-200">
                                 M {run.magnitude.toFixed(1)} · {run.depthKm} km
                             </td>
@@ -247,7 +247,7 @@ export default function ShakeTown({ items, onFinish }: ShakeTownProps) {
     const renderControls = (lockedMagnitude?: number) => (
         <div className="flex flex-col gap-3">
             <label className="block">
-                <span className="mb-1 flex items-center justify-between text-xs font-bold text-gray-600 dark:text-gray-300">
+                <span className="mb-1 flex items-center justify-between text-xs font-bold text-muted-foreground">
                     <span>Magnitude{lockedMagnitude !== undefined ? ' (locked)' : ''}</span>
                     <span className="tabular-nums">{magnitude.toFixed(1)}</span>
                 </span>
@@ -260,11 +260,11 @@ export default function ShakeTown({ items, onFinish }: ShakeTownProps) {
                     value={magnitude}
                     disabled={running || lockedMagnitude !== undefined}
                     onChange={(event) => setQuake(Number(event.target.value), depthKm)}
-                    className="w-full accent-violet-600 disabled:opacity-50"
+                    className="h-2 w-full cursor-pointer accent-violet-600 disabled:opacity-50"
                 />
             </label>
             <label className="block">
-                <span className="mb-1 flex items-center justify-between text-xs font-bold text-gray-600 dark:text-gray-300">
+                <span className="mb-1 flex items-center justify-between text-xs font-bold text-muted-foreground">
                     <span>Focal depth</span>
                     <span className="tabular-nums">
                         {depthKm} km · {depthZone(depthKm)}
@@ -279,14 +279,14 @@ export default function ShakeTown({ items, onFinish }: ShakeTownProps) {
                     value={depthToSlider(depthKm)}
                     disabled={running}
                     onChange={(event) => setQuake(magnitude, sliderToDepth(Number(event.target.value)))}
-                    className="w-full accent-violet-600 disabled:opacity-50"
+                    className="h-2 w-full cursor-pointer accent-violet-600 disabled:opacity-50"
                 />
             </label>
             <button
                 type="button"
                 disabled={running}
                 onClick={() => release()}
-                className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-base font-extrabold text-white shadow-lg transition active:scale-[0.98] disabled:opacity-60"
+                className="pressable flex h-14 items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-amber-500 to-orange-600 text-base font-extrabold text-white [--press:var(--color-orange-800)] hover:brightness-105 disabled:opacity-60"
             >
                 <Zap className="h-5 w-5" />
                 {running ? 'Waves travelling…' : 'Release the earthquake'}
@@ -296,7 +296,7 @@ export default function ShakeTown({ items, onFinish }: ShakeTownProps) {
 
     const renderPanel = () => {
         if (unsupported) {
-            return <p className="text-sm text-gray-600 dark:text-gray-300">This device cannot show 3D graphics, so Shake Town cannot run here. Try another browser or device.</p>;
+            return <p className="text-sm text-muted-foreground">This device cannot show 3D graphics, so Shake Town cannot run here. Try another browser or device.</p>;
         }
 
         switch (step.type) {
@@ -320,9 +320,9 @@ export default function ShakeTown({ items, onFinish }: ShakeTownProps) {
                 return (
                     <div className="flex flex-col gap-4">
                         <div>
-                            <p className="text-xs font-bold tracking-wider text-violet-600 uppercase dark:text-violet-300">Experiment</p>
-                            <h2 className="mt-1 text-lg font-bold text-gray-900 dark:text-white">{step.title}</h2>
-                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{step.instruction}</p>
+                            <p className="text-eyebrow text-violet-600 dark:text-violet-300">Experiment</p>
+                            <h2 className="mt-1.5 font-display text-xl leading-snug font-bold tracking-[-0.02em] text-foreground">{step.title}</h2>
+                            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{step.instruction}</p>
                         </div>
 
                         <ul className="flex flex-col gap-1.5">
@@ -330,7 +330,7 @@ export default function ShakeTown({ items, onFinish }: ShakeTownProps) {
                                 const met = runs.some(goal.met);
 
                                 return (
-                                    <li key={goal.label} className={`flex items-center gap-2 text-sm font-medium ${met ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-600 dark:text-gray-300'}`}>
+                                    <li key={goal.label} className={`flex items-center gap-2 text-sm font-medium ${met ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
                                         {met ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <Circle className="h-4 w-4 shrink-0" />}
                                         {goal.label}
                                     </li>
@@ -346,7 +346,7 @@ export default function ShakeTown({ items, onFinish }: ShakeTownProps) {
                                         type="button"
                                         disabled={running}
                                         onClick={() => release(preset.magnitude, preset.depthKm)}
-                                        className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-sm font-extrabold text-white shadow transition active:scale-[0.98] disabled:opacity-60"
+                                        className="flex h-11 items-center justify-center gap-2 rounded-xl bg-linear-to-r from-amber-500 to-orange-600 text-sm font-extrabold text-white shadow transition active:scale-[0.98] disabled:opacity-60"
                                     >
                                         <Zap className="h-4 w-4" />
                                         Release {preset.label}
@@ -360,7 +360,7 @@ export default function ShakeTown({ items, onFinish }: ShakeTownProps) {
                         <RunTable runs={runs} />
 
                         {done && !running && (
-                            <Button onClick={nextStep} className="h-11 bg-violet-600 font-bold text-white hover:bg-violet-700">
+                            <Button onClick={nextStep} className="h-12 w-full text-base">
                                 Continue <ArrowRight className="h-4 w-4" />
                             </Button>
                         )}
@@ -376,9 +376,9 @@ export default function ShakeTown({ items, onFinish }: ShakeTownProps) {
                 return (
                     <div className="flex flex-col gap-4">
                         <div>
-                            <p className="text-xs font-bold tracking-wider text-violet-600 uppercase dark:text-violet-300">Challenge</p>
-                            <h2 className="mt-1 text-lg font-bold text-gray-900 dark:text-white">{items[step.item].prompt.replace(/^Challenge:\s*/, '')}</h2>
-                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            <p className="text-eyebrow text-violet-600 dark:text-violet-300">Challenge</p>
+                            <h2 className="mt-1.5 font-display text-xl leading-snug font-bold tracking-[-0.02em] text-foreground">{items[step.item].prompt.replace(/^Challenge:\s*/, '')}</h2>
+                            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                                 {solved
                                     ? 'You did it.'
                                     : scored
@@ -392,14 +392,14 @@ export default function ShakeTown({ items, onFinish }: ShakeTownProps) {
                         <RunTable runs={runs} />
 
                         {!solved && runs.length > 0 && !running && (
-                            <p className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                            <p className="flex animate-pop-in items-start gap-2.5 rounded-2xl bg-amber-50 p-3.5 text-sm font-medium text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
                                 <Lightbulb className="mt-0.5 h-4 w-4 shrink-0" />
                                 {step.hint}
                             </p>
                         )}
 
                         {solved && !running && (
-                            <Button onClick={nextStep} className="h-11 bg-violet-600 font-bold text-white hover:bg-violet-700">
+                            <Button onClick={nextStep} className="h-12 w-full text-base">
                                 Continue <ArrowRight className="h-4 w-4" />
                             </Button>
                         )}
@@ -411,18 +411,18 @@ export default function ShakeTown({ items, onFinish }: ShakeTownProps) {
                 return (
                     <div className="flex flex-col gap-4">
                         <div>
-                            <p className="text-xs font-bold tracking-wider text-violet-600 uppercase dark:text-violet-300">Town tested</p>
-                            <h2 className="mt-1 text-lg font-bold text-gray-900 dark:text-white">What you found out</h2>
+                            <p className="text-eyebrow text-violet-600 dark:text-violet-300">Town tested</p>
+                            <h2 className="mt-1.5 font-display text-xl leading-snug font-bold tracking-[-0.02em] text-foreground">What you found out</h2>
                         </div>
                         <ul className="flex flex-col gap-2">
                             {TAKEAWAYS.map((line) => (
-                                <li key={line} className="flex items-start gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+                                <li key={line} className="flex items-start gap-2 text-sm font-medium text-foreground/85">
                                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
                                     {line}
                                 </li>
                             ))}
                         </ul>
-                        <Button onClick={() => onFinish(answers)} className="h-11 bg-violet-600 font-bold text-white hover:bg-violet-700">
+                        <Button onClick={() => onFinish(answers)} className="h-12 w-full text-base">
                             See my score <ArrowRight className="h-4 w-4" />
                         </Button>
                     </div>
@@ -459,10 +459,10 @@ export default function ShakeTown({ items, onFinish }: ShakeTownProps) {
                 </span>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px] max-lg:landscape:grid-cols-[minmax(0,1fr)_300px] max-lg:landscape:gap-3">
-                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-sky-300 via-sky-100 to-amber-100 ring-1 ring-white/20">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px] max-lg:landscape:grid-cols-[minmax(0,1fr)_300px] max-lg:landscape:gap-3">
+                <div className="relative overflow-hidden rounded-4xl bg-world-sky ring-1 ring-white/20">
                     <div ref={mount} className="h-[50svh] min-h-72 w-full lg:h-[calc(100svh-11rem)] lg:min-h-[520px] max-lg:landscape:h-[calc(100svh-7.5rem)] max-lg:landscape:min-h-48" />
-                    <p className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-slate-900/60 px-2.5 py-1 text-[11px] font-semibold text-white">
+                    <p className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-slate-900/70 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">
                         <Rotate3d className="h-3.5 w-3.5" />
                         Drag to look around
                     </p>
@@ -473,7 +473,7 @@ export default function ShakeTown({ items, onFinish }: ShakeTownProps) {
                     )}
                 </div>
 
-                <div className="rounded-3xl bg-white p-5 shadow-2xl sm:p-6 dark:bg-gray-900 max-lg:landscape:max-h-[calc(100svh-7.5rem)] max-lg:landscape:min-h-48 max-lg:landscape:overflow-y-auto max-lg:landscape:p-4">{renderPanel()}</div>
+                <div className="rounded-4xl border bg-card p-5 text-card-foreground shadow-float sm:p-7 max-lg:landscape:max-h-[calc(100svh-7.5rem)] max-lg:landscape:min-h-48 max-lg:landscape:overflow-y-auto max-lg:landscape:p-4">{renderPanel()}</div>
             </div>
         </div>
     );

@@ -36,14 +36,30 @@ export default defineConfig({
             output: {
                 manualChunks(id) {
                     if (!id.includes('node_modules')) {
+                        // Shared by the course player and its lazy flipbook chunks; kept apart so the
+                        // player page keeps its own manifest entry instead of becoming a shared chunk.
+                        if (/components[\\/]flipbook[\\/]flipbook-(types|draft)\.ts$/.test(id)) {
+                            return 'flipbook-core';
+                        }
+                        // Same for the games page and its lazy 3D labs.
+                        if (/lib[\\/]game-audio\.ts$/.test(id)) {
+                            return 'game-audio';
+                        }
+                        // Small shared building blocks (primitives, game HUD, world chips) in one chunk,
+                        // so a page and its own lazy children never fold the page into a shared chunk.
+                        if (/resources[\\/]js[\\/]components[\\/](ui|game|world)[\\/]/.test(id) || /resources[\\/]js[\\/]lib[\\/](utils|worlds|gamification)\.ts$/.test(id)) {
+                            return 'app-ui';
+                        }
                         return undefined;
                     }
                     if (id.includes('@radix-ui')) return 'radix';
                     if (id.includes('lucide-react') || id.includes('@phosphor-icons')) return 'icons';
                     if (id.includes('@dnd-kit')) return 'dnd';
                     if (id.includes('node_modules/three/')) return 'three';
-                    if (id.includes('sweetalert2')) return 'sweetalert';
                     if (id.includes('pusher-js') || id.includes('laravel-echo')) return 'echo';
+                    if (id.includes('@tiptap') || id.includes('prosemirror')) return 'editor';
+                    if (id.includes('pdfjs-dist')) return 'pdfjs';
+                    if (id.includes('node_modules/motion') || id.includes('framer-motion') || id.includes('motion-dom') || id.includes('motion-utils')) return 'motion';
                     if (
                         id.includes('node_modules/react/') ||
                         id.includes('node_modules/react-dom/') ||

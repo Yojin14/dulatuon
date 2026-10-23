@@ -26,7 +26,7 @@ import { useEffect, useState } from 'react';
 
 const TYPE_CONFIG: Record<string, { icon: LucideIcon; tint: string }> = {
     chat_message: { icon: MessageCircle, tint: 'bg-cyan-500' },
-    role_assigned: { icon: Shield, tint: 'bg-indigo-500' },
+    role_assigned: { icon: Shield, tint: 'bg-violet-500' },
     permission_granted: { icon: ShieldCheck, tint: 'bg-violet-500' },
     permission_revoked: { icon: ShieldOff, tint: 'bg-slate-500' },
     course_assigned: { icon: BookOpen, tint: 'bg-emerald-500' },
@@ -208,7 +208,7 @@ export function NotificationBell() {
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3.5 pr-12 dark:border-white/10">
                     <div>
-                        <SheetTitle className="text-base font-bold text-gray-900 dark:text-white">
+                        <SheetTitle className="text-base font-bold text-foreground">
                             Notifications
                         </SheetTitle>
                         <SheetDescription className="sr-only">
@@ -218,7 +218,7 @@ export function NotificationBell() {
                     <button
                         onClick={markAllRead}
                         disabled={count === 0}
-                        className="flex items-center gap-1 text-xs font-medium text-blue-600 transition-colors hover:text-blue-700 disabled:cursor-not-allowed disabled:text-gray-400 dark:text-blue-400 dark:disabled:text-gray-600"
+                        className="flex items-center gap-1 text-xs font-medium text-violet-600 transition-colors hover:text-violet-700 disabled:cursor-not-allowed disabled:text-gray-400 dark:text-violet-400 dark:disabled:text-gray-600"
                     >
                         <CheckCheck className="h-3.5 w-3.5" />
                         Mark all read
@@ -241,10 +241,10 @@ export function NotificationBell() {
                         </div>
                     ) : items.length === 0 ? (
                         <div className="flex h-full flex-col items-center justify-center gap-2 px-4 py-12 text-center">
-                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
                                 <Bell className="h-7 w-7 text-gray-400" />
                             </div>
-                            <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                            <p className="text-sm font-semibold text-muted-foreground">
                                 No notifications
                             </p>
                             <p className="text-xs text-gray-400">
@@ -270,7 +270,7 @@ export function NotificationBell() {
                                             }}
                                             className={`group flex cursor-pointer items-start gap-3 px-4 py-3.5 transition-colors ${
                                                 isUnread
-                                                    ? 'bg-blue-50/60 dark:bg-blue-950/30'
+                                                    ? 'bg-violet-50/60 dark:bg-violet-950/30'
                                                     : ''
                                             } hover:bg-gray-50 dark:hover:bg-white/5`}
                                         >
@@ -285,22 +285,22 @@ export function NotificationBell() {
                                                     <p
                                                         className={`truncate text-sm ${
                                                             isUnread
-                                                                ? 'font-semibold text-gray-900 dark:text-white'
-                                                                : 'font-medium text-gray-700 dark:text-gray-300'
+                                                                ? 'font-semibold text-foreground'
+                                                                : 'font-medium text-foreground/85'
                                                         }`}
                                                     >
                                                         {n.title}
                                                     </p>
                                                     {isUnread && (
-                                                        <span className="h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+                                                        <span className="h-2 w-2 shrink-0 rounded-full bg-violet-500" />
                                                     )}
                                                 </div>
                                                 {n.body && (
-                                                    <p className="mt-0.5 line-clamp-2 text-xs text-gray-500 dark:text-gray-400">
+                                                    <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
                                                         {n.body}
                                                     </p>
                                                 )}
-                                                <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
+                                                <p className="mt-1 text-[11px] text-muted-foreground/80">
                                                     {formatTimeAgo(
                                                         n.created_at,
                                                     )}

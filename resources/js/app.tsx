@@ -1,6 +1,7 @@
 import '../css/app.css';
 import './echo';
 
+import { DialogHost } from '@/components/dialog-host';
 import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { StrictMode } from 'react';
@@ -23,11 +24,12 @@ createInertiaApp({
         root.render(
             <StrictMode>
                 <App {...props} />
+                <DialogHost />
             </StrictMode>,
         );
     },
     progress: {
-        color: '#4B5563',
+        color: '#7c3aed',
     },
 });
 

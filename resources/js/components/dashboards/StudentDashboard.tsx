@@ -1,23 +1,27 @@
+import { AchievementBadge } from '@/components/game/achievement-badge';
+import { EmptyState } from '@/components/game/empty-state';
+import { LowPolyBlock, LowPolyClouds } from '@/components/game/low-poly-scene';
+import { ProgressTrack, XpBar } from '@/components/game/xp-bar';
+import { Button } from '@/components/ui/button';
+import { WorldEmblem } from '@/components/world/world-scope';
+import {
+    computeAchievements,
+    computeLevel,
+    computeXp,
+} from '@/lib/gamification';
+import { cn } from '@/lib/utils';
+import { worldFor } from '@/lib/worlds';
 import { type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
-    BookOpen,
-    CheckCircle,
-    ClipboardText,
+    CalendarClock,
+    ChevronRight,
+    Compass,
     FileText,
-    GraduationCap,
-} from '@phosphor-icons/react';
-import {
-    BarList,
-    ChartCard,
-    DonutProgress,
-    EmptyState,
-    greetingFor,
-    PortalHeader,
-    SectionHeader,
-    StatCard,
-} from './shared';
+    Play,
+} from 'lucide-react';
+import { greetingFor } from './shared';
 
 interface CourseRow {
     id: number;
@@ -48,132 +52,296 @@ export interface StudentDashboardProps {
     dueSoon: DueRow[];
 }
 
-export default function StudentDashboard({ stats, courses, dueSoon }: StudentDashboardProps) {
+function pickContinueCourse(courses: CourseRow[]): CourseRow | null {
+    const unfinished = courses.filter(
+        (c) => c.total === 0 || c.completed < c.total,
+    );
+    if (unfinished.length === 0) {
+        return courses[0] ?? null;
+    }
+
+    return [...unfinished].sort((a, b) => b.progress - a.progress)[0];
+}
+
+export default function StudentDashboard({
+    stats,
+    courses,
+    dueSoon,
+}: StudentDashboardProps) {
     const { auth } = usePage<SharedData>().props;
     const firstName = auth.user.firstname || auth.user.name.split(' ')[0];
     const greeting = greetingFor(new Date().getHours());
 
-    const chartData = courses
-        .filter((c) => c.total > 0)
-        .map((c) => ({
-            label: c.title.length > 24 ? `${c.title.slice(0, 24)}…` : c.title,
-            value: c.progress,
-        }));
+    const player = computeLevel(computeXp(courses));
+    const achievements = computeAchievements(courses);
+    const earnedCount = achievements.filter((a) => a.earned).length;
+    const current = pickContinueCourse(courses);
+    const currentWorld = worldFor(current);
 
     return (
-        <div className="min-h-full bg-white dark:bg-gray-950">
-            <PortalHeader
-                portal="Student Portal"
-                title={`${greeting}, ${firstName}.`}
-                subtitle="Here's your learning summary."
-            />
-
-            <div className="space-y-8 px-4 py-6 sm:space-y-10 sm:px-6 sm:py-8 lg:px-8">
-                {/* Stat cards */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-                    <StatCard
-                        label="Enrolled Courses"
-                        value={stats.enrolledCount}
-                        hint="active this semester"
-                        icon={GraduationCap}
-                    />
-
-                    <div className="rounded-xl border border-gray-100 bg-white p-5 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
-                        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Avg Progress</p>
-                        <div className="mt-3 flex items-center gap-3 sm:mt-4">
-                            <div className="relative shrink-0">
-                                <DonutProgress value={stats.avgProgress} size={52} fillColor="#1e3a8a" />
-                                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-gray-700 dark:text-gray-200">
-                                    {stats.avgProgress}%
-                                </span>
-                            </div>
-                            <div>
-                                <p className="text-2xl font-bold text-gray-900 sm:text-3xl dark:text-white">{stats.avgProgress}%</p>
-                                <p className="mt-0.5 text-xs text-gray-400">across all courses</p>
-                            </div>
+        <div className="min-h-full">
+            {/* Base camp: the student's corner of the world */}
+            <header className="relative isolate overflow-hidden bg-world-sky text-slate-900">
+                <LowPolyClouds className="absolute inset-x-0 top-0 -z-10 opacity-80" />
+                <div className="mx-auto grid max-w-[1600px] gap-6 px-5 pt-8 pb-7 sm:px-8 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                    <div>
+                        <h1 className="font-display text-[clamp(1.875rem,4vw,2.75rem)] leading-[1.05] font-extrabold tracking-[-0.035em]">
+                            {greeting}, {firstName}.
+                        </h1>
+                        <p className="mt-2 font-medium text-slate-700">
+                            {stats.enrolledCount}{' '}
+                            {stats.enrolledCount === 1 ? 'course' : 'courses'} ·{' '}
+                            {stats.avgProgress}% average progress ·{' '}
+                            {stats.pendingWork === 0
+                                ? 'nothing due'
+                                : `${stats.pendingWork} due soon`}
+                        </p>
+                        <div className="mt-5 max-w-sm rounded-2xl bg-white/80 p-3.5 ring-1 ring-black/5 backdrop-blur-sm">
+                            <XpBar player={player} />
                         </div>
                     </div>
-
-                    <StatCard
-                        label="Pending Work"
-                        value={stats.pendingWork}
-                        hint={stats.pendingWork === 0 ? 'all caught up' : 'items due soon'}
-                        icon={ClipboardText}
-                        accent={stats.pendingWork > 0}
-                    />
+                    <LowPolyBlock className="hidden w-52 drop-shadow-[0_18px_18px_rgba(85,48,28,0.25)] md:block" />
                 </div>
+                <div
+                    aria-hidden
+                    className="h-3 bg-[linear-gradient(180deg,#6fbf5a_0_45%,#c99a6b_45%)]"
+                />
+            </header>
 
-                {/* Progress per course chart */}
-                {chartData.length > 0 && (
-                    <ChartCard title="Course Progress" subtitle="Completion across your enrolled courses" height={Math.max(140, chartData.length * 40)}>
-                        <BarList items={chartData} max={100} unit="%" />
-                    </ChartCard>
-                )}
-
-                {/* My Courses + Due Soon */}
-                <div className="grid gap-8 lg:grid-cols-3">
-                    <div className="space-y-4 lg:col-span-2">
-                        <SectionHeader title="My Courses" href="/my-course" />
-                        {courses.length === 0 ? (
-                            <EmptyState icon={BookOpen} message="You're not enrolled in any courses yet" />
-                        ) : (
-                            <div className="divide-y divide-gray-100 rounded-xl border border-gray-100 dark:divide-gray-800 dark:border-gray-800">
-                                {courses.map((c) => (
-                                    <Link key={c.id} href={`/my-course/${c.id}`}>
-                                        <div className="group flex items-center gap-3 px-4 py-4 transition-colors hover:bg-gray-50 sm:gap-5 sm:px-5 dark:hover:bg-gray-900">
-                                            <div className="relative shrink-0">
-                                                <DonutProgress value={c.progress} size={40} strokeWidth={4} fillColor="#1e3a8a" />
-                                                <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-gray-600 dark:text-gray-300">
-                                                    {c.progress}%
-                                                </span>
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{c.title}</p>
-                                                <p className="mt-0.5 truncate text-xs text-gray-400">
-                                                    {c.instructor}
-                                                    {c.total > 0
-                                                        ? ` · ${c.completed}/${c.total} lessons`
-                                                        : ''}
-                                                </p>
-                                            </div>
-                                            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-gray-300 transition-colors group-hover:text-gray-400" weight="bold" />
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="space-y-4">
-                        <SectionHeader title="Due Soon" />
-                        {dueSoon.length === 0 ? (
-                            <EmptyState icon={CheckCircle} message="All caught up" />
-                        ) : (
-                            <div className="divide-y divide-gray-100 rounded-xl border border-gray-100 dark:divide-gray-800 dark:border-gray-800">
-                                {dueSoon.map((w) => (
-                                    <div key={w.id} className="px-4 py-4">
-                                        <div className="flex items-start justify-between gap-2">
-                                            <p className="text-sm font-medium text-gray-900 dark:text-white">{w.title}</p>
-                                            <span className={`shrink-0 text-[11px] font-semibold ${w.urgent ? 'text-amber-500' : 'text-gray-400'}`}>
-                                                {w.due}
-                                            </span>
-                                        </div>
-                                        <p className="mt-0.5 truncate text-xs text-gray-400">{w.course}</p>
-                                        <div className="mt-2 flex items-center gap-1.5">
-                                            {w.kind === 'Quiz' ? (
-                                                <ClipboardText className="h-3 w-3 text-gray-300" weight="bold" />
-                                            ) : (
-                                                <FileText className="h-3 w-3 text-gray-300" weight="bold" />
-                                            )}
-                                            <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">{w.kind}</p>
+            <div className="mx-auto grid max-w-[1600px] gap-10 px-5 py-8 sm:px-8 lg:grid-cols-12">
+                <div className="space-y-10 lg:col-span-8">
+                    {/* The one main action */}
+                    {current ? (
+                        <section
+                            aria-labelledby="continue-title"
+                            className="overflow-hidden rounded-3xl border bg-card shadow-panel"
+                        >
+                            <div
+                                aria-hidden
+                                className="h-1.5"
+                                style={{ backgroundColor: currentWorld.accent }}
+                            />
+                            <div className="p-5 sm:p-6">
+                                <div className="flex flex-wrap items-start justify-between gap-4">
+                                    <div className="flex min-w-0 items-start gap-4">
+                                        <WorldEmblem world={currentWorld} />
+                                        <div className="min-w-0">
+                                            <p
+                                                className="text-sm font-bold"
+                                                style={{
+                                                    color: currentWorld.accentInk,
+                                                }}
+                                            >
+                                                {currentWorld.name} · Continue
+                                                where you left off
+                                            </p>
+                                            <h2
+                                                id="continue-title"
+                                                className="mt-1 text-2xl leading-tight font-bold tracking-[-0.02em]"
+                                            >
+                                                {current.title}
+                                            </h2>
+                                            <p className="mt-1 text-sm text-muted-foreground">
+                                                with {current.instructor}
+                                            </p>
                                         </div>
                                     </div>
-                                ))}
+                                    <Button
+                                        asChild
+                                        variant="play"
+                                        size="lg"
+                                        className="shrink-0"
+                                    >
+                                        <Link href={`/my-course/${current.id}`}>
+                                            <Play className="size-5 fill-current" />
+                                            {current.progress > 0
+                                                ? 'Continue'
+                                                : 'Start'}
+                                        </Link>
+                                    </Button>
+                                </div>
+                                <div className="mt-5 flex items-center gap-3">
+                                    <ProgressTrack
+                                        value={current.progress}
+                                        className="h-3.5"
+                                    />
+                                    <span className="shrink-0 text-sm font-bold tabular-nums">
+                                        {current.progress}%
+                                    </span>
+                                </div>
+                                {current.total > 0 && (
+                                    <p className="mt-2 text-sm text-muted-foreground">
+                                        {current.completed} of {current.total}{' '}
+                                        lessons and activities cleared
+                                    </p>
+                                )}
                             </div>
-                        )}
-                    </div>
+                        </section>
+                    ) : (
+                        <EmptyState
+                            title="Pick your first course"
+                            description="Join a course to start earning XP. Every course is packed with labs and checkpoints."
+                            action={
+                                <Button asChild>
+                                    <Link href="/explore">
+                                        <Compass /> Explore courses
+                                    </Link>
+                                </Button>
+                            }
+                        />
+                    )}
+
+                    {/* All courses */}
+                    {courses.length > 0 && (
+                        <section aria-labelledby="courses-title">
+                            <div className="flex items-baseline justify-between gap-4">
+                                <h2
+                                    id="courses-title"
+                                    className="text-xl font-bold tracking-[-0.02em]"
+                                >
+                                    Your courses
+                                </h2>
+                                <Link
+                                    href="/my-course"
+                                    className="text-sm font-bold text-primary hover:underline"
+                                >
+                                    View all
+                                </Link>
+                            </div>
+                            <ul className="mt-4 divide-y rounded-3xl border bg-card shadow-panel">
+                                {courses.map((course) => {
+                                    const cleared =
+                                        course.total > 0 &&
+                                        course.completed >= course.total;
+
+                                    return (
+                                        <li key={course.id}>
+                                            <Link
+                                                href={`/my-course/${course.id}`}
+                                                className="group flex items-center gap-4 px-4 py-4 transition-colors first:rounded-t-3xl last:rounded-b-3xl hover:bg-accent/60 sm:px-5"
+                                            >
+                                                <WorldEmblem
+                                                    world={worldFor(course)}
+                                                    size="sm"
+                                                />
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="truncate font-bold">
+                                                        {course.title}
+                                                    </p>
+                                                    <p className="truncate text-sm text-muted-foreground">
+                                                        {course.instructor}
+                                                        {course.total > 0 &&
+                                                            ` · ${course.completed}/${course.total} cleared`}
+                                                    </p>
+                                                    <ProgressTrack
+                                                        value={course.progress}
+                                                        className="mt-2 h-1.5 max-w-xs"
+                                                    />
+                                                </div>
+                                                <span className="hidden w-10 text-right text-sm font-bold tabular-nums sm:block">
+                                                    {course.progress}%
+                                                </span>
+                                                {cleared && (
+                                                    <span className="hidden rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800 sm:inline dark:bg-emerald-500/15 dark:text-emerald-300">
+                                                        Cleared
+                                                    </span>
+                                                )}
+                                                <ChevronRight className="size-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                                            </Link>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </section>
+                    )}
                 </div>
 
+                <aside className="space-y-10 lg:col-span-4">
+                    <section aria-labelledby="due-title">
+                        <h2
+                            id="due-title"
+                            className="text-xl font-bold tracking-[-0.02em]"
+                        >
+                            Due soon
+                        </h2>
+                        {dueSoon.length === 0 ? (
+                            <p className="mt-3 rounded-2xl bg-muted/70 px-4 py-3 text-sm font-semibold text-muted-foreground">
+                                You're all caught up.
+                            </p>
+                        ) : (
+                            <ul className="mt-4 space-y-2">
+                                {dueSoon.map((item) => (
+                                    <li
+                                        key={item.id}
+                                        className="flex gap-3 rounded-2xl border bg-card px-4 py-3"
+                                    >
+                                        <span
+                                            className={cn(
+                                                'mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl',
+                                                item.urgent
+                                                    ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300'
+                                                    : 'bg-muted text-muted-foreground',
+                                            )}
+                                        >
+                                            {item.urgent ? (
+                                                <CalendarClock className="size-4.5" />
+                                            ) : (
+                                                <FileText className="size-4.5" />
+                                            )}
+                                        </span>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate text-sm font-bold">
+                                                {item.title}
+                                            </p>
+                                            <p className="truncate text-xs text-muted-foreground">
+                                                {item.kind} · {item.course}
+                                            </p>
+                                        </div>
+                                        <span
+                                            className={cn(
+                                                'shrink-0 text-xs font-bold',
+                                                item.urgent
+                                                    ? 'text-orange-600 dark:text-orange-300'
+                                                    : 'text-muted-foreground',
+                                            )}
+                                        >
+                                            {item.due}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </section>
+
+                    <section aria-labelledby="badges-title">
+                        <div className="flex items-baseline justify-between gap-4">
+                            <h2
+                                id="badges-title"
+                                className="text-xl font-bold tracking-[-0.02em]"
+                            >
+                                Badges
+                            </h2>
+                            <span className="text-sm font-bold text-muted-foreground tabular-nums">
+                                {earnedCount} of {achievements.length}
+                            </span>
+                        </div>
+                        <div className="mt-4 grid grid-cols-3 gap-x-3 gap-y-5 rounded-3xl border bg-card p-5 shadow-panel">
+                            {achievements.map((achievement) => (
+                                <AchievementBadge
+                                    key={achievement.id}
+                                    achievement={achievement}
+                                    size="sm"
+                                />
+                            ))}
+                        </div>
+                        <Link
+                            href="/my-progress"
+                            className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-primary hover:underline"
+                        >
+                            See your progress <ArrowRight className="size-4" />
+                        </Link>
+                    </section>
+                </aside>
             </div>
         </div>
     );

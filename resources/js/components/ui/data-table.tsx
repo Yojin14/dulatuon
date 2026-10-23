@@ -79,7 +79,7 @@ function DataTableInner<T>({
 }: DataTableProps<T>): React.ReactElement {
     return (
         <div className="space-y-4">
-            <div className="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-800">
+            <div className="overflow-x-auto rounded-xl border border-border">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -117,7 +117,7 @@ function DataTableInner<T>({
 
             {pagination && pagination.lastPage > 1 && (
                 <div className="flex items-center justify-between">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-muted-foreground">
                         Showing {(pagination.currentPage - 1) * pagination.perPage + 1}–
                         {Math.min(pagination.currentPage * pagination.perPage, pagination.total)} of{' '}
                         {pagination.total}
@@ -127,19 +127,19 @@ function DataTableInner<T>({
                             variant="outline"
                             size="sm"
                             disabled={disabled || pagination.currentPage <= 1}
-                            className="border-blue-700 text-blue-700 hover:bg-blue-50 disabled:opacity-40"
+                            className="border-violet-700 text-violet-700 hover:bg-violet-50 disabled:opacity-40"
                             onClick={() => pagination.onPageChange(pagination.currentPage - 1)}
                         >
                             Previous
                         </Button>
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                        <span className="text-sm text-muted-foreground">
                             Page {pagination.currentPage} of {pagination.lastPage}
                         </span>
                         <Button
                             variant="outline"
                             size="sm"
                             disabled={disabled || pagination.currentPage >= pagination.lastPage}
-                            className="border-blue-700 text-blue-700 hover:bg-blue-50 disabled:opacity-40"
+                            className="border-violet-700 text-violet-700 hover:bg-violet-50 disabled:opacity-40"
                             onClick={() => pagination.onPageChange(pagination.currentPage + 1)}
                         >
                             Next

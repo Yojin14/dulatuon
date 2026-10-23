@@ -1,5 +1,4 @@
 import { CourseThumbnailField } from '@/components/course-thumbnail-field';
-import { PORTAL_GRADIENT } from '@/components/dashboards/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -13,6 +12,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { PageHeader } from '@/components/page-header';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type Teacher } from '@/types';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
@@ -76,30 +76,23 @@ export default function CreateCourse() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Create Course" />
-            <div className="min-h-full bg-white dark:bg-gray-950">
+            <div className="min-h-full pb-10">
 
                 {/* Header */}
-                <div className="px-4 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8" style={{ background: PORTAL_GRADIENT }}>
-                    <div className="flex items-start justify-between gap-4">
-                        <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-yellow-300/80">Admin Portal</p>
-                            <h1 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">Create Course</h1>
-                            <p className="mt-1 text-sm text-blue-200/50">
-                                Add a new course. The assigned teacher will see it in their My Class dashboard.
-                            </p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-3">
-                            <Button variant="ghost" size="sm" asChild className="hidden text-white/80 hover:bg-white/10 hover:text-white sm:flex">
-                                <Link href="/courses">
-                                    <ArrowLeft className="mr-2 h-4 w-4" />
-                                    Back to Courses
-                                </Link>
-                            </Button>
-                        </div>
-                    </div>
-                </div>
+                <PageHeader
+                    title="Create a course"
+                    description="The assigned teacher will see it in their courses right away."
+                    actions={
+                        <Button variant="outline" asChild>
+                            <Link href="/courses">
+                                <ArrowLeft />
+                                All courses
+                            </Link>
+                        </Button>
+                    }
+                />
 
-                <div className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+                <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-8 py-8">
                 <div className="mb-4 sm:hidden">
                     <Button variant="outline" size="sm" asChild>
                         <Link href="/courses"><ArrowLeft className="mr-2 h-4 w-4" />Back to Courses</Link>
@@ -129,7 +122,7 @@ export default function CreateCourse() {
                                             <Label htmlFor="title">Course Title <span className="text-red-500">*</span></Label>
                                             <Input
                                                 id="title"
-                                                placeholder="e.g. The Life of Christ"
+                                                placeholder="e.g. Earthquakes and Faults"
                                                 value={data.title}
                                                 onChange={(e) => setData('title', e.target.value)}
                                             />
@@ -244,9 +237,9 @@ export default function CreateCourse() {
                                             <Label>Upload Video File</Label>
                                             <input ref={fileInputRef} type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime" className="hidden" onChange={handleFileChange} />
                                             <button type="button" onClick={() => fileInputRef.current?.click()}
-                                                className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 py-8 text-center transition hover:border-blue-400 hover:bg-blue-50 dark:border-gray-700 dark:bg-gray-800/40">
+                                                className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 py-8 text-center transition hover:border-violet-400 hover:bg-violet-50 dark:border-gray-700 dark:bg-gray-800/40">
                                                 <Upload className="h-7 w-7 text-gray-400" />
-                                                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                <span className="text-sm font-medium text-muted-foreground">
                                                     {data.intro_video_file ? data.intro_video_file.name : 'Click to choose a video file'}
                                                 </span>
                                                 <span className="text-xs text-gray-400">MP4, WebM, OGG, MOV · max 500 MB</span>
@@ -260,17 +253,17 @@ export default function CreateCourse() {
                                         const ytMatch = data.intro_video.match(/(?:youtu\.be\/|watch\?v=|embed\/)([^&\n?#]+)/);
                                         const ytId = ytMatch ? ytMatch[1] : null;
                                         return ytId ? (
-                                            <div className="relative overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700" style={{ paddingTop: '56.25%' }}>
+                                            <div className="relative overflow-hidden rounded-lg border border-border" style={{ paddingTop: '56.25%' }}>
                                                 <iframe className="absolute inset-0 h-full w-full" src={`https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1`} title="Intro preview" allowFullScreen />
                                             </div>
                                         ) : (
-                                            <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-black">
+                                            <div className="overflow-hidden rounded-lg border border-border bg-black">
                                                 <video src={data.intro_video} controls className="w-full max-h-48" />
                                             </div>
                                         );
                                     })()}
                                     {videoMode === 'upload' && filePreview && (
-                                        <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-black">
+                                        <div className="overflow-hidden rounded-lg border border-border bg-black">
                                             <video src={filePreview} controls className="w-full max-h-56" />
                                         </div>
                                     )}
@@ -338,7 +331,7 @@ export default function CreateCourse() {
                                                 {data.teacher_ids.map((id) => {
                                                     const t = teachers.find((t) => t.id === id);
                                                     return t ? (
-                                                        <span key={id} className="flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                                        <span key={id} className="flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
                                                             {t.name}
                                                             <button type="button" onClick={() => toggleTeacher(id)}><X className="h-3 w-3" /></button>
                                                         </span>

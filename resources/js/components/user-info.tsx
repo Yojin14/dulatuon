@@ -30,14 +30,17 @@ export function UserInfo({
 
     return (
         <>
-            <Avatar className="h-8 w-8 overflow-hidden rounded-full">
+            <Avatar className="size-9 overflow-hidden rounded-xl ring-2 ring-violet-200 dark:ring-violet-500/30">
                 <AvatarImage src={user.avatar} alt={displayName} />
-                <AvatarFallback className="rounded-full bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-white">
+                <AvatarFallback className="rounded-xl bg-linear-to-br from-violet-500 to-violet-700 font-display text-sm font-semibold text-white">
                     {getInitials(displayName)}
                 </AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{formattedName}</span>
+                <span className="truncate font-bold">{formattedName}</span>
+                {!showEmail && user.role && (
+                    <span className="truncate text-[11px] font-extrabold tracking-wider text-primary uppercase">{user.role}</span>
+                )}
                 {showEmail && (
                     <span className="truncate text-xs text-muted-foreground">
                         {user.email}

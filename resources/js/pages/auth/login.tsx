@@ -1,5 +1,5 @@
 import { store } from '@/routes/login';
-import { Form, Head, Link } from '@inertiajs/react';
+import { Form, Head } from '@inertiajs/react';
 import { Eye, EyeOff, LoaderCircle } from 'lucide-react';
 import { useState } from 'react';
 
@@ -18,11 +18,11 @@ export default function Login({ status }: LoginProps) {
     const [showPassword, setShowPassword] = useState(false);
 
     return (
-        <AuthLayout title="Log in" description="Enter your email and password to log in">
+        <AuthLayout title="Welcome back" description="Log in to pick up your quest where you left off.">
             <Head title="Log in" />
 
             {status && (
-                <div className="mb-4 text-center text-sm font-medium text-blue-600">
+                <div className="mb-4 rounded-xl bg-emerald-50 px-3 py-2 text-center text-sm font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
                     {status}
                 </div>
             )}
@@ -82,7 +82,8 @@ export default function Login({ status }: LoginProps) {
 
                             <Button
                                 type="submit"
-                                className="mt-4 w-full bg-blue-900 text-white hover:bg-blue-800"
+                                size="lg"
+                                className="mt-2 w-full"
                                 disabled={processing}
                             >
                                 {processing && (

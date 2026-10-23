@@ -1,4 +1,4 @@
-import { PORTAL_GRADIENT, SectionHeader } from '@/components/dashboards/shared';
+import { SectionHeader } from '@/components/dashboards/shared';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -20,6 +20,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { PageHeader } from '@/components/page-header';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
@@ -114,7 +115,7 @@ function CreateRoleModal({
         <Dialog open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
                 <DialogHeader>
-                    <DialogTitle className="text-gray-900 dark:text-white">
+                    <DialogTitle className="text-foreground">
                         Create New Role
                     </DialogTitle>
                     <DialogDescription>
@@ -153,7 +154,7 @@ function CreateRoleModal({
                             {Object.entries(allPermissions).map(([key, label]) => (
                                 <label
                                     key={key}
-                                    className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 p-2 hover:border-blue-400 dark:border-gray-700"
+                                    className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 p-2 hover:border-violet-400 dark:border-gray-700"
                                 >
                                     <Checkbox
                                         checked={permissions.includes(key)}
@@ -173,7 +174,7 @@ function CreateRoleModal({
                     <Button
                         onClick={submit}
                         disabled={processing || !name.trim()}
-                        className="bg-blue-900 hover:bg-blue-800"
+                        className="bg-violet-900 hover:bg-violet-800"
                     >
                         {processing ? 'Creating...' : 'Create Role'}
                     </Button>
@@ -216,7 +217,7 @@ function EditRoleModal({
         <Dialog open onOpenChange={(v) => !v && onClose()}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-gray-900 dark:text-white">
+                    <DialogTitle className="text-foreground">
                         Edit Role
                     </DialogTitle>
                     <DialogDescription>Update role name and description.</DialogDescription>
@@ -252,7 +253,7 @@ function EditRoleModal({
                     <Button
                         onClick={submit}
                         disabled={processing || !name.trim()}
-                        className="bg-blue-900 hover:bg-blue-800"
+                        className="bg-violet-900 hover:bg-violet-800"
                     >
                         {processing ? 'Saving...' : 'Save Changes'}
                     </Button>
@@ -299,7 +300,7 @@ function PermissionsModal({
         <Dialog open onOpenChange={(v) => !v && onClose()}>
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
                 <DialogHeader>
-                    <DialogTitle className="text-gray-900 dark:text-white">
+                    <DialogTitle className="text-foreground">
                         Manage Permissions — {role.name}
                     </DialogTitle>
                     <DialogDescription>
@@ -332,7 +333,7 @@ function PermissionsModal({
                         {Object.entries(allPermissions).map(([key, label]) => (
                             <label
                                 key={key}
-                                className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 p-2 hover:border-blue-400 dark:border-gray-700"
+                                className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 p-2 hover:border-violet-400 dark:border-gray-700"
                             >
                                 <Checkbox
                                     checked={permissions.includes(key)}
@@ -351,7 +352,7 @@ function PermissionsModal({
                     <Button
                         onClick={submit}
                         disabled={processing}
-                        className="bg-blue-900 hover:bg-blue-800"
+                        className="bg-violet-900 hover:bg-violet-800"
                     >
                         {processing ? 'Saving...' : 'Save Permissions'}
                     </Button>
@@ -456,22 +457,12 @@ export default function AdminRolesIndex({ roles, stats, allPermissions }: Props)
                 <DeleteRoleModal role={deleteRole} onClose={() => setDeleteRole(null)} />
             )}
 
-            <div className="min-h-full bg-white dark:bg-gray-950">
+            <div className="min-h-full pb-10">
 
                 {/* Header */}
-                <div className="px-4 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8" style={{ background: PORTAL_GRADIENT }}>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-yellow-300/80">
-                        Admin Portal
-                    </p>
-                    <h1 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">
-                        Role Management
-                    </h1>
-                    <p className="mt-1 text-sm text-blue-200/50">
-                        Manage user roles and permissions across the platform
-                    </p>
-                </div>
+                <PageHeader title="Roles" description="Who can do what across the platform." />
 
-                <div className="space-y-8 px-4 py-6 sm:space-y-10 sm:px-6 sm:py-8 lg:px-8">
+                <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-8 space-y-8 py-8">
 
                 {/* Flash message */}
                 {flash?.success && (
@@ -493,7 +484,7 @@ export default function AdminRolesIndex({ roles, stats, allPermissions }: Props)
                     </div>
                     <Button
                         onClick={() => setShowCreate(true)}
-                        className="bg-blue-900 hover:bg-blue-800 sm:shrink-0"
+                        className="bg-violet-900 hover:bg-violet-800 sm:shrink-0"
                     >
                         <Plus className="mr-2 h-4 w-4" />
                         Add Role
@@ -511,16 +502,16 @@ export default function AdminRolesIndex({ roles, stats, allPermissions }: Props)
                             >
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/20">
-                                            <Shield className="h-4 w-4 text-blue-700 dark:text-blue-400" />
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-50 dark:bg-violet-900/20">
+                                            <Shield className="h-4 w-4 text-violet-700 dark:text-violet-400" />
                                         </div>
                                         <div>
-                                            <p className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+                                            <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
                                                 {role.name}
                                                 {role.isSystem && (
                                                     <Badge
                                                         variant="outline"
-                                                        className="border-blue-300 text-xs text-blue-700 dark:border-blue-700 dark:text-blue-400"
+                                                        className="border-violet-300 text-xs text-violet-700 dark:border-violet-700 dark:text-violet-400"
                                                     >
                                                         System
                                                     </Badge>
@@ -571,11 +562,11 @@ export default function AdminRolesIndex({ roles, stats, allPermissions }: Props)
 
                                     <div>
                                         <div className="mb-1.5 flex items-center justify-between">
-                                            <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                            <p className="text-xs font-medium text-foreground/85">
                                                 Permissions ({role.permissions.length})
                                             </p>
                                             <button
-                                                className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+                                                className="text-xs text-violet-600 hover:underline dark:text-violet-400"
                                                 onClick={() => setPermRole(role)}
                                             >
                                                 Edit
@@ -588,7 +579,7 @@ export default function AdminRolesIndex({ roles, stats, allPermissions }: Props)
                                                 role.permissions.map((p) => (
                                                     <Badge
                                                         key={p}
-                                                        className="border-blue-200 bg-blue-50 text-xs text-blue-700 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                                        className="border-violet-200 bg-violet-50 text-xs text-violet-700 dark:border-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
                                                     >
                                                         {allPermissions[p] ?? p}
                                                     </Badge>
@@ -612,16 +603,16 @@ export default function AdminRolesIndex({ roles, stats, allPermissions }: Props)
                 <div className="space-y-4">
                     <SectionHeader title="Statistics" />
                     <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-                        <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
-                            <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Total Roles</p>
+                        <div className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
+                            <p className="text-sm font-bold text-muted-foreground">Total Roles</p>
                             <p className="mt-3 text-3xl font-bold text-gray-900 sm:mt-4 sm:text-4xl dark:text-white">{stats.total_roles}</p>
                         </div>
-                        <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
-                            <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Total Users</p>
+                        <div className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
+                            <p className="text-sm font-bold text-muted-foreground">Total Users</p>
                             <p className="mt-3 text-3xl font-bold text-gray-900 sm:mt-4 sm:text-4xl dark:text-white">{stats.total_users.toLocaleString()}</p>
                         </div>
                         <div className="col-span-2 rounded-xl border border-gray-100 bg-white p-4 sm:p-6 lg:col-span-1 dark:border-gray-800 dark:bg-gray-900">
-                            <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Permissions</p>
+                            <p className="text-sm font-bold text-muted-foreground">Permissions</p>
                             <p className="mt-3 text-3xl font-bold text-gray-900 sm:mt-4 sm:text-4xl dark:text-white">{stats.total_permissions}</p>
                         </div>
                     </div>

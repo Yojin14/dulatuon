@@ -1,4 +1,6 @@
-export type ContentType = 'pdf' | 'word' | 'video' | 'youtube';
+import type { FlipbookPage } from '@/components/flipbook/flipbook-types';
+
+export type ContentType = 'pdf' | 'word' | 'video' | 'youtube' | 'flipbook';
 
 export interface ContentItem {
     id: string;
@@ -9,6 +11,7 @@ export interface ContentItem {
     url?: string;
     filename?: string;
     file?: File;
+    pages?: FlipbookPage[];
 }
 
 export interface QuizQuestion {
