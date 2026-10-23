@@ -71,6 +71,7 @@ Route::middleware(['auth', 'verified', 'throttle:global'])->group(function () {
     Route::get('my-course/{courseId}', [App\Http\Controllers\ClassController::class, 'myClassShow'])->name('my-course.show');
     Route::post('my-course/{courseId}/thumbnail', [App\Http\Controllers\ClassController::class, 'uploadThumbnail'])->name('my-course.thumbnail');
     Route::patch('my-course/{courseId}/thumbnail-focus', [App\Http\Controllers\ClassController::class, 'updateThumbnailFocus'])->name('my-course.thumbnail-focus');
+    Route::get('my-course/{courseId}/leaderboard', App\Http\Controllers\CourseLeaderboardController::class)->name('my-course.leaderboard');
 
     // ── Curriculum API (teacher + admin) ──────────────────────────────────────
     Route::middleware(['role:teacher,admin'])->prefix('curriculum')->name('curriculum.')->group(function () {
@@ -100,6 +101,7 @@ Route::middleware(['auth', 'verified', 'throttle:global'])->group(function () {
         Route::post('{courseId}/sessions/{sessionId}/content', [$cc, 'storeContent'])->name('content.store');
         Route::match(['PUT', 'POST'], '{courseId}/content/{contentId}', [$cc, 'updateContent'])->name('content.update');
         Route::delete('{courseId}/content/{contentId}', [$cc, 'destroyContent'])->name('content.destroy');
+        Route::post('{courseId}/flipbook-images', [$cc, 'uploadFlipbookImage'])->name('flipbook-images.store');
 
         // Quizzes
         Route::post('{courseId}/sessions/{sessionId}/quizzes', [$cc, 'storeQuiz'])->name('quizzes.store');
@@ -153,6 +155,7 @@ Route::middleware(['auth', 'verified', 'throttle:global'])->group(function () {
     Route::middleware(['role:student'])->group(function () {
         Route::get('my-progress', [App\Http\Controllers\MyProgressController::class, 'index'])->name('my-progress.index');
         Route::post('my-progress/{courseId}/contents/{contentId}/complete', [App\Http\Controllers\MyProgressController::class, 'completeContent'])->name('my-progress.content.complete');
+        Route::get('certificates/{course}', [App\Http\Controllers\CertificateController::class, 'show'])->name('certificates.show');
     });
 
     // Admin routes

@@ -1,4 +1,3 @@
-import { PORTAL_GRADIENT } from '@/components/dashboards/shared';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -8,6 +7,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { PageHeader } from '@/components/page-header';
 import AppLayout from '@/layouts/app-layout';
 import { apiFetch } from '@/lib/api-fetch';
 import { type BreadcrumbItem, type SharedData } from '@/types';
@@ -338,29 +338,11 @@ export default function ClassesIndex() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Classes" />
-            <div className="min-h-full bg-white dark:bg-gray-950">
+            <div className="min-h-full pb-10">
                 {/* Header */}
-                <div
-                    className="px-4 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8"
-                    style={{ background: PORTAL_GRADIENT }}
-                >
-                    <div className="flex items-start justify-between gap-4">
-                        <div>
-                            <p className="text-[11px] font-semibold tracking-[0.2em] text-yellow-300/80 uppercase">
-                                Teacher Portal
-                            </p>
-                            <h1 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">
-                                Classes
-                            </h1>
-                            <p className="mt-1 text-sm text-blue-200/50">
-                                Select a class to manage students, attendance,
-                                assignments, and more
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                <PageHeader title="Classes" description="Pick a class to manage students, attendance, assignments and more." />
 
-                <div className="space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+                <div className="mx-auto w-full max-w-[1600px] space-y-8 px-5 py-8 sm:px-8">
                     {/* Filters */}
                     {!loading && !error && allClasses.length > 0 && (
                         <div className="flex flex-wrap items-center gap-2">
@@ -504,7 +486,7 @@ export default function ClassesIndex() {
                                 >
                                     <div className="mb-4 flex items-start justify-between gap-2">
                                         <div className="min-w-0 flex-1">
-                                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                            <p className="text-sm font-semibold text-foreground">
                                                 {classItem.subject_title}
                                             </p>
                                             <p className="text-xs text-gray-400">
@@ -548,7 +530,7 @@ export default function ClassesIndex() {
                                             )}
                                     </div>
                                     <Button
-                                        className="mt-auto w-full bg-blue-900 hover:bg-blue-800"
+                                        className="mt-auto w-full bg-violet-900 hover:bg-violet-800"
                                         onClick={() => {
                                             if (allStudentsData.length > 0) {
                                                 sessionStorage.setItem(
@@ -573,7 +555,7 @@ export default function ClassesIndex() {
                         <div className="flex flex-col items-center gap-3 rounded-xl border border-gray-100 py-12 text-center dark:border-gray-800">
                             <BookOpen className="h-8 w-8 text-gray-200 dark:text-gray-700" />
                             <div>
-                                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                                <p className="text-sm font-medium text-muted-foreground">
                                     No classes found
                                 </p>
                                 <p className="mt-0.5 text-xs text-gray-400">
@@ -596,7 +578,7 @@ export default function ClassesIndex() {
                         <div className="flex flex-col items-center gap-3 rounded-xl border border-gray-100 py-12 text-center dark:border-gray-800">
                             <BookOpen className="h-8 w-8 text-gray-200 dark:text-gray-700" />
                             <div>
-                                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                                <p className="text-sm font-medium text-muted-foreground">
                                     No matching classes
                                 </p>
                                 <p className="mt-0.5 text-xs text-gray-400">

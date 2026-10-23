@@ -103,6 +103,7 @@ class CurriculumController extends Controller
                 'description' => $c->description ?? '',
                 'url' => self::contentDisplayUrl($c),
                 'filename' => $c->filename ?? '',
+                'pages' => $c->pages ?? [],
             ])->values()->toArray(),
             'assessments' => array_merge(
                 $s->quizzes->map(fn ($q) => [
@@ -619,6 +620,7 @@ class CurriculumController extends Controller
             'pdf' => 'course-content/pdf',
             'word' => 'course-content/word',
             'video' => 'course-content/video',
+            'flipbook' => 'course-content/flipbook',
             default => 'course-content/misc',
         };
     }
@@ -678,25 +680,108 @@ class CurriculumController extends Controller
         return false;
     }
 
+    /**
+     * Validation rules for the pages of a flipbook content item.
+     *
+     * @return array<string, string>
+     */
+    private static function flipbookPageRules(string $pagesRule): array
+    {
+        return [
+            'pages' => $pagesRule,
+            'pages.*.id' => 'nullable|string|max:64',
+            'pages.*.layout' => 'required|string|in:text,image-right,image-top,two-images,image-full',
+            'pages.*.heading' => 'nullable|string|max:255',
+            'pages.*.body' => 'nullable|string|max:20000',
+            'pages.*.highlight' => 'nullable|string|max:500',
+            'pages.*.images' => 'nullable|array|max:2',
+            'pages.*.images.*.url' => 'required|string|max:2048|starts_with:/storage/course-content/flipbook/',
+            'pages.*.images.*.caption' => 'nullable|string|max:255',
+        ];
+    }
+
+    /**
+     * Normalise validated flipbook pages into the stored shape, keeping only safe rich-text markup.
+     *
+     * @param  array<int, array<string, mixed>>  $pages
+     * @return array<int, array{id: string, layout: string, heading: string, body: string, highlight: string, images: array<int, array{url: string, caption: string}>}>
+     */
+    private static function normaliseFlipbookPages(array $pages): array
+    {
+        return array_values(array_map(fn (array $page) => [
+            'id' => (string) ($page['id'] ?? \Illuminate\Support\Str::random(10)),
+            'layout' => $page['layout'],
+            'heading' => trim((string) ($page['heading'] ?? '')),
+            'body' => self::sanitiseRichText((string) ($page['body'] ?? '')),
+            'highlight' => trim((string) ($page['highlight'] ?? '')),
+            'images' => array_values(array_map(fn (array $image) => [
+                'url' => $image['url'],
+                'caption' => trim((string) ($image['caption'] ?? '')),
+            ], $page['images'] ?? [])),
+        ], $pages));
+    }
+
+    /**
+     * Strip editor HTML down to basic formatting tags, removing attributes other than safe link targets.
+     */
+    private static function sanitiseRichText(string $html): string
+    {
+        $clean = strip_tags($html, '<p><br><strong><b><em><i><u><s><ul><ol><li><a><h3><h4><blockquote>');
+        $clean = preg_replace('/\s(?!href=)[a-z-]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $clean) ?? '';
+
+        return preg_replace('/href\s*=\s*("|\')\s*(?!https?:|mailto:)[^"\']*\1/i', 'href="#"', $clean) ?? '';
+    }
+
+    /**
+     * Delete the uploaded images used by a flipbook's pages.
+     */
+    private static function deleteFlipbookImages(CourseContentItem $item): void
+    {
+        foreach ($item->pages ?? [] as $page) {
+            foreach ($page['images'] ?? [] as $image) {
+                $path = str_replace('/storage/', '', (string) ($image['url'] ?? ''));
+                if (str_starts_with($path, 'course-content/flipbook/')) {
+                    \Storage::disk('public')->delete($path);
+                }
+            }
+        }
+    }
+
+    public function uploadFlipbookImage(Request $request, int $courseId): JsonResponse
+    {
+        $this->authoriseCourse($courseId);
+
+        $request->validate([
+            'image' => 'required|file|mimes:jpg,jpeg,png,webp,gif|max:8192',
+        ]);
+
+        $path = self::storeUploadedFile($request->file('image'), self::contentFolder('flipbook'));
+
+        return response()->json(['url' => '/storage/'.$path], 201);
+    }
+
     public function storeContent(Request $request, int $courseId, int $sessionId): JsonResponse
     {
         $this->authoriseCourse($courseId);
         $session = CourseSession::whereHas('module', fn ($q) => $q->where('course_id', $courseId))->findOrFail($sessionId);
 
         $data = $request->validate([
-            'type' => 'required|string|in:pdf,word,video,youtube',
+            'type' => 'required|string|in:pdf,word,video,youtube,flipbook',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'url' => 'nullable|string|max:2048',
             'file' => 'nullable|file|max:524288',
+            ...self::flipbookPageRules('required_if:type,flipbook|array|min:1|max:200'),
         ]);
 
-        $url = $data['url'] ?? null;
+        $pages = $data['type'] === 'flipbook' ? self::normaliseFlipbookPages($data['pages']) : null;
+
+        $url = $pages === null ? ($data['url'] ?? null) : null;
         $filename = null;
         $filePath = null;
         $fileSize = null;
 
-        if ($request->hasFile('file')) {
+        if ($pages === null && $request->hasFile('file')) {
             $file = $request->file('file');
             if (! self::uploadMatchesType($file, $data['type'])) {
                 return response()->json(['message' => 'Invalid file type for content type "'.$data['type'].'".'], 422);
@@ -719,6 +804,7 @@ class CurriculumController extends Controller
             'file_path' => $filePath,
             'file_size' => $fileSize,
             'sort_order' => $maxOrder + 1,
+            'pages' => $pages,
         ]);
 
         return response()->json([
@@ -729,6 +815,7 @@ class CurriculumController extends Controller
             'description' => $item->description ?? '',
             'url' => self::contentDisplayUrl($item),
             'filename' => $item->filename ?? '',
+            'pages' => $item->pages ?? [],
         ], 201);
     }
 
@@ -742,7 +829,38 @@ class CurriculumController extends Controller
             'description' => 'nullable|string',
             'url' => 'nullable|string|max:2048',
             'file' => 'nullable|file|max:524288',
+            ...self::flipbookPageRules($item->type === 'flipbook' ? 'required|array|min:1|max:200' : 'prohibited'),
         ]);
+
+        if ($item->type === 'flipbook') {
+            $pages = self::normaliseFlipbookPages($data['pages']);
+            $keptUrls = collect($pages)->pluck('images')->flatten(1)->pluck('url')->all();
+            foreach ($item->pages ?? [] as $oldPage) {
+                foreach ($oldPage['images'] ?? [] as $oldImage) {
+                    $oldUrl = (string) ($oldImage['url'] ?? '');
+                    if (! in_array($oldUrl, $keptUrls, true) && str_starts_with($oldUrl, '/storage/course-content/flipbook/')) {
+                        \Storage::disk('public')->delete(str_replace('/storage/', '', $oldUrl));
+                    }
+                }
+            }
+
+            $item->update([
+                'title' => $data['title'],
+                'description' => $data['description'] ?? $item->description,
+                'pages' => $pages,
+            ]);
+
+            return response()->json([
+                'id' => 'content-'.$item->id,
+                'dbId' => $item->id,
+                'type' => $item->type,
+                'title' => $item->title,
+                'description' => $item->description ?? '',
+                'url' => '',
+                'filename' => '',
+                'pages' => $item->pages,
+            ]);
+        }
 
         $url = $data['url'] ?? $item->url;
         $filename = $item->filename;
@@ -778,6 +896,7 @@ class CurriculumController extends Controller
             'description' => $item->description ?? '',
             'url' => self::contentDisplayUrl($item),
             'filename' => $item->filename ?? '',
+            'pages' => $item->pages ?? [],
         ]);
     }
 
@@ -787,6 +906,7 @@ class CurriculumController extends Controller
         $item = CourseContentItem::whereHas('session.module', fn ($q) => $q->where('course_id', $courseId))->findOrFail($contentId);
 
         self::deleteContentFile($item);
+        self::deleteFlipbookImages($item);
 
         $item->delete();
 

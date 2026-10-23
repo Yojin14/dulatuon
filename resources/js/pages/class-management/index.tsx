@@ -1,4 +1,3 @@
-import { PORTAL_GRADIENT } from '@/components/dashboards/shared';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +10,9 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { PageHeader } from '@/components/page-header';
 import AppLayout from '@/layouts/app-layout';
+import { alertDialog, confirmDialog } from '@/lib/dialog';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
 import axios from 'axios';
@@ -112,16 +113,6 @@ interface DbAssignment {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-type SwalModule = typeof import('sweetalert2').default;
-
-let swalPromise: Promise<SwalModule> | null = null;
-const getSwal = (): Promise<SwalModule> => {
-    if (!swalPromise) {
-        swalPromise = import('sweetalert2').then((m) => m.default);
-    }
-    return swalPromise;
-};
-
 function initials(name: string) {
     return name
         .split(' ')
@@ -133,9 +124,9 @@ function initials(name: string) {
 
 function Bar({ value }: { value: number }) {
     return (
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-blue-100 dark:bg-blue-900/30">
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-violet-100 dark:bg-violet-900/30">
             <div
-                className="h-full rounded-full bg-blue-500"
+                className="h-full rounded-full bg-violet-500"
                 style={{ width: `${value}%` }}
             />
         </div>
@@ -177,22 +168,22 @@ function OverviewTab({
     return (
         <div className="space-y-6">
             {activeModule && (
-                <div className="rounded-xl border border-blue-100 bg-blue-50 px-5 py-3 dark:border-blue-900/40 dark:bg-blue-900/20">
-                    <p className="text-xs font-semibold tracking-wide text-blue-500 uppercase">
+                <div className="rounded-xl border border-violet-100 bg-violet-50 px-5 py-3 dark:border-violet-900/40 dark:bg-violet-900/20">
+                    <p className="text-xs font-semibold tracking-wide text-violet-500 uppercase">
                         Filtered by module
                     </p>
-                    <p className="mt-0.5 text-sm font-medium text-blue-700 dark:text-blue-300">
+                    <p className="mt-0.5 text-sm font-medium text-violet-700 dark:text-violet-300">
                         {activeModule.title}
                     </p>
                 </div>
             )}
 
-            <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+            <div className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
                 <div className="mb-1 flex items-baseline justify-between">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    <p className="text-sm font-semibold text-foreground">
                         Overall Class Completion
                     </p>
-                    <span className="text-xl font-bold text-blue-600">
+                    <span className="text-xl font-bold text-violet-600">
                         {avg}%
                     </span>
                 </div>
@@ -206,7 +197,7 @@ function OverviewTab({
                         {done} completed
                     </span>
                     <span className="flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-blue-500" />
+                        <span className="h-2 w-2 rounded-full bg-violet-500" />
                         {inProg} in progress
                     </span>
                     <span className="flex items-center gap-1.5">
@@ -217,9 +208,9 @@ function OverviewTab({
             </div>
 
             {course.modules.length > 0 && (
-                <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+                <div className="rounded-3xl border bg-card shadow-panel">
                     <div className="border-b border-gray-100 px-5 py-3.5 dark:border-gray-800">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        <p className="text-sm font-semibold text-foreground">
                             Modules ({course.modules.length})
                         </p>
                     </div>
@@ -227,16 +218,16 @@ function OverviewTab({
                         {course.modules.map((m, i) => (
                             <div
                                 key={m.id}
-                                className={`flex items-center gap-4 px-5 py-3.5 ${moduleId === m.id ? 'bg-blue-50/60 dark:bg-blue-900/10' : ''}`}
+                                className={`flex items-center gap-4 px-5 py-3.5 ${moduleId === m.id ? 'bg-violet-50/60 dark:bg-violet-900/10' : ''}`}
                             >
                                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-xs font-bold text-gray-500 dark:bg-gray-800">
                                     {i + 1}
                                 </span>
-                                <p className="flex-1 text-sm text-gray-800 dark:text-gray-200">
+                                <p className="flex-1 text-sm text-foreground">
                                     {m.title}
                                 </p>
                                 {moduleId === m.id && (
-                                    <span className="text-xs font-medium text-blue-600">
+                                    <span className="text-xs font-medium text-violet-600">
                                         Selected
                                     </span>
                                 )}
@@ -277,8 +268,8 @@ function StudentsTab({
     return (
         <div className="space-y-4">
             {activeModule && (
-                <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-2 dark:border-blue-900/40 dark:bg-blue-900/20">
-                    <p className="text-xs text-blue-600 dark:text-blue-300">
+                <div className="rounded-lg border border-violet-100 bg-violet-50 px-4 py-2 dark:border-violet-900/40 dark:bg-violet-900/20">
+                    <p className="text-xs text-violet-600 dark:text-violet-300">
                         Viewing students for{' '}
                         <span className="font-semibold">
                             {activeModule.title}
@@ -314,13 +305,13 @@ function StudentsTab({
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
-                                    <th className="px-5 py-3 text-left text-xs font-semibold tracking-wider text-gray-400 uppercase">
+                                    <th className="px-5 py-3 text-left text-xs font-bold text-muted-foreground">
                                         Student
                                     </th>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold tracking-wider text-gray-400 uppercase">
+                                    <th className="px-5 py-3 text-left text-xs font-bold text-muted-foreground">
                                         Overall Progress
                                     </th>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold tracking-wider text-gray-400 uppercase">
+                                    <th className="px-5 py-3 text-left text-xs font-bold text-muted-foreground">
                                         Status
                                     </th>
                                 </tr>
@@ -329,17 +320,17 @@ function StudentsTab({
                                 {filtered.map((s) => (
                                     <tr
                                         key={s.id}
-                                        className="transition-colors hover:bg-blue-50/40 dark:hover:bg-blue-900/10"
+                                        className="transition-colors hover:bg-violet-50/40 dark:hover:bg-violet-900/10"
                                     >
                                         <td className="px-5 py-3.5">
                                             <div className="flex items-center gap-3">
                                                 <Avatar className="h-8 w-8 shrink-0">
-                                                    <AvatarFallback className="bg-blue-600 text-xs font-bold text-white">
+                                                    <AvatarFallback className="bg-violet-600 text-xs font-bold text-white">
                                                         {initials(s.name)}
                                                     </AvatarFallback>
                                                 </Avatar>
                                                 <div>
-                                                    <p className="font-semibold text-gray-900 dark:text-white">
+                                                    <p className="font-semibold text-foreground">
                                                         {s.name}
                                                     </p>
                                                     <p className="text-xs text-gray-400">
@@ -355,7 +346,7 @@ function StudentsTab({
                                                         s.progress_percentage
                                                     }
                                                 />
-                                                <span className="w-9 shrink-0 text-right text-xs font-bold text-blue-600">
+                                                <span className="w-9 shrink-0 text-right text-xs font-bold text-violet-600">
                                                     {s.progress_percentage}%
                                                 </span>
                                             </div>
@@ -387,20 +378,20 @@ function StudentsTab({
                         {filtered.map((s) => (
                             <div
                                 key={s.id}
-                                className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900"
+                                className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6"
                             >
                                 <div className="flex items-center gap-3">
                                     <Avatar className="h-9 w-9 shrink-0">
-                                        <AvatarFallback className="bg-blue-600 text-sm font-bold text-white">
+                                        <AvatarFallback className="bg-violet-600 text-sm font-bold text-white">
                                             {initials(s.name)}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center justify-between">
-                                            <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                                            <p className="truncate text-sm font-semibold text-foreground">
                                                 {s.name}
                                             </p>
-                                            <span className="ml-2 text-xs font-bold text-blue-600">
+                                            <span className="ml-2 text-xs font-bold text-violet-600">
                                                 {s.progress_percentage}%
                                             </span>
                                         </div>
@@ -424,7 +415,7 @@ function StudentsTab({
 function PeopleTab({ course }: { course: DbCourse }) {
     return (
         <div className="space-y-4">
-            <p className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+            <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <GraduationCap className="h-4 w-4 text-gray-400" /> Instructors
             </p>
             {course.teachers && course.teachers.length > 0 ? (
@@ -435,19 +426,19 @@ function PeopleTab({ course }: { course: DbCourse }) {
                             className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-5 py-4 dark:border-gray-800 dark:bg-gray-900"
                         >
                             <Avatar className="h-10 w-10">
-                                <AvatarFallback className="bg-blue-700 text-sm font-bold text-white">
+                                <AvatarFallback className="bg-violet-700 text-sm font-bold text-white">
                                     {initials(teacher.name)}
                                 </AvatarFallback>
                             </Avatar>
                             <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                <p className="text-sm font-semibold text-foreground">
                                     {teacher.name}
                                 </p>
                                 <p className="text-xs text-gray-400">
                                     {teacher.email}
                                 </p>
                             </div>
-                            <span className="shrink-0 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">
+                            <span className="shrink-0 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-600">
                                 Instructor
                             </span>
                         </div>
@@ -530,9 +521,7 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
                 setNewMsg('');
             })
             .catch(() =>
-                getSwal().then((S) =>
-                    S.fire({ title: 'Could not post', icon: 'error' }),
-                ),
+                alertDialog({ title: 'Could not post', description: 'Check your connection and try again.', tone: 'error' }),
             )
             .finally(() => setPosting(false));
     }
@@ -553,23 +542,18 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
                 setComments((p) => ({ ...p, [id]: '' }));
             })
             .catch(() =>
-                getSwal().then((S) =>
-                    S.fire({ title: 'Could not comment', icon: 'error' }),
-                ),
+                alertDialog({ title: 'Could not comment', description: 'Check your connection and try again.', tone: 'error' }),
             );
     }
 
     async function removeAnnouncement(id: number) {
-        const Swal = await getSwal();
-        const r = await Swal.fire({
+        const confirmed = await confirmDialog({
             title: 'Delete announcement?',
-            text: 'This will remove it and all its comments.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Delete',
-            confirmButtonColor: '#dc2626',
+            description: 'This removes it and all of its comments.',
+            confirmLabel: 'Delete',
+            tone: 'danger',
         });
-        if (r.isConfirmed) {
+        if (confirmed) {
             axios
                 .delete(`/announcements/${id}`)
                 .then(() =>
@@ -595,10 +579,10 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
 
     return (
         <div className="space-y-4">
-            <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+            <div className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
                 <div className="flex items-start gap-3">
                     <Avatar className="h-9 w-9 shrink-0">
-                        <AvatarFallback className="bg-blue-700 text-sm font-bold text-white">
+                        <AvatarFallback className="bg-violet-700 text-sm font-bold text-white">
                             {initials(me.name)}
                         </AvatarFallback>
                     </Avatar>
@@ -613,7 +597,7 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
                         <div className="flex justify-end">
                             <Button
                                 size="sm"
-                                className="gap-2 bg-blue-600 hover:bg-blue-700"
+                                className="gap-2 bg-violet-600 hover:bg-violet-700"
                                 onClick={post}
                                 disabled={!newMsg.trim() || posting}
                             >
@@ -638,24 +622,24 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
                     return (
                         <div
                             key={a.id}
-                            className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
+                            className="overflow-hidden rounded-3xl border bg-card shadow-panel"
                         >
                             <div className="flex items-start gap-4 p-5">
                                 <Avatar className="h-9 w-9 shrink-0">
-                                    <AvatarFallback className="bg-blue-700 text-sm font-bold text-white">
+                                    <AvatarFallback className="bg-violet-700 text-sm font-bold text-white">
                                         {initials(authorName)}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div className="min-w-0 flex-1">
                                     <div className="flex flex-wrap items-baseline gap-2">
-                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                        <p className="text-sm font-semibold text-foreground">
                                             {authorName}
                                         </p>
                                         <p className="text-xs text-gray-400">
                                             {relativeTime(a.created_at)}
                                         </p>
                                     </div>
-                                    <p className="mt-1.5 text-sm leading-relaxed whitespace-pre-wrap text-gray-700 dark:text-gray-300">
+                                    <p className="mt-1.5 text-sm leading-relaxed whitespace-pre-wrap text-foreground/85">
                                         {a.body}
                                     </p>
                                 </div>
@@ -687,7 +671,7 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
                                                 </Avatar>
                                                 <div className="min-w-0 flex-1">
                                                     <div className="flex items-baseline gap-2">
-                                                        <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                                                        <p className="text-xs font-semibold text-foreground">
                                                             {cName}
                                                         </p>
                                                         <p className="text-[10px] text-gray-400">
@@ -718,7 +702,7 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
 
                             <div className="flex items-center gap-3 border-t border-gray-100 px-5 py-3 dark:border-gray-800">
                                 <Avatar className="h-7 w-7 shrink-0">
-                                    <AvatarFallback className="bg-blue-700 text-[10px] font-bold text-white">
+                                    <AvatarFallback className="bg-violet-700 text-[10px] font-bold text-white">
                                         {initials(me.name)}
                                     </AvatarFallback>
                                 </Avatar>
@@ -742,7 +726,7 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
                                 <button
                                     onClick={() => comment(a.id)}
                                     disabled={!comments[a.id]?.trim()}
-                                    className="shrink-0 p-1.5 text-blue-600 transition-colors hover:text-blue-700 disabled:text-gray-300"
+                                    className="shrink-0 p-1.5 text-violet-600 transition-colors hover:text-violet-700 disabled:text-gray-300"
                                 >
                                     <Send className="h-3.5 w-3.5" />
                                 </button>
@@ -783,7 +767,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                     No assignments in this course
                 </p>
                 <p className="mt-1 text-xs text-gray-400">
-                    Assignments you create in sessions will appear here.
+                    Assignments you add to lessons will appear here.
                 </p>
             </div>
         );
@@ -806,7 +790,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                 return (
                     <div
                         key={a.id}
-                        className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
+                        className="overflow-hidden rounded-3xl border bg-card shadow-panel"
                     >
                         {/* Assignment header row */}
                         <button
@@ -817,7 +801,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                 <PenLine className="h-4 w-4" />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="truncate font-semibold text-gray-900 dark:text-white">
+                                <p className="truncate font-semibold text-foreground">
                                     {a.title}
                                 </p>
                                 <p className="truncate text-xs text-gray-400">
@@ -863,19 +847,19 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                 <table className="w-full border-t border-gray-100 text-sm dark:border-gray-800">
                                     <thead>
                                         <tr className="bg-gray-50 dark:bg-gray-800/50">
-                                            <th className="px-5 py-2.5 text-left text-xs font-semibold tracking-wider text-gray-400 uppercase">
+                                            <th className="px-5 py-2.5 text-left text-xs font-bold text-muted-foreground">
                                                 Student
                                             </th>
-                                            <th className="hidden px-5 py-2.5 text-left text-xs font-semibold tracking-wider text-gray-400 uppercase sm:table-cell">
+                                            <th className="hidden px-5 py-2.5 text-left text-xs font-bold text-muted-foreground sm:table-cell">
                                                 Submission
                                             </th>
-                                            <th className="hidden px-5 py-2.5 text-left text-xs font-semibold tracking-wider text-gray-400 uppercase md:table-cell">
+                                            <th className="hidden px-5 py-2.5 text-left text-xs font-bold text-muted-foreground md:table-cell">
                                                 Submitted
                                             </th>
-                                            <th className="px-5 py-2.5 text-center text-xs font-semibold tracking-wider text-gray-400 uppercase">
+                                            <th className="px-5 py-2.5 text-center text-xs font-bold text-muted-foreground">
                                                 Status
                                             </th>
-                                            <th className="px-5 py-2.5 text-right text-xs font-semibold tracking-wider text-gray-400 uppercase">
+                                            <th className="px-5 py-2.5 text-right text-xs font-bold text-muted-foreground">
                                                 Action
                                             </th>
                                         </tr>
@@ -893,7 +877,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                                         <td className="px-5 py-3.5">
                                                             <div className="flex items-center gap-2.5">
                                                                 <Avatar className="h-7 w-7 shrink-0">
-                                                                    <AvatarFallback className="bg-blue-600 text-[10px] font-bold text-white">
+                                                                    <AvatarFallback className="bg-violet-600 text-[10px] font-bold text-white">
                                                                         {s.student.name
                                                                             .split(
                                                                                 ' ',
@@ -915,7 +899,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                                                     </AvatarFallback>
                                                                 </Avatar>
                                                                 <div className="min-w-0">
-                                                                    <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                                                                    <p className="truncate text-sm font-semibold text-foreground">
                                                                         {
                                                                             s
                                                                                 .student
@@ -935,13 +919,13 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                                         <td className="hidden px-5 py-3.5 sm:table-cell">
                                                             <div className="flex min-w-0 items-center gap-1.5">
                                                                 {isText ? (
-                                                                    <Type className="h-4 w-4 shrink-0 text-blue-400" />
+                                                                    <Type className="h-4 w-4 shrink-0 text-violet-400" />
                                                                 ) : isVideo ? (
                                                                     <Video className="h-4 w-4 shrink-0 text-purple-400" />
                                                                 ) : (
                                                                     <FileText className="h-4 w-4 shrink-0 text-amber-400" />
                                                                 )}
-                                                                <span className="max-w-[180px] truncate text-sm text-gray-700 dark:text-gray-300">
+                                                                <span className="max-w-[180px] truncate text-sm text-foreground/85">
                                                                     {isText
                                                                         ? 'Text answer'
                                                                         : isVideo
@@ -969,7 +953,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                                                 className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase ${
                                                                     s.status ===
                                                                     'graded'
-                                                                        ? 'bg-blue-100 text-blue-600'
+                                                                        ? 'bg-violet-100 text-violet-600'
                                                                         : s.status ===
                                                                             'late'
                                                                           ? 'bg-red-100 text-red-600'
@@ -991,7 +975,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                                                             s.id,
                                                                         )
                                                                     }
-                                                                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition hover:border-blue-300 hover:text-blue-600 dark:border-gray-700 dark:text-gray-300"
+                                                                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition hover:border-violet-300 hover:text-violet-600 dark:border-gray-700 dark:text-gray-300"
                                                                 >
                                                                     <Eye className="h-3.5 w-3.5" />
                                                                     {rowOpen
@@ -1006,7 +990,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                                                     }
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
-                                                                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition hover:border-blue-300 hover:text-blue-600 dark:border-gray-700 dark:text-gray-300"
+                                                                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition hover:border-violet-300 hover:text-violet-600 dark:border-gray-700 dark:text-gray-300"
                                                                 >
                                                                     <ExternalLink className="h-3.5 w-3.5" />
                                                                     Open
@@ -1019,7 +1003,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                                                     }
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
-                                                                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition hover:border-blue-300 hover:text-blue-600 dark:border-gray-700 dark:text-gray-300"
+                                                                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition hover:border-violet-300 hover:text-violet-600 dark:border-gray-700 dark:text-gray-300"
                                                                 >
                                                                     <Download className="h-3.5 w-3.5" />
                                                                     Download
@@ -1160,40 +1144,29 @@ export default function ClassManagementIndex({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Class Management" />
-            <div className="min-h-full bg-gray-50 dark:bg-gray-950">
+            <div className="min-h-full pb-10">
                 {/* ── Page header ── */}
-                <div
-                    className="px-4 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8"
-                    style={{ background: PORTAL_GRADIENT }}
-                >
-                    <p className="text-[11px] font-semibold tracking-[0.2em] text-yellow-300/80 uppercase">
-                        Class Management
-                    </p>
-                    <h1 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">
-                        {course ? course.title : 'Select a Course'}
-                    </h1>
-                    <p className="mt-1 text-sm text-blue-200/50">
-                        Manage students, modules, submissions, and announcements
-                        for your class.
-                    </p>
-                </div>
+                <PageHeader
+                    title={course ? course.title : 'Select a course'}
+                    description="Students, modules, submissions and announcements for your class."
+                />
 
-                <div className="space-y-5 px-8 py-8">
+                <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-8 space-y-6 py-8">
                     {/* ── Two-level filter ── */}
                     <div className="flex flex-wrap items-end gap-3">
                         {/* Course filter */}
                         <div className="flex flex-col gap-1.5">
-                            <label className="flex items-center gap-1 text-xs font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400">
-                                <BookOpen className="h-3.5 w-3.5 text-blue-500" />{' '}
+                            <label className="flex items-center gap-1 text-sm font-bold text-foreground">
+                                <BookOpen className="h-3.5 w-3.5 text-violet-500" />{' '}
                                 Course
                             </label>
                             <Select
                                 value={selectedCourseId}
                                 onValueChange={handleCourseChange}
                             >
-                                <SelectTrigger className="h-11 min-w-[260px] rounded-lg border-2 border-gray-300 bg-white text-sm font-semibold shadow-sm transition-colors hover:border-blue-400 focus:border-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-500 [&>svg]:h-4 [&>svg]:w-4 [&>svg]:opacity-100">
+                                <SelectTrigger className="h-11 min-w-[260px] rounded-lg border-2 border-gray-300 bg-white text-sm font-semibold shadow-sm transition-colors hover:border-violet-400 focus:border-violet-500 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-violet-500 [&>svg]:h-4 [&>svg]:w-4 [&>svg]:opacity-100">
                                     <div className="flex items-center gap-2">
-                                        <BookOpen className="h-4 w-4 shrink-0 text-blue-500" />
+                                        <BookOpen className="h-4 w-4 shrink-0 text-violet-500" />
                                         <SelectValue placeholder="Select a course…" />
                                     </div>
                                 </SelectTrigger>
@@ -1228,7 +1201,7 @@ export default function ClassManagementIndex({
 
                         {/* Module filter */}
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400">
+                            <label className="text-sm font-bold text-foreground">
                                 Module
                             </label>
                             <Select
@@ -1238,7 +1211,7 @@ export default function ClassManagementIndex({
                                     !course || course.modules.length === 0
                                 }
                             >
-                                <SelectTrigger className="h-11 min-w-[220px] rounded-lg border-2 border-gray-300 bg-white text-sm font-semibold shadow-sm transition-colors hover:border-blue-400 focus:border-blue-500 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-500 [&>svg]:h-4 [&>svg]:w-4 [&>svg]:opacity-100">
+                                <SelectTrigger className="h-11 min-w-[220px] rounded-lg border-2 border-gray-300 bg-white text-sm font-semibold shadow-sm transition-colors hover:border-violet-400 focus:border-violet-500 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-violet-500 [&>svg]:h-4 [&>svg]:w-4 [&>svg]:opacity-100">
                                     <SelectValue placeholder="All modules" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -1294,7 +1267,7 @@ export default function ClassManagementIndex({
                                         value: course.students.length,
                                         sub: 'active learners',
                                         Icon: Users,
-                                        color: 'text-blue-500',
+                                        color: 'text-violet-500',
                                     },
                                     {
                                         label: 'Avg. Completion',
@@ -1313,17 +1286,17 @@ export default function ClassManagementIndex({
                                 ].map(({ label, value, sub, Icon, color }) => (
                                     <div
                                         key={label}
-                                        className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900"
+                                        className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6"
                                     >
                                         <div className="mb-3 flex items-center justify-between">
-                                            <p className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                                            <p className="text-sm font-bold text-muted-foreground">
                                                 {label}
                                             </p>
                                             <Icon
                                                 className={`h-4 w-4 ${color}`}
                                             />
                                         </div>
-                                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                                        <p className="font-display text-3xl font-extrabold tracking-[-0.03em] text-foreground tabular-nums">
                                             {value}
                                         </p>
                                         <p className="mt-0.5 text-xs text-gray-400">
@@ -1334,7 +1307,7 @@ export default function ClassManagementIndex({
                             </div>
 
                             {/* ── Tabs ── */}
-                            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+                            <div className="overflow-hidden rounded-3xl border bg-card shadow-panel">
                                 <Tabs value={activeTab} onValueChange={handleTabChange}>
                                     <div className="border-b border-gray-200 px-4 dark:border-gray-800">
                                         <TabsList className="-mb-px flex h-auto gap-0 overflow-x-auto rounded-none bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -1343,7 +1316,7 @@ export default function ClassManagementIndex({
                                                     <TabsTrigger
                                                         key={value}
                                                         value={value}
-                                                        className="flex shrink-0 items-center gap-2 rounded-none border-b-2 border-transparent px-4 py-3.5 text-sm font-medium text-gray-500 transition-none hover:text-gray-700 data-[state=active]:border-blue-600 data-[state=active]:bg-transparent data-[state=active]:text-blue-600 data-[state=active]:shadow-none dark:text-gray-400 dark:hover:text-gray-200"
+                                                        className="flex shrink-0 items-center gap-2 rounded-none border-b-2 border-transparent px-4 py-3.5 text-sm font-medium text-gray-500 transition-none hover:text-gray-700 data-[state=active]:border-violet-600 data-[state=active]:bg-transparent data-[state=active]:text-violet-600 data-[state=active]:shadow-none dark:text-gray-400 dark:hover:text-gray-200"
                                                     >
                                                         <Icon className="h-4 w-4" />
                                                         {label}

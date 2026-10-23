@@ -17,7 +17,15 @@ class CourseContentItem extends Model
         'file_path',
         'file_size',
         'sort_order',
+        'pages',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'pages' => 'array',
+        ];
+    }
 
     public function session(): BelongsTo
     {

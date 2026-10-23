@@ -1,4 +1,4 @@
-import { PORTAL_GRADIENT } from '@/components/dashboards/shared';
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -42,26 +42,11 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
     const currentPath = window.location.pathname;
 
     return (
-        <div className="min-h-full bg-white dark:bg-gray-950">
+        <div className="min-h-full pb-10">
 
-            {/* Header */}
-            <div className="px-4 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8" style={{ background: PORTAL_GRADIENT }}>
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-300/70">
-                            Account
-                        </p>
-                        <h1 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">
-                            Settings
-                        </h1>
-                        <p className="mt-1 text-sm text-blue-200/50">
-                            Manage your profile and account settings
-                        </p>
-                    </div>
-                </div>
-            </div>
+            <PageHeader title="Settings" description="Your profile, password, appearance and sign-in security." />
 
-            <div className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+            <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-8 py-8">
             <div className="flex flex-col lg:flex-row lg:space-x-12">
                 <aside className="w-full max-w-xl lg:w-48">
                     <nav className="flex flex-col space-y-1 space-x-0">

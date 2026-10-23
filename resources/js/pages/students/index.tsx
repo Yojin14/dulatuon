@@ -1,4 +1,3 @@
-import { PORTAL_GRADIENT } from '@/components/dashboards/shared';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,6 +19,7 @@ import {
 } from '@/components/ui/table';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useInitials } from '@/hooks/use-initials';
+import { PageHeader } from '@/components/page-header';
 import AppLayout from '@/layouts/app-layout';
 import { apiFetch } from '@/lib/api-fetch';
 import { type BreadcrumbItem, type SharedData } from '@/types';
@@ -314,26 +314,12 @@ export default function StudentsIndex() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Students" />
-            <div className="min-h-full bg-white dark:bg-gray-950">
+            <div className="min-h-full pb-10">
 
                 {/* Header */}
-                <div className="px-4 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8" style={{ background: PORTAL_GRADIENT }}>
-                    <div className="flex items-start justify-between gap-4">
-                        <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-yellow-300/80">
-                                Teacher Portal
-                            </p>
-                            <h1 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">
-                                Students
-                            </h1>
-                            <p className="mt-1 text-sm text-blue-200/50">
-                                {loading ? 'Loading...' : `${allStudents.length} students across your sections`}
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                <PageHeader title="Students" description={loading ? 'Loading…' : `${allStudents.length} students across your sections.`} />
 
-                <div className="space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+                <div className="mx-auto w-full max-w-[1600px] space-y-8 px-5 py-8 sm:px-8">
 
                 {/* Loading State */}
                 {loading && (
@@ -424,7 +410,7 @@ export default function StudentsIndex() {
                                     className="pl-9"
                                 />
                                 {searchQuery && (
-                                    <button type="button" onClick={() => setSearchQuery('')} className="absolute top-1/2 right-2 -translate-y-1/2 rounded-full p-1 hover:bg-gray-100 dark:hover:bg-gray-800">
+                                    <button type="button" onClick={() => setSearchQuery('')} className="absolute top-1/2 right-2 -translate-y-1/2 rounded-full p-1 hover:bg-accent">
                                         <X className="h-4 w-4 text-gray-400" />
                                     </button>
                                 )}
@@ -443,7 +429,7 @@ export default function StudentsIndex() {
 
                         {filteredStudents.length > 0 ? (
                             <>
-                                <div className="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-800">
+                                <div className="overflow-x-auto rounded-xl border border-border">
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
@@ -468,7 +454,7 @@ export default function StudentsIndex() {
                                                                 />
                                                                 <AvatarFallback>{getInitials(student.fullname || '')}</AvatarFallback>
                                                             </Avatar>
-                                                            <span className="font-medium text-gray-900 dark:text-white">{student.fullname}</span>
+                                                            <span className="font-medium text-foreground">{student.fullname}</span>
                                                         </div>
                                                     </TableCell>
                                                     <TableCell><span className="text-sm text-gray-400">{student.email}</span></TableCell>
@@ -507,7 +493,7 @@ export default function StudentsIndex() {
                     <div className="flex flex-col items-center gap-3 rounded-xl border border-gray-100 py-12 text-center dark:border-gray-800">
                         <Users className="h-8 w-8 text-gray-200 dark:text-gray-700" />
                         <div>
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-300">No students found</p>
+                            <p className="text-sm font-medium text-muted-foreground">No students found</p>
                             <p className="mt-0.5 text-xs text-gray-400">No students are assigned to your sections.</p>
                         </div>
                         <Button variant="outline" size="sm" onClick={retryFetch}>

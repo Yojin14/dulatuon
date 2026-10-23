@@ -164,6 +164,68 @@ export function makeCar(colour: number): THREE.Group {
     return car;
 }
 
+/** Jointed parts of a person, so scenes can animate walking, running and panic. */
+export interface PersonRig {
+    root: THREE.Group;
+    body: THREE.Group;
+    leftArm: THREE.Group;
+    rightArm: THREE.Group;
+    leftLeg: THREE.Group;
+    rightLeg: THREE.Group;
+}
+
+const SKIN_TONES = [0xf1c27d, 0xc68642, 0x8d5524, 0xe0ac69];
+const HAIR_COLOURS = [0x1f2937, 0x3f2a1d, 0x111827, 0x6b4423];
+
+/**
+ * A blocky townsperson about half a house tall, facing +Z. Arms and legs hang
+ * from pivot groups at the shoulders and hips.
+ */
+export function makePerson(shirtColour: number, variant: number): PersonRig {
+    const root = new THREE.Group();
+    const body = new THREE.Group();
+    root.add(body);
+
+    const skin = lambert(SKIN_TONES[variant % SKIN_TONES.length]);
+    const shirt = lambert(shirtColour);
+    const trousers = lambert(variant % 2 ? 0x334155 : 0x1e3a8a);
+
+    const limb = (width: number, length: number, material: THREE.Material, x: number, y: number): THREE.Group => {
+        const pivot = new THREE.Group();
+        pivot.position.set(x, y, 0);
+        const mesh = box(width, length, width, material);
+        mesh.position.y = -length / 2;
+        pivot.add(mesh);
+        body.add(pivot);
+        return pivot;
+    };
+
+    const leftLeg = limb(0.035, 0.09, trousers, -0.022, 0.09);
+    const rightLeg = limb(0.035, 0.09, trousers, 0.022, 0.09);
+
+    const torso = box(0.085, 0.085, 0.05, shirt);
+    torso.position.y = 0.132;
+    body.add(torso);
+
+    const leftArm = limb(0.026, 0.08, shirt, -0.057, 0.17);
+    const rightArm = limb(0.026, 0.08, shirt, 0.057, 0.17);
+    for (const arm of [leftArm, rightArm]) {
+        const hand = box(0.026, 0.02, 0.026, skin);
+        hand.position.y = -0.088;
+        arm.add(hand);
+    }
+
+    const head = box(0.065, 0.065, 0.065, skin);
+    head.position.y = 0.21;
+    const hair = box(0.07, 0.022, 0.07, lambert(HAIR_COLOURS[variant % HAIR_COLOURS.length]));
+    hair.position.y = 0.25;
+    body.add(head, hair);
+
+    enableShadows(root);
+
+    return { root, body, leftArm, rightArm, leftLeg, rightLeg };
+}
+
 /** A street lamp with a glowing head. */
 export function makeLamp(): THREE.Group {
     const lamp = new THREE.Group();

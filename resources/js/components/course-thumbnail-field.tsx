@@ -1,6 +1,7 @@
+import { CoverGallery } from '@/components/cover/cover-gallery';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { GripVertical, Upload, X } from 'lucide-react';
+import { GripVertical, Image as ImageIcon, Upload, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 interface CourseThumbnailFieldProps {
@@ -34,6 +35,8 @@ export function CourseThumbnailField({
     const focusPosRef = useRef({ x: initialFocusX, y: initialFocusY });
 
     const [isDragging, setIsDragging] = useState(false);
+    const [showGallery, setShowGallery] = useState(false);
+    const [presetId, setPresetId] = useState<string | null>(null);
     const [focusX, setFocusX] = useState(initialFocusX);
     const [focusY, setFocusY] = useState(initialFocusY);
     focusPosRef.current = { x: focusX, y: focusY };
@@ -92,15 +95,28 @@ export function CourseThumbnailField({
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Upload className="h-4 w-4 text-muted-foreground" />
-                    Course Thumbnail
+                    Course cover
                 </CardTitle>
                 <CardDescription>
-                    Shown as the cover image on the course card. Recommended: 1280×720px, JPG or PNG.
+                    Shown on the course card. Pick a ready-made Dulatuon cover or upload your own (1280×720px works best).
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
+                {(!preview || showGallery) && (
+                    <CoverGallery
+                        selectedId={presetId}
+                        onUpload={() => inputRef.current?.click()}
+                        onPick={(file, id) => {
+                            onSelect(file);
+                            setPresetId(id);
+                            resetFocus();
+                            setShowGallery(false);
+                        }}
+                    />
+                )}
                 {/* Drag-to-reposition preview */}
                 <div
+                    hidden={!preview || showGallery}
                     ref={containerRef}
                     className={`relative w-full select-none overflow-hidden rounded-xl bg-gray-100 ring-1 ring-gray-200 dark:bg-gray-800 dark:ring-gray-700 ${preview ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
                     style={{ aspectRatio: '16 / 7' }}
@@ -119,7 +135,7 @@ export function CourseThumbnailField({
                                 className="pointer-events-none h-full w-full object-cover"
                                 style={{ objectPosition: `${focusX}% ${focusY}%` }}
                             />
-                            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center bg-gradient-to-t from-black/50 to-transparent pb-2 pt-8">
+                            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center bg-linear-to-t from-black/50 to-transparent pb-2 pt-8">
                                 <span className="flex items-center gap-1.5 text-[11px] font-medium text-white/90">
                                     <GripVertical className="h-3 w-3" />
                                     Drag to reposition
@@ -152,6 +168,8 @@ export function CourseThumbnailField({
                                 return;
                             }
                             onSelect(file);
+                            setPresetId(null);
+                            setShowGallery(false);
                             resetFocus();
                             if (inputRef.current) {
                                 inputRef.current.value = '';
@@ -160,9 +178,9 @@ export function CourseThumbnailField({
                     />
                     {preview ? (
                         <>
-                            <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
-                                <Upload className="mr-2 h-4 w-4" />
-                                Change Photo
+                            <Button type="button" variant="outline" size="sm" onClick={() => setShowGallery((open) => !open)}>
+                                <ImageIcon className="h-4 w-4" />
+                                {showGallery ? 'Keep current cover' : 'Change cover'}
                             </Button>
                             <Button
                                 type="button"
@@ -171,6 +189,8 @@ export function CourseThumbnailField({
                                 className="text-gray-400 hover:text-red-500"
                                 onClick={() => {
                                     onRemove();
+                                    setPresetId(null);
+                                    setShowGallery(false);
                                     resetFocus();
                                     if (inputRef.current) {
                                         inputRef.current.value = '';
@@ -181,12 +201,7 @@ export function CourseThumbnailField({
                                 Remove
                             </Button>
                         </>
-                    ) : (
-                        <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
-                            <Upload className="mr-2 h-4 w-4" />
-                            Upload Photo
-                        </Button>
-                    )}
+                    ) : null}
                 </div>
                 {error && <p className="text-xs text-red-500">{error}</p>}
             </CardContent>

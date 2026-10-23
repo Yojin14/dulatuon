@@ -1,4 +1,4 @@
-import { PORTAL_GRADIENT, SectionHeader } from '@/components/dashboards/shared';
+import { SectionHeader } from '@/components/dashboards/shared';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,10 @@ import {
 } from '@/components/ui/select';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useInitials } from '@/hooks/use-initials';
+import { PageHeader } from '@/components/page-header';
 import AppLayout from '@/layouts/app-layout';
+import { alertDialog, confirmDialog, formDialog } from '@/lib/dialog';
+import { toast } from '@/lib/toast';
 import { formatDate } from '@/lib/utils';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
@@ -38,7 +41,6 @@ import {
     Users,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { SweetAlertResult } from 'sweetalert2';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
@@ -80,16 +82,6 @@ interface PageProps extends SharedData {
     activeTab: string;
     filters: { search?: string; tab?: string };
 }
-
-type SwalModule = typeof import('sweetalert2').default;
-
-let swalPromise: Promise<SwalModule> | null = null;
-const getSwal = (): Promise<SwalModule> => {
-    if (!swalPromise) {
-        swalPromise = import('sweetalert2').then((m) => m.default);
-    }
-    return swalPromise;
-};
 
 const PARTIAL_RELOAD_KEYS = ['users', 'stats', 'activeTab', 'filters'];
 
@@ -174,17 +166,12 @@ export default function AdminUsersIndex() {
     );
 
     const handleChangeRole = useCallback(async (user: User, role: string) => {
-        const Swal = await getSwal();
-        const result: SweetAlertResult = await Swal.fire({
-            title: 'Change Role?',
-            html: `Change <strong>${user.name}</strong>'s role to <strong>${role}</strong>?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#1e3a8a',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Yes, Change',
+        const confirmed = await confirmDialog({
+            title: 'Change role?',
+            description: `${user.name} will become a ${role}.`,
+            confirmLabel: 'Change role',
         });
-        if (!result.isConfirmed) {
+        if (!confirmed) {
             return;
         }
         router.put(
@@ -192,37 +179,21 @@ export default function AdminUsersIndex() {
             { role },
             {
                 preserveScroll: true,
-                onSuccess: () =>
-                    Swal.fire({
-                        title: 'Updated!',
-                        text: `Role changed to ${role}.`,
-                        icon: 'success',
-                        timer: 2000,
-                        showConfirmButton: false,
-                    }),
-                onError: () =>
-                    Swal.fire({
-                        title: 'Error',
-                        text: 'Failed to update role.',
-                        icon: 'error',
-                    }),
+                onSuccess: () => toast(`Role changed to ${role}.`, 'success'),
+                onError: () => alertDialog({ title: 'Could not change role', description: 'Please try again.', tone: 'error' }),
             },
         );
     }, []);
 
     const handleToggleStatus = useCallback(async (user: User) => {
-        const Swal = await getSwal();
         const action = user.is_active ? 'Deactivate' : 'Activate';
-        const result = await Swal.fire({
-            title: `${action} User?`,
-            html: `${action} <strong>${user.name}</strong>?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#1e3a8a',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: `Yes, ${action}`,
+        const confirmed = await confirmDialog({
+            title: `${action} ${user.name}?`,
+            description: user.is_active ? 'They will not be able to log in until reactivated.' : 'They will be able to log in again.',
+            confirmLabel: action,
+            tone: user.is_active ? 'danger' : 'default',
         });
-        if (!result.isConfirmed) {
+        if (!confirmed) {
             return;
         }
         router.post(
@@ -230,132 +201,62 @@ export default function AdminUsersIndex() {
             {},
             {
                 preserveScroll: true,
-                onSuccess: () =>
-                    Swal.fire({
-                        title: 'Done!',
-                        text: `${user.name} has been ${action.toLowerCase()}d.`,
-                        icon: 'success',
-                        timer: 2000,
-                        showConfirmButton: false,
-                    }),
-                onError: () =>
-                    Swal.fire({
-                        title: 'Error',
-                        text: 'Failed to update status.',
-                        icon: 'error',
-                    }),
+                onSuccess: () => toast(`${user.name} has been ${action.toLowerCase()}d.`, 'success'),
+                onError: () => alertDialog({ title: 'Could not update status', description: 'Please try again.', tone: 'error' }),
             },
         );
     }, []);
 
     const handleDelete = useCallback(async (user: User) => {
-        const Swal = await getSwal();
-        const result = await Swal.fire({
-            title: 'Delete User?',
-            html: `Permanently delete <strong>${user.name}</strong>? This cannot be undone.`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc2626',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Yes, Delete',
+        const confirmed = await confirmDialog({
+            title: `Delete ${user.name}?`,
+            description: "Their account and progress are removed permanently. This can't be undone.",
+            confirmLabel: 'Delete user',
+            tone: 'danger',
         });
-        if (!result.isConfirmed) {
+        if (!confirmed) {
             return;
         }
         router.delete(`/admin/users/${user.id}`, {
             preserveScroll: true,
-            onSuccess: () =>
-                Swal.fire({
-                    title: 'Deleted!',
-                    text: `${user.name} has been removed.`,
-                    icon: 'success',
-                    timer: 2000,
-                    showConfirmButton: false,
-                }),
-            onError: () =>
-                Swal.fire({
-                    title: 'Error',
-                    text: 'Failed to delete user.',
-                    icon: 'error',
-                }),
+            onSuccess: () => toast(`${user.name} has been removed.`, 'success'),
+            onError: () => alertDialog({ title: 'Could not delete user', description: 'Please try again.', tone: 'error' }),
         });
     }, []);
 
     const handleSendMessage = useCallback(async (user: User) => {
-        const Swal = await getSwal();
-        const result = await Swal.fire({
+        const values = await formDialog({
             title: `Message ${user.name}`,
-            html: `
-                <div class="text-left space-y-3">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-                        <input id="swal-subject" class="swal2-input" placeholder="Enter subject" style="margin:0;width:100%" />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Message</label>
-                        <textarea id="swal-message" class="swal2-textarea" placeholder="Enter message" style="margin:0;width:100%"></textarea>
-                    </div>
-                </div>
-            `,
-            focusConfirm: false,
-            showCancelButton: true,
-            confirmButtonColor: '#1e3a8a',
-            confirmButtonText: 'Send',
-            preConfirm: () => {
-                const subject = (
-                    document.getElementById('swal-subject') as HTMLInputElement
-                )?.value;
-                const message = (
-                    document.getElementById(
-                        'swal-message',
-                    ) as HTMLTextAreaElement
-                )?.value;
-                if (!subject || !message) {
-                    Swal.showValidationMessage('Please fill in both fields');
-                    return false;
-                }
-                return { subject, message };
-            },
+            confirmLabel: 'Send',
+            fields: [
+                { name: 'subject', label: 'Subject', placeholder: 'What is this about?' },
+                { name: 'message', label: 'Message', placeholder: 'Write your message', multiline: true },
+            ],
         });
-        if (!result.isConfirmed || !result.value) {
+        if (!values) {
             return;
         }
-        router.post(`/admin/users/${user.id}/send-message`, result.value, {
-            preserveScroll: true,
-            onSuccess: () =>
-                Swal.fire({
-                    title: 'Sent!',
-                    icon: 'success',
-                    timer: 2000,
-                    showConfirmButton: false,
-                }),
-            onError: () =>
-                Swal.fire({
-                    title: 'Error',
-                    text: 'Failed to send message.',
-                    icon: 'error',
-                }),
-        });
+        router.post(
+            `/admin/users/${user.id}/send-message`,
+            { subject: values.subject, message: values.message },
+            {
+                preserveScroll: true,
+                onSuccess: () => toast('Message sent.', 'success'),
+                onError: () => alertDialog({ title: 'Could not send message', description: 'Please try again.', tone: 'error' }),
+            },
+        );
     }, []);
 
     const handleToggleClassManagement = useCallback(
         async (user: User) => {
-            const Swal = await getSwal();
             const isGranting = !user.has_class_management;
-            const result = await Swal.fire({
-                title: isGranting
-                    ? 'Grant Class Management?'
-                    : 'Revoke Class Management?',
-                html: isGranting
-                    ? `Grant <strong>${user.name}</strong> class management privileges?`
-                    : `Revoke class management privileges from <strong>${user.name}</strong>?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: isGranting ? '#1e3a8a' : '#dc2626',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: isGranting ? 'Yes, Grant' : 'Yes, Revoke',
+            const confirmed = await confirmDialog({
+                title: isGranting ? 'Grant class management?' : 'Revoke class management?',
+                description: isGranting ? `${user.name} will be able to manage classes.` : `${user.name} will no longer be able to manage classes.`,
+                confirmLabel: isGranting ? 'Grant' : 'Revoke',
+                tone: isGranting ? 'default' : 'danger',
             });
-            if (!result.isConfirmed) {
+            if (!confirmed) {
                 return;
             }
             router.post(
@@ -363,24 +264,8 @@ export default function AdminUsersIndex() {
                 { permission: 'class_management', tab: currentTab },
                 {
                     preserveScroll: true,
-                    onSuccess: () =>
-                        Swal.fire({
-                            title: isGranting
-                                ? 'Privilege Granted!'
-                                : 'Privilege Revoked',
-                            text: isGranting
-                                ? `${user.name} can now manage classes.`
-                                : `${user.name} can no longer manage classes.`,
-                            icon: 'success',
-                            timer: 2000,
-                            showConfirmButton: false,
-                        }),
-                    onError: () =>
-                        Swal.fire({
-                            title: 'Error',
-                            text: 'Failed to update permission.',
-                            icon: 'error',
-                        }),
+                    onSuccess: () => toast(isGranting ? `${user.name} can now manage classes.` : `${user.name} can no longer manage classes.`, 'success'),
+                    onError: () => alertDialog({ title: 'Could not update permission', description: 'Please try again.', tone: 'error' }),
                 },
             );
         },
@@ -388,17 +273,12 @@ export default function AdminUsersIndex() {
     );
 
     const handleVerifyEmail = useCallback(async (user: User) => {
-        const Swal = await getSwal();
-        const result = await Swal.fire({
-            title: 'Verify Email?',
-            html: `Manually verify the email for <strong>${user.name}</strong>?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#16a34a',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Yes, Verify',
+        const confirmed = await confirmDialog({
+            title: 'Verify email?',
+            description: `Mark ${user.name}'s email as verified without the email link.`,
+            confirmLabel: 'Verify',
         });
-        if (!result.isConfirmed) {
+        if (!confirmed) {
             return;
         }
         router.post(
@@ -406,20 +286,8 @@ export default function AdminUsersIndex() {
             {},
             {
                 preserveScroll: true,
-                onFinish: () =>
-                    Swal.fire({
-                        title: 'Email Verified!',
-                        text: `${user.name}'s email has been verified.`,
-                        icon: 'success',
-                        timer: 2000,
-                        showConfirmButton: false,
-                    }),
-                onError: () =>
-                    Swal.fire({
-                        title: 'Error',
-                        text: 'Failed to verify email.',
-                        icon: 'error',
-                    }),
+                onFinish: () => toast(`${user.name}'s email is verified.`, 'success'),
+                onError: () => alertDialog({ title: 'Could not verify email', description: 'Please try again.', tone: 'error' }),
             },
         );
     }, []);
@@ -428,7 +296,7 @@ export default function AdminUsersIndex() {
         const map: Record<string, string> = {
             admin: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
             teacher:
-                'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+                'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300',
             student:
                 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
         };
@@ -443,13 +311,13 @@ export default function AdminUsersIndex() {
                 <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9">
                         <AvatarImage src={u.avatar} />
-                        <AvatarFallback className="bg-blue-100 text-xs text-blue-800">
+                        <AvatarFallback className="bg-violet-100 text-xs text-violet-800">
                             {getInitials(u.name)}
                         </AvatarFallback>
                     </Avatar>
                     <div>
                         <div className="flex items-center gap-1.5">
-                            <p className="font-medium text-blue-900 dark:text-white">
+                            <p className="font-medium text-violet-900 dark:text-white">
                                 {u.name}
                             </p>
                             {u.email_verified_at && (
@@ -459,7 +327,7 @@ export default function AdminUsersIndex() {
                                 />
                             )}
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-xs text-muted-foreground">
                             {u.email}
                         </p>
                     </div>
@@ -506,7 +374,7 @@ export default function AdminUsersIndex() {
             key: 'date',
             header: 'Joined',
             cell: (u) => (
-                <span className="text-sm text-gray-500 dark:text-gray-400">
+                <span className="text-sm text-muted-foreground">
                     {formatDate(u.created_at)}
                 </span>
             ),
@@ -554,7 +422,7 @@ export default function AdminUsersIndex() {
                                         handleToggleClassManagement(u)
                                     }
                                 >
-                                    <PencilLine className="mr-2 h-4 w-4 text-blue-600" />
+                                    <PencilLine className="mr-2 h-4 w-4 text-violet-600" />
                                     <span>
                                         {u.has_class_management
                                             ? 'Revoke'
@@ -662,30 +530,13 @@ export default function AdminUsersIndex() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="User Management" />
-            <div className="min-h-full bg-white dark:bg-gray-950">
-                <div
-                    className="px-4 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8"
-                    style={{ background: PORTAL_GRADIENT }}
-                >
-                    <div className="flex items-start justify-between gap-4">
-                        <div>
-                            <p className="text-[11px] font-semibold tracking-[0.2em] text-yellow-300/80 uppercase">
-                                Admin Portal
-                            </p>
-                            <h1 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">
-                                User Management
-                            </h1>
-                            <p className="mt-1 text-sm text-blue-200/50">
-                                Manage accounts, roles, and permissions.
-                            </p>
-                        </div>
-                    </div>
-                </div>
+            <div className="min-h-full pb-10">
+                <PageHeader title="Users" description="Accounts, roles and access for everyone on Dulatuon." />
 
-                <div className="space-y-6 px-4 py-6 sm:space-y-8 sm:px-6 sm:py-8 lg:px-8">
+                <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-8 space-y-8 py-8">
                     <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-                        <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
-                            <p className="text-[11px] font-semibold tracking-widest text-gray-400 uppercase">
+                        <div className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
+                            <p className="text-sm font-bold text-muted-foreground">
                                 Total Users
                             </p>
                             <p className="mt-3 text-3xl font-bold text-gray-900 sm:mt-4 sm:text-4xl dark:text-white">
@@ -696,8 +547,8 @@ export default function AdminUsersIndex() {
                             </p>
                         </div>
 
-                        <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
-                            <p className="text-[11px] font-semibold tracking-widest text-gray-400 uppercase">
+                        <div className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
+                            <p className="text-sm font-bold text-muted-foreground">
                                 Admins
                             </p>
                             <p className="mt-3 text-3xl font-bold text-gray-900 sm:mt-4 sm:text-4xl dark:text-white">
@@ -708,8 +559,8 @@ export default function AdminUsersIndex() {
                             </p>
                         </div>
 
-                        <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
-                            <p className="text-[11px] font-semibold tracking-widest text-gray-400 uppercase">
+                        <div className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
+                            <p className="text-sm font-bold text-muted-foreground">
                                 Teachers
                             </p>
                             <p className="mt-3 text-3xl font-bold text-gray-900 sm:mt-4 sm:text-4xl dark:text-white">
@@ -720,8 +571,8 @@ export default function AdminUsersIndex() {
                             </p>
                         </div>
 
-                        <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
-                            <p className="text-[11px] font-semibold tracking-widest text-gray-400 uppercase">
+                        <div className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
+                            <p className="text-sm font-bold text-muted-foreground">
                                 Students
                             </p>
                             <p className="mt-3 text-3xl font-bold text-gray-900 sm:mt-4 sm:text-4xl dark:text-white">

@@ -1,5 +1,24 @@
 import { PORTAL_GRADIENT } from '@/components/dashboards/shared';
-import { RichTextEditor } from '@/components/rich-text-editor';
+import {
+    clearFlipbookDraft,
+    flipbookDraftKey,
+    formatDraftTime,
+    readFlipbookDraft,
+    useFlipbookAutosave,
+    type FlipbookDraft,
+} from '@/components/flipbook/flipbook-draft';
+import type { FlipbookImageUploader } from '@/components/flipbook/flipbook-editor';
+import {
+    newPage,
+    pagesForSave,
+    type FlipbookPage,
+} from '@/components/flipbook/flipbook-types';
+import { ProgressRing } from '@/components/game/progress-ring';
+import { AnswerTile } from '@/components/game/quiz/answer-tile';
+import {
+    CourseLeaderboard,
+    LeaderboardFooterButton,
+} from '@/components/leaderboard/course-leaderboard';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -10,9 +29,12 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { WorldChip } from '@/components/world/world-scope';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AppLayout from '@/layouts/app-layout';
 import { toast } from '@/lib/toast';
+import { worldFor, worldStyle } from '@/lib/worlds';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import {
     DndContext,
@@ -38,6 +60,8 @@ import {
     AlertTriangle,
     ArrowLeft,
     BookOpen,
+    Brain,
+    Building2,
     Calendar,
     CheckCircle,
     CheckCircle2,
@@ -53,14 +77,19 @@ import {
     FolderOpen,
     Globe,
     GraduationCap,
+    Grid3x3,
     GripVertical,
     Heart,
+    History,
     Info,
     Layers,
     LayoutList,
+    LifeBuoy,
     Link2,
     Lock,
+    Map as MapIcon,
     Megaphone,
+    Mountain,
     PenLine,
     Pencil,
     Play,
@@ -69,6 +98,8 @@ import {
     RefreshCw,
     RotateCcw,
     Send,
+    ShieldCheck,
+    Shuffle,
     Star,
     Trash2,
     Trophy,
@@ -76,9 +107,14 @@ import {
     Upload,
     User,
     Video,
+    Waves,
     XCircle,
+    Zap,
+    type LucideIcon,
 } from 'lucide-react';
 import {
+    Suspense,
+    lazy,
     memo,
     useCallback,
     useEffect,
@@ -86,12 +122,27 @@ import {
     useRef,
     useState,
     useSyncExternalStore,
+    type CSSProperties,
     type Dispatch,
     type SetStateAction,
 } from 'react';
 
+// The editor (tiptap) only downloads when a student opens a written answer.
+const RichTextEditor = lazy(() =>
+    import('@/components/rich-text-editor').then((m) => ({
+        default: m.RichTextEditor,
+    })),
+);
+// Flipbook builder and reader download only when a flipbook is opened.
+const FlipbookEditor = lazy(
+    () => import('@/components/flipbook/flipbook-editor'),
+);
+const FlipbookReader = lazy(
+    () => import('@/components/flipbook/flipbook-reader'),
+);
+
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ContentType = 'pdf' | 'word' | 'video' | 'youtube';
+type ContentType = 'pdf' | 'word' | 'video' | 'youtube' | 'flipbook';
 
 interface ContentItem {
     id: string;
@@ -102,6 +153,7 @@ interface ContentItem {
     url?: string;
     filename?: string;
     file?: File;
+    pages?: FlipbookPage[];
 }
 
 interface QuizQuestion {
@@ -238,26 +290,26 @@ interface CourseData {
 
 // ─── Dummy Data ───────────────────────────────────────────────────────────────
 const DUMMY_COURSE: Course = {
-    id: 'life-of-christ',
-    slug: 'life-of-christ',
-    courseTitle: 'Life of Christ Study',
+    id: 'earthquakes',
+    slug: 'earthquakes',
+    courseTitle: 'Earthquakes',
     description:
-        'A comprehensive study of the life, ministry, death, and resurrection of Jesus Christ drawn from the four Gospels.',
+        'How faults store and release energy, how seismic waves travel, how intensity differs from magnitude, and how to stay safe, set in the Philippines.',
     modules: [
         {
             id: 'module-1',
-            title: 'Life of Christ (As Taught by John Mayhue)',
+            title: 'Module 1: Faults and Plates',
             items: [
                 {
                     id: 's1',
                     itemType: 'session',
-                    title: 'Introduction to the Life of Christ',
+                    title: 'What is an earthquake?',
                     contents: [
                         {
                             id: 'c1',
                             type: 'youtube',
                             title: 'Intro Video',
-                            url: 'https://www.youtube.com/watch?v=jkmOwE4FRfw&t=2s',
+                            url: '',
                         },
                         {
                             id: 'c2',
@@ -270,29 +322,30 @@ const DUMMY_COURSE: Course = {
                         {
                             id: 'a1',
                             kind: 'quiz',
-                            title: 'Intro Quiz',
+                            title: 'Checkpoint: Faults',
                             description:
-                                'Test your knowledge on the introduction.',
+                                'Check what you know about faults before the lab.',
                             questions: [
                                 {
                                     id: 'q1',
-                                    question: 'What are the four Gospels?',
+                                    question: 'What is a fault?',
                                     options: [
-                                        'Matthew, Mark, Luke, John',
-                                        'Genesis, Exodus, Leviticus, Numbers',
-                                        'Acts, Romans, Corinthians, Galatians',
-                                        'Isaiah, Jeremiah, Ezekiel, Daniel',
+                                        'A crack in the crust where blocks of rock move',
+                                        'A layer of molten rock under the crust',
+                                        'A wave that travels across the ocean',
+                                        'A volcano that has stopped erupting',
                                     ],
                                     correctIndex: 0,
                                 },
                                 {
                                     id: 'q2',
-                                    question: 'Who wrote the Gospel of Luke?',
+                                    question:
+                                        'Which fault runs the length of the Philippine archipelago?',
                                     options: [
-                                        'Peter',
-                                        'Paul',
-                                        'Luke the physician',
-                                        'John the apostle',
+                                        'Manila Trench',
+                                        'Valley Fault System',
+                                        'Philippine Fault Zone',
+                                        'Cotabato Trench',
                                     ],
                                     correctIndex: 2,
                                 },
@@ -304,7 +357,7 @@ const DUMMY_COURSE: Course = {
                 {
                     id: 's2',
                     itemType: 'session',
-                    title: 'Law and Grace',
+                    title: 'Normal, reverse and strike-slip faults',
                     contents: [],
                     assessments: [],
                     meetings: [],
@@ -312,23 +365,7 @@ const DUMMY_COURSE: Course = {
                 {
                     id: 's3',
                     itemType: 'session',
-                    title: 'The Death Principle 1',
-                    contents: [],
-                    assessments: [],
-                    meetings: [],
-                },
-                {
-                    id: 's4',
-                    itemType: 'session',
-                    title: 'The Burial Principle 2',
-                    contents: [],
-                    assessments: [],
-                    meetings: [],
-                },
-                {
-                    id: 's5',
-                    itemType: 'session',
-                    title: 'The Resurrection Principle',
+                    title: 'Plate boundaries around the Philippines',
                     contents: [],
                     assessments: [],
                     meetings: [],
@@ -337,12 +374,12 @@ const DUMMY_COURSE: Course = {
         },
         {
             id: 'module-2',
-            title: 'The Life of Christ (Evangelism Ministry 2023)',
+            title: 'Module 2: Seismic Waves and Intensity',
             items: [
                 {
                     id: 's10',
                     itemType: 'session',
-                    title: 'Introduction to the Life of Christ',
+                    title: 'P waves and S waves',
                     contents: [],
                     assessments: [],
                     meetings: [],
@@ -350,12 +387,12 @@ const DUMMY_COURSE: Course = {
                 {
                     id: 'lg1',
                     itemType: 'lesson-group',
-                    title: 'Lesson One: Life in Heaven',
+                    title: 'Lesson: Magnitude vs. Intensity',
                     sessions: [
                         {
                             id: 's13',
                             itemType: 'session',
-                            title: 'Session 3: Word is God and Creator',
+                            title: 'Reading the PEIS intensity scale',
                             contents: [],
                             assessments: [],
                             meetings: [],
@@ -363,7 +400,7 @@ const DUMMY_COURSE: Course = {
                         {
                             id: 's14',
                             itemType: 'session',
-                            title: 'Session 4: Jesus Humbled Himself',
+                            title: 'Why depth changes the shaking',
                             contents: [],
                             assessments: [],
                             meetings: [],
@@ -376,6 +413,11 @@ const DUMMY_COURSE: Course = {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Display-only: legacy default titles like "Session 2" read as "Lesson 2". */
+function lessonLabel(title: string): string {
+    return title.replace(/^session(\s*\d+)$/i, 'Lesson$1');
+}
 function uid() {
     return Math.random().toString(36).slice(2, 9);
 }
@@ -498,7 +540,7 @@ const CONTENT_META: Record<
     word: {
         label: 'Word',
         icon: <File className="h-3.5 w-3.5" />,
-        badge: 'bg-blue-100 text-blue-700',
+        badge: 'bg-violet-100 text-violet-700',
     },
     video: {
         label: 'Video',
@@ -509,6 +551,11 @@ const CONTENT_META: Record<
         label: 'YouTube',
         icon: <YoutubeLogo weight="fill" className="h-3.5 w-3.5" />,
         badge: 'bg-rose-100 text-rose-700',
+    },
+    flipbook: {
+        label: 'Flipbook',
+        icon: <BookOpen className="h-3.5 w-3.5" />,
+        badge: 'bg-violet-100 text-violet-700',
     },
 };
 
@@ -544,8 +591,8 @@ function PdfViewer({ content }: { content: ContentItem }) {
 
     if (!content.url) {
         return (
-            <div className="flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-blue-200 bg-blue-50/50 py-20 text-center">
-                <FileText className="h-12 w-12 text-blue-300" />
+            <div className="flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/50 py-20 text-center">
+                <FileText className="h-12 w-12 text-violet-300" />
                 <p className="text-sm text-gray-500">No file uploaded yet.</p>
             </div>
         );
@@ -555,7 +602,7 @@ function PdfViewer({ content }: { content: ContentItem }) {
         <div className="space-y-4">
             {canEmbed ? (
                 <>
-                    <div className="h-[75vh] overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div className="h-[75vh] overflow-hidden rounded-xl border border-border">
                         <iframe
                             src={`${content.url}#toolbar=0&navpanes=0`}
                             className="h-full w-full"
@@ -567,7 +614,7 @@ function PdfViewer({ content }: { content: ContentItem }) {
                         href={content.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-sm font-medium text-[#1e3a8a] hover:underline dark:text-indigo-300"
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline dark:text-violet-300"
                     >
                         <ExternalLink className="h-4 w-4" />
                         Open in new tab
@@ -579,7 +626,7 @@ function PdfViewer({ content }: { content: ContentItem }) {
                         <FilePdf weight="fill" className="h-8 w-8" />
                     </span>
                     <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        <h3 className="text-lg font-semibold text-foreground">
                             {content.title}
                         </h3>
                         {content.filename && (
@@ -596,7 +643,7 @@ function PdfViewer({ content }: { content: ContentItem }) {
                             href={content.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 rounded-lg bg-[#1e3a8a] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1e3a8a]/90"
+                            className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90"
                         >
                             <ExternalLink className="h-4 w-4" />
                             Open PDF
@@ -613,8 +660,8 @@ function PdfViewer({ content }: { content: ContentItem }) {
                 </div>
             )}
             {content.description && (
-                <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-900">
-                    <p className="text-base leading-relaxed whitespace-pre-wrap text-gray-600 dark:text-gray-400">
+                <div className="rounded-2xl bg-muted/50 px-4 py-3">
+                    <p className="text-base leading-relaxed whitespace-pre-wrap text-muted-foreground">
                         {content.description}
                     </p>
                 </div>
@@ -625,6 +672,26 @@ function PdfViewer({ content }: { content: ContentItem }) {
 
 // ─── Content Viewer ───────────────────────────────────────────────────────────
 function ContentViewer({ content }: { content: ContentItem }) {
+    if (content.type === 'flipbook') {
+        return (
+            <div className="space-y-4">
+                <Suspense
+                    fallback={
+                        <div className="h-[70vh] animate-pulse rounded-3xl bg-muted" />
+                    }
+                >
+                    <FlipbookReader pages={content.pages ?? []} />
+                </Suspense>
+                {content.description && (
+                    <div className="rounded-2xl bg-muted/50 px-4 py-3">
+                        <p className="text-base leading-relaxed whitespace-pre-wrap text-muted-foreground">
+                            {content.description}
+                        </p>
+                    </div>
+                )}
+            </div>
+        );
+    }
     if (content.type === 'youtube') {
         const videoId = extractYouTubeId(content.url || '');
         if (!videoId)
@@ -652,8 +719,8 @@ function ContentViewer({ content }: { content: ContentItem }) {
                     />
                 </div>
                 {content.description && (
-                    <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-900">
-                        <p className="text-base leading-relaxed whitespace-pre-wrap text-gray-600 dark:text-gray-400">
+                    <div className="rounded-2xl bg-muted/50 px-4 py-3">
+                        <p className="text-base leading-relaxed whitespace-pre-wrap text-muted-foreground">
                             {content.description}
                         </p>
                     </div>
@@ -673,8 +740,8 @@ function ContentViewer({ content }: { content: ContentItem }) {
                     />
                 </div>
                 {content.description && (
-                    <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-900">
-                        <p className="text-base leading-relaxed whitespace-pre-wrap text-gray-600 dark:text-gray-400">
+                    <div className="rounded-2xl bg-muted/50 px-4 py-3">
+                        <p className="text-base leading-relaxed whitespace-pre-wrap text-muted-foreground">
                             {content.description}
                         </p>
                     </div>
@@ -685,15 +752,15 @@ function ContentViewer({ content }: { content: ContentItem }) {
         return <PdfViewer content={content} />;
     }
     return (
-        <div className="flex flex-col items-center justify-center gap-6 rounded-xl border-2 border-dashed border-blue-200 bg-blue-50/40 py-20 text-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-100">
-                <File className="h-10 w-10 text-blue-600" />
+        <div className="flex flex-col items-center justify-center gap-6 rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/40 py-20 text-center">
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-violet-100">
+                <File className="h-10 w-10 text-violet-600" />
             </div>
             <div>
-                <p className="text-xs font-semibold tracking-widest text-blue-500 uppercase">
+                <p className="text-xs font-semibold tracking-wider text-violet-500 uppercase">
                     Word Document
                 </p>
-                <h3 className="mt-1 text-xl font-semibold text-gray-900 dark:text-white">
+                <h3 className="mt-1 text-xl font-semibold text-foreground">
                     {content.title}
                 </h3>
                 {content.filename && (
@@ -711,7 +778,7 @@ function ContentViewer({ content }: { content: ContentItem }) {
                 <a
                     href={content.url}
                     download
-                    className="inline-flex items-center gap-2 rounded-lg bg-[#1e3a8a] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1e3a8a]/90"
+                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90"
                 >
                     <Download className="h-4 w-4" />
                     Download Document
@@ -755,230 +822,180 @@ function QuizViewer({
 
     if (quiz.questions.length === 0)
         return (
-            <div className="flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-gray-200 py-20 text-center dark:border-gray-700">
-                <ClipboardList className="h-12 w-12 text-gray-300" />
-                <p className="text-sm text-gray-500">No questions added yet.</p>
+            <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed py-16 text-center">
+                <ClipboardList className="size-10 text-muted-foreground/60" />
+                <p className="font-semibold text-muted-foreground">
+                    No questions added yet.
+                </p>
             </div>
         );
+
+    const setAnswer = (questionIndex: number, optionIndex: number) => {
+        const a = [...answers];
+        a[questionIndex] = optionIndex;
+        setAnswers(a);
+        onSave?.({ answers: a, submitted: false });
+    };
 
     if (submitted) {
         const passed = score >= 75;
         const decent = score >= 50;
-        const accentColor = passed
-            ? 'text-green-600'
-            : decent
-              ? 'text-amber-500'
-              : 'text-red-500';
-        const barColor = passed
-            ? 'bg-green-500'
-            : decent
-              ? 'bg-amber-400'
-              : 'bg-red-400';
         const message =
             score >= 90
-                ? 'Outstanding! You aced it.'
+                ? 'Outstanding. You aced it.'
                 : score >= 75
-                  ? 'Great job! You passed.'
+                  ? 'Checkpoint cleared.'
                   : score >= 50
-                    ? 'Good effort — review your answers.'
-                    : 'Keep studying and try again!';
+                    ? 'Close. Review the answers below.'
+                    : 'Not yet. Study the review and try again.';
 
         return (
-            <div className="space-y-5">
-                {/* ── Result card ── */}
-                <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="min-w-0">
-                            <p className="text-xs text-gray-400">
-                                {quiz.title}
-                            </p>
-                            <p
-                                className={`mt-0.5 text-sm font-medium ${accentColor}`}
-                            >
-                                {message}
-                            </p>
-                        </div>
-                        <div className="shrink-0 text-right">
-                            <span
-                                className={`text-3xl font-bold ${accentColor}`}
-                            >
-                                {score}
-                                <span className="text-lg font-medium opacity-60">
-                                    %
-                                </span>
-                            </span>
-                            <p className="text-[11px] text-gray-400">
-                                {correctCount} / {quiz.questions.length} correct
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Progress bar */}
-                    <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                        <div
-                            className={`h-1.5 rounded-full transition-all ${barColor}`}
-                            style={{ width: `${score}%` }}
-                        />
-                    </div>
-
-                    {/* Retake */}
-                    <div className="mt-4 flex justify-end">
-                        <button
-                            className="flex items-center gap-1.5 text-xs font-medium text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
-                            onClick={() => {
-                                const fresh = Array(quiz.questions.length).fill(
-                                    null,
-                                );
-                                setSubmitted(false);
-                                setAnswers(fresh);
-                                onSave?.({ answers: fresh, submitted: false });
-                            }}
+            <div className="space-y-6">
+                {/* Result */}
+                <section className="flex flex-wrap items-center gap-5 rounded-4xl border bg-card p-5 shadow-panel sm:p-6">
+                    <ProgressRing value={score} size={88} stroke={8}>
+                        <span className="font-display text-xl font-extrabold">
+                            {score}%
+                        </span>
+                    </ProgressRing>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-muted-foreground">
+                            {quiz.title}
+                        </p>
+                        <h2
+                            className={`mt-0.5 font-display text-2xl leading-tight font-extrabold tracking-[-0.02em] ${passed ? 'text-emerald-700 dark:text-emerald-400' : decent ? 'text-amber-700 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}
                         >
-                            <RotateCcw className="h-3 w-3" />
-                            Retake Quiz
-                        </button>
+                            {message}
+                        </h2>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            {correctCount} of {quiz.questions.length} correct
+                        </p>
                     </div>
-                </div>
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            const fresh = Array(quiz.questions.length).fill(
+                                null,
+                            );
+                            setSubmitted(false);
+                            setAnswers(fresh);
+                            onSave?.({ answers: fresh, submitted: false });
+                        }}
+                    >
+                        <RotateCcw />
+                        Retake
+                    </Button>
+                </section>
 
-                {/* ── Answer review ── */}
-                <div className="space-y-2">
-                    <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase">
-                        Review
-                    </p>
-
+                {/* Review */}
+                <section aria-label="Answer review" className="space-y-4">
                     {quiz.questions.map((q, i) => {
                         const isCorrect = answers[i] === q.correctIndex;
                         return (
                             <div
                                 key={q.id}
-                                className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900"
+                                className="rounded-3xl border bg-card p-5 shadow-panel"
                             >
-                                {/* Question row */}
-                                <div className="flex items-start gap-3 px-4 py-3">
-                                    <span className="mt-0.5 w-5 shrink-0 text-right text-xs font-semibold text-gray-400">
-                                        {i + 1}.
+                                <div className="flex items-start gap-3">
+                                    <span
+                                        className={`grid size-7 shrink-0 place-items-center rounded-lg text-xs font-extrabold text-white ${isCorrect ? 'bg-emerald-600' : 'bg-red-500'}`}
+                                    >
+                                        {isCorrect ? (
+                                            <CheckCircle2 className="size-4" />
+                                        ) : (
+                                            <XCircle className="size-4" />
+                                        )}
                                     </span>
-                                    <p className="flex-1 text-sm leading-snug font-medium text-gray-800 dark:text-gray-200">
+                                    <p className="flex-1 font-display text-lg leading-snug font-bold tracking-[-0.01em]">
                                         {q.question}
                                     </p>
-                                    {isCorrect ? (
-                                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
-                                    ) : (
-                                        <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
-                                    )}
                                 </div>
-
-                                {/* Options */}
-                                <div className="border-t border-gray-100 dark:border-gray-800">
-                                    {q.options.map((opt, j) => {
-                                        const isCorrectOpt =
-                                            j === q.correctIndex;
-                                        const isWrongPick =
-                                            j === answers[i] && !isCorrect;
-                                        return (
-                                            <div
-                                                key={j}
-                                                className={`flex items-center gap-3 border-b border-gray-50 px-4 py-2 text-sm last:border-0 dark:border-gray-800 ${isCorrectOpt ? 'bg-green-50/60 dark:bg-green-950/20' : isWrongPick ? 'bg-red-50/60 dark:bg-red-950/20' : ''}`}
-                                            >
-                                                <div
-                                                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${isCorrectOpt ? 'bg-green-500' : isWrongPick ? 'bg-red-400' : 'bg-gray-200 dark:bg-gray-700'}`}
-                                                />
-                                                <span
-                                                    className={`flex-1 ${isCorrectOpt ? 'font-medium text-gray-900 dark:text-gray-100' : isWrongPick ? 'text-gray-400 line-through' : 'text-gray-500 dark:text-gray-400'}`}
-                                                >
-                                                    {opt}
-                                                </span>
-                                                {isCorrectOpt && (
-                                                    <span className="shrink-0 text-[10px] font-medium text-green-600 dark:text-green-400">
-                                                        Correct
-                                                    </span>
-                                                )}
-                                                {isWrongPick && (
-                                                    <span className="shrink-0 text-[10px] font-medium text-red-500 dark:text-red-400">
-                                                        Your answer
-                                                    </span>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
+                                <div className="mt-4 grid gap-2">
+                                    {q.options.map((opt, j) => (
+                                        <AnswerTile
+                                            key={j}
+                                            label={opt}
+                                            index={j}
+                                            disabled
+                                            state={
+                                                j === q.correctIndex
+                                                    ? 'correct'
+                                                    : j === answers[i]
+                                                      ? 'wrong'
+                                                      : 'idle'
+                                            }
+                                            className="disabled:opacity-100"
+                                        />
+                                    ))}
                                 </div>
                             </div>
                         );
                     })}
-                </div>
+                </section>
             </div>
         );
     }
 
+    const answeredCount = answers.filter((a) => a !== null).length;
+
     return (
         <div className="space-y-5">
-            <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
-                <div className="mb-1 flex items-center gap-2">
-                    <ClipboardList className="h-4 w-4 text-[#1e3a8a]" />
-                    <p className="text-xs font-semibold tracking-widest text-[#1e3a8a] uppercase">
-                        Quiz
-                    </p>
-                </div>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+            <header className="rounded-3xl border bg-card p-6 shadow-panel sm:p-7">
+                <p className="text-eyebrow text-violet-600 dark:text-violet-300">
+                    Checkpoint quiz
+                </p>
+                <h2 className="mt-1.5 font-display text-2xl leading-tight font-bold tracking-[-0.02em] text-foreground">
                     {quiz.title}
                 </h2>
                 {quiz.description && (
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                         {quiz.description}
                     </p>
                 )}
-                <p className="mt-2 text-xs text-gray-400">
-                    {quiz.questions.length} questions · Answer all to submit
-                </p>
-            </div>
+                <div className="mt-5 flex items-center gap-3">
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                        <div
+                            className="h-full rounded-full bg-violet-600 transition-[width] duration-500 ease-out"
+                            style={{
+                                width: `${(answeredCount / quiz.questions.length) * 100}%`,
+                            }}
+                        />
+                    </div>
+                    <span className="text-xs font-bold text-muted-foreground tabular-nums">
+                        {answeredCount} of {quiz.questions.length} answered
+                    </span>
+                </div>
+            </header>
+
             {quiz.questions.map((q, i) => (
-                <div
+                <fieldset
                     key={q.id}
-                    className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900"
+                    className="rounded-3xl border bg-card p-5 sm:p-6"
                 >
-                    <p className="mb-3 text-sm font-semibold text-gray-800 dark:text-gray-200">
-                        <span className="mr-2 text-[#1e3a8a]">Q{i + 1}.</span>
+                    <legend className="sr-only">Question {i + 1}</legend>
+                    <p className="text-sm font-semibold text-muted-foreground">
+                        Question {i + 1} of {quiz.questions.length}
+                    </p>
+                    <p className="mt-1 mb-4 font-display text-lg leading-snug font-bold tracking-[-0.01em] text-foreground">
                         {q.question}
                     </p>
-                    <div className="space-y-2">
+                    <div className="grid gap-2.5">
                         {q.options.map((opt, j) => (
-                            <label
+                            <AnswerTile
                                 key={j}
-                                className={`flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-all ${answers[i] === j ? 'border-[#1e3a8a]/40 bg-[#1e3a8a]/5' : 'border-gray-200 hover:border-[#1e3a8a]/20 hover:bg-[#1e3a8a]/5'}`}
-                            >
-                                <div
-                                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-all ${answers[i] === j ? 'border-[#1e3a8a] bg-[#1e3a8a]' : 'border-gray-300'}`}
-                                >
-                                    {answers[i] === j && (
-                                        <div className="h-1.5 w-1.5 rounded-full bg-white" />
-                                    )}
-                                </div>
-                                <input
-                                    type="radio"
-                                    name={`q-${q.id}`}
-                                    className="sr-only"
-                                    checked={answers[i] === j}
-                                    onChange={() => {
-                                        const a = [...answers];
-                                        a[i] = j;
-                                        setAnswers(a);
-                                        onSave?.({
-                                            answers: a,
-                                            submitted: false,
-                                        });
-                                    }}
-                                />
-                                <span className="text-sm text-gray-700">
-                                    {opt}
-                                </span>
-                            </label>
+                                label={opt}
+                                index={j}
+                                state={answers[i] === j ? 'selected' : 'idle'}
+                                onClick={() => setAnswer(i, j)}
+                            />
                         ))}
                     </div>
-                </div>
+                </fieldset>
             ))}
+
             <Button
-                className="w-full gap-2 py-3 text-sm font-semibold text-white"
-                style={{ background: PORTAL_GRADIENT }}
+                size="lg"
+                className="h-14 w-full text-base"
                 disabled={!allAnswered}
                 onClick={() => {
                     setSubmitted(true);
@@ -986,10 +1003,10 @@ function QuizViewer({
                     onMarkDone?.();
                 }}
             >
-                <Send className="h-4 w-4" />
-                Submit Quiz{' '}
-                {!allAnswered &&
-                    `(${answers.filter((a) => a !== null).length}/${quiz.questions.length} answered)`}
+                <Send />
+                {allAnswered
+                    ? 'Submit answers'
+                    : `Answer all questions (${answeredCount}/${quiz.questions.length})`}
             </Button>
         </div>
     );
@@ -1146,11 +1163,11 @@ function AssignmentViewer({
             <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-5">
                 <div className="mb-1 flex items-center gap-2">
                     <PenLine className="h-4 w-4 text-amber-600" />
-                    <p className="text-xs font-semibold tracking-widest text-amber-600 uppercase">
+                    <p className="text-xs font-semibold tracking-wider text-amber-600 uppercase">
                         Assignment
                     </p>
                 </div>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                <h2 className="text-lg font-bold text-foreground">
                     {assignment.title}
                 </h2>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -1174,11 +1191,11 @@ function AssignmentViewer({
 
             {/* Instructions */}
             {assignment.instructions && (
-                <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-                    <p className="mb-2 text-xs font-semibold tracking-widest text-gray-400 uppercase">
+                <div className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
+                    <p className="mb-2 text-xs font-semibold tracking-wider text-gray-400 uppercase">
                         Instructions
                     </p>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap text-gray-700 dark:text-gray-300">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/85">
                         {assignment.instructions}
                     </p>
                 </div>
@@ -1202,7 +1219,7 @@ function AssignmentViewer({
                         <span
                             className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase ${
                                 submission.status === 'graded'
-                                    ? 'bg-blue-100 text-blue-600'
+                                    ? 'bg-violet-100 text-violet-600'
                                     : submission.status === 'late'
                                       ? 'bg-red-100 text-red-600'
                                       : 'bg-emerald-100 text-emerald-600'
@@ -1237,7 +1254,7 @@ function AssignmentViewer({
                         <div className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-100 bg-white px-3 py-2.5 dark:border-emerald-900 dark:bg-gray-900">
                             <FileText className="h-4 w-4 shrink-0 text-emerald-500" />
                             <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
+                                <p className="truncate text-sm font-medium text-foreground">
                                     {submission.fileName}
                                 </p>
                                 {submission.fileSize && (
@@ -1270,7 +1287,7 @@ function AssignmentViewer({
             {/* Upload form */}
             {showUploadForm && (
                 <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-                    <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase">
+                    <p className="text-xs font-semibold tracking-wider text-gray-400 uppercase">
                         Turn In
                     </p>
 
@@ -1298,11 +1315,20 @@ function AssignmentViewer({
 
                         {/* Text answer */}
                         <TabsContent value="text" className="mt-4">
-                            <RichTextEditor
-                                value={textHtml}
-                                onChange={setTextHtml}
-                                placeholder="Write your answer here… Use the toolbar or press Ctrl+K to add a link."
-                            />
+                            <Suspense
+                                fallback={
+                                    <div
+                                        className="h-40 animate-pulse rounded-2xl border-2 bg-muted/50"
+                                        aria-label="Loading editor"
+                                    />
+                                }
+                            >
+                                <RichTextEditor
+                                    value={textHtml}
+                                    onChange={setTextHtml}
+                                    placeholder="Write your answer here… Use the toolbar or press Ctrl+K to add a link."
+                                />
+                            </Suspense>
                         </TabsContent>
 
                         {/* File upload */}
@@ -1420,6 +1446,9 @@ function AssignmentViewer({
 // ─── Content Picker (Add & Edit) ──────────────────────────────────────────────
 interface ContentPickerProps {
     initial?: ContentItem;
+    courseId?: string;
+    lessonId: string;
+    resumeDraft?: boolean;
     onSave: (item: ContentItem) => void;
     onCancel: () => void;
 }
@@ -1429,68 +1458,177 @@ const FILE_ACCEPT: Record<ContentType, string> = {
     word: '.docx,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword',
     video: 'video/mp4,video/webm,video/ogg,video/quicktime,.mp4,.webm,.mov',
     youtube: '',
+    flipbook: '',
 };
 
-function ContentPicker({ initial, onSave, onCancel }: ContentPickerProps) {
+const CONTENT_TYPE_OPTIONS: {
+    type: ContentType;
+    label: string;
+    icon: LucideIcon;
+    desc: string;
+}[] = [
+    {
+        type: 'flipbook',
+        label: 'Flipbook',
+        icon: BookOpen,
+        desc: 'Build pages or import a PDF',
+    },
+    { type: 'pdf', label: 'PDF', icon: FileText, desc: 'Upload PDF' },
+    { type: 'word', label: 'Word Doc', icon: File, desc: 'Upload .docx' },
+    { type: 'video', label: 'Video', icon: Video, desc: 'Upload MP4/MOV' },
+    { type: 'youtube', label: 'YouTube', icon: PlayCircle, desc: 'Paste link' },
+];
+
+function ContentPicker({
+    initial,
+    courseId,
+    lessonId,
+    resumeDraft,
+    onSave,
+    onCancel,
+}: ContentPickerProps) {
     const isEdit = !!initial;
-    const [selectedType, setSelectedType] = useState<ContentType | null>(
-        initial?.type ?? null,
+    const { auth } = usePage<SharedData>().props;
+    const draftKey = flipbookDraftKey(
+        auth.user?.id,
+        courseId,
+        lessonId,
+        initial?.dbId ?? (initial ? initial.id : undefined),
     );
-    const [title, setTitle] = useState(initial?.title ?? '');
-    const [description, setDescription] = useState(initial?.description ?? '');
+    // Opened from "Continue draft": start straight from the kept work.
+    const [resumed] = useState<FlipbookDraft | null>(() =>
+        resumeDraft && !initial ? readFlipbookDraft(draftKey) : null,
+    );
+    const [draftOffer, setDraftOffer] = useState<FlipbookDraft | null>(() =>
+        resumed || (initial && initial.type !== 'flipbook')
+            ? null
+            : readFlipbookDraft(draftKey),
+    );
+    const [lastDraftSave, setLastDraftSave] = useState<number | null>(
+        resumed?.savedAt ?? null,
+    );
+
+    const [selectedType, setSelectedType] = useState<ContentType | null>(
+        resumed ? 'flipbook' : (initial?.type ?? null),
+    );
+    const [title, setTitle] = useState(resumed?.title ?? initial?.title ?? '');
+    const [description, setDescription] = useState(
+        resumed?.description ?? initial?.description ?? '',
+    );
     const [url, setUrl] = useState(initial?.url ?? '');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [pages, setPages] = useState<FlipbookPage[]>(() =>
+        resumed?.pages.length
+            ? resumed.pages
+            : initial?.pages?.length
+              ? initial.pages
+              : [newPage()],
+    );
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const types: {
-        type: ContentType;
-        label: string;
-        icon: React.ReactNode;
-        desc: string;
-        color: string;
-    }[] = [
-        {
-            type: 'pdf',
-            label: 'PDF',
-            icon: <FileText className="h-5 w-5" />,
-            desc: 'Upload PDF',
-            color: 'hover:border-red-400 hover:bg-red-50',
-        },
-        {
-            type: 'word',
-            label: 'Word Doc',
-            icon: <File className="h-5 w-5" />,
-            desc: 'Upload .docx',
-            color: 'hover:border-blue-400 hover:bg-blue-50',
-        },
-        {
-            type: 'video',
-            label: 'Video',
-            icon: <Video className="h-5 w-5" />,
-            desc: 'Upload MP4/MOV',
-            color: 'hover:border-violet-400 hover:bg-violet-50',
-        },
-        {
-            type: 'youtube',
-            label: 'YouTube',
-            icon: <PlayCircle className="h-5 w-5" />,
-            desc: 'Paste link',
-            color: 'hover:border-rose-400 hover:bg-rose-50',
-        },
-    ];
+    // What the flipbook looked like when it was opened; anything else is unsaved work.
+    const [baseline] = useState(() =>
+        JSON.stringify({
+            title: (initial?.title ?? '').trim(),
+            description: (initial?.description ?? '').trim(),
+            pages: pagesForSave(initial?.pages ?? []),
+        }),
+    );
+    const flipbookDirty =
+        selectedType === 'flipbook' &&
+        JSON.stringify({
+            title: title.trim(),
+            description: description.trim(),
+            pages: pagesForSave(pages),
+        }) !== baseline;
 
+    useFlipbookAutosave(
+        draftKey,
+        { title, description, pages },
+        flipbookDirty && !draftOffer,
+        setLastDraftSave,
+    );
+
+    const restoreDraft = (draft: FlipbookDraft) => {
+        setSelectedType('flipbook');
+        setTitle(draft.title);
+        setDescription(draft.description);
+        setPages(draft.pages.length ? draft.pages : [newPage()]);
+        setLastDraftSave(draft.savedAt);
+        setDraftOffer(null);
+    };
+
+    const discardDraft = () => {
+        clearFlipbookDraft(draftKey);
+        setDraftOffer(null);
+    };
+
+    const draftBanner = draftOffer && (
+        <div className="flex flex-col gap-3 rounded-2xl bg-amber-50 px-4 py-3 text-amber-950 sm:flex-row sm:items-center dark:bg-amber-400/10 dark:text-amber-100">
+            <History className="hidden size-5 shrink-0 text-amber-600 sm:block dark:text-amber-300" />
+            <p className="flex-1 text-sm">
+                <span className="font-bold">
+                    You have unsaved flipbook work
+                    {draftOffer.title ? ` "${draftOffer.title}"` : ''}.
+                </span>{' '}
+                {draftOffer.pages.length}{' '}
+                {draftOffer.pages.length === 1 ? 'page' : 'pages'}, kept in this
+                browser at {formatDraftTime(draftOffer.savedAt)}.
+            </p>
+            <div className="flex shrink-0 gap-2">
+                <Button size="sm" variant="ghost" onClick={discardDraft}>
+                    Discard
+                </Button>
+                <Button size="sm" onClick={() => restoreDraft(draftOffer)}>
+                    Continue editing
+                </Button>
+            </div>
+        </div>
+    );
+
+    const uploadFlipbookImage: FlipbookImageUploader = async (
+        file,
+        onProgress,
+    ) => {
+        if (!courseId) {
+            onProgress(100);
+            return URL.createObjectURL(file);
+        }
+        const fd = new FormData();
+        fd.append('image', file);
+        const res = await capiFormProgress<{ url: string }>(
+            `/curriculum/${courseId}/flipbook-images`,
+            fd,
+            onProgress,
+        );
+        return res.url;
+    };
+
+    const savedPages = pagesForSave(pages);
     const canSave =
         !!selectedType &&
         !!title.trim() &&
-        (selectedType === 'youtube'
-            ? !!url.trim()
-            : !!selectedFile || (isEdit && !!initial?.filename));
+        (selectedType === 'flipbook'
+            ? savedPages.length > 0
+            : selectedType === 'youtube'
+              ? !!url.trim()
+              : !!selectedFile || (isEdit && !!initial?.filename));
 
     const handleSave = () => {
         if (!selectedType || !title.trim()) return;
-        if (selectedType === 'youtube') {
+        if (selectedType === 'flipbook') {
             onSave({
                 id: initial?.id ?? uid(),
+                dbId: initial?.dbId,
+                type: selectedType,
+                title: title.trim(),
+                description: description.trim() || undefined,
+                pages: savedPages,
+            });
+        } else if (selectedType === 'youtube') {
+            onSave({
+                id: initial?.id ?? uid(),
+                dbId: initial?.dbId,
                 type: selectedType,
                 title: title.trim(),
                 description: description.trim() || undefined,
@@ -1499,6 +1637,7 @@ function ContentPicker({ initial, onSave, onCancel }: ContentPickerProps) {
         } else {
             onSave({
                 id: initial?.id ?? uid(),
+                dbId: initial?.dbId,
                 type: selectedType,
                 title: title.trim(),
                 description: description.trim() || undefined,
@@ -1511,66 +1650,123 @@ function ContentPicker({ initial, onSave, onCancel }: ContentPickerProps) {
 
     if (!selectedType)
         return (
-            <>
-                <p className="mb-3 text-xs font-semibold tracking-widest text-gray-400 uppercase">
-                    Select content type
-                </p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    {types.map((t) => (
-                        <button
-                            key={t.type}
-                            onClick={() => setSelectedType(t.type)}
-                            className={`flex flex-col items-center gap-2 rounded-xl border-2 border-transparent bg-white p-3 text-center shadow-sm transition-all dark:bg-gray-800 ${t.color}`}
-                        >
-                            <span className="text-gray-500">{t.icon}</span>
-                            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                                {t.label}
-                            </span>
-                            <span className="text-[10px] text-gray-400">
-                                {t.desc}
-                            </span>
-                        </button>
-                    ))}
+            <div className="flex flex-col gap-4">
+                <div>
+                    <h3 className="font-display text-lg font-extrabold tracking-[-0.02em]">
+                        What do you want to add?
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                        Build a flipbook right here, or upload a file or link.
+                    </p>
                 </div>
-                <div className="mt-3 flex justify-end">
+                {draftBanner}
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+                    {CONTENT_TYPE_OPTIONS.map((t) => {
+                        const featured = t.type === 'flipbook';
+                        return (
+                            <button
+                                key={t.type}
+                                type="button"
+                                onClick={() => setSelectedType(t.type)}
+                                className={`group flex cursor-pointer flex-col items-start gap-3 rounded-2xl border-2 p-4 text-left transition-colors ${
+                                    featured
+                                        ? 'col-span-2 border-primary/30 bg-primary/5 hover:border-primary sm:col-span-1'
+                                        : 'border-border bg-card hover:border-primary/40'
+                                }`}
+                            >
+                                <span
+                                    className={`flex size-10 items-center justify-center rounded-xl ${
+                                        featured
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'bg-muted text-muted-foreground group-hover:text-primary'
+                                    }`}
+                                >
+                                    <t.icon className="size-5" />
+                                </span>
+                                <span>
+                                    <span className="block text-sm font-extrabold text-foreground">
+                                        {t.label}
+                                    </span>
+                                    <span className="block text-xs text-muted-foreground">
+                                        {t.desc}
+                                    </span>
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+                <div className="flex justify-end">
                     <Button variant="ghost" size="sm" onClick={onCancel}>
                         Cancel
                     </Button>
                 </div>
-            </>
+            </div>
         );
 
+    const meta = CONTENT_TYPE_OPTIONS.find((t) => t.type === selectedType);
+    const MetaIcon = meta?.icon ?? FileText;
+
     return (
-        <div className="space-y-3">
-            <div className="flex items-center gap-2">
-                <span className="text-blue-600">
-                    {types.find((t) => t.type === selectedType)?.icon}
+        <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                    <MetaIcon className="size-5" />
                 </span>
-                <p className="text-sm font-semibold">
-                    {types.find((t) => t.type === selectedType)?.label}
-                </p>
+                <div className="min-w-0">
+                    <h3 className="font-display text-lg leading-tight font-extrabold tracking-[-0.02em]">
+                        {isEdit ? `Edit ${meta?.label}` : `New ${meta?.label}`}
+                    </h3>
+                    {selectedType === 'flipbook' && (
+                        <p className="text-sm text-muted-foreground">
+                            Import a PDF, or add pages one by one with a topic,
+                            text and images.
+                        </p>
+                    )}
+                </div>
                 {!isEdit && (
                     <button
+                        type="button"
                         onClick={() => setSelectedType(null)}
-                        className="ml-auto text-xs text-gray-400 hover:text-blue-600"
+                        className="ml-auto flex shrink-0 cursor-pointer items-center gap-1 text-sm font-semibold text-muted-foreground hover:text-primary"
                     >
-                        ← Back
+                        <ArrowLeft className="h-4 w-4" />
+                        Change type
                     </button>
                 )}
             </div>
-            <Input
-                placeholder="Content title *"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-            />
-            <textarea
-                placeholder="Description (optional) — shown below the content"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={2}
-                className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
-            />
-            {selectedType === 'youtube' ? (
+            {selectedType === 'flipbook' && draftBanner}
+            <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                    placeholder={
+                        selectedType === 'flipbook'
+                            ? 'Flipbook title, e.g. How Earthquakes Happen *'
+                            : 'Content title *'
+                    }
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    aria-label="Title"
+                />
+                <Input
+                    placeholder="Short description (optional)"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    aria-label="Description"
+                />
+            </div>
+            {selectedType === 'flipbook' ? (
+                <Suspense
+                    fallback={
+                        <div className="h-96 animate-pulse rounded-3xl bg-muted" />
+                    }
+                >
+                    <FlipbookEditor
+                        pages={pages}
+                        onChange={setPages}
+                        uploadImage={uploadFlipbookImage}
+                        title={title.trim() || undefined}
+                    />
+                </Suspense>
+            ) : selectedType === 'youtube' ? (
                 <Input
                     placeholder="YouTube URL"
                     value={url}
@@ -1579,14 +1775,12 @@ function ContentPicker({ initial, onSave, onCancel }: ContentPickerProps) {
             ) : (
                 <div className="space-y-2">
                     {isEdit && initial?.filename && !selectedFile && (
-                        <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:bg-gray-800">
-                            <FileText className="h-3.5 w-3.5 shrink-0 text-blue-500" />
+                        <div className="flex items-center gap-2 rounded-xl bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+                            <FileText className="h-3.5 w-3.5 shrink-0 text-primary" />
                             <span className="flex-1 truncate">
                                 Current: {initial.filename}
                             </span>
-                            <span className="shrink-0 text-gray-400">
-                                Replace below
-                            </span>
+                            <span className="shrink-0">Replace below</span>
                         </div>
                     )}
                     <input
@@ -1601,22 +1795,22 @@ function ContentPicker({ initial, onSave, onCancel }: ContentPickerProps) {
                     <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="flex w-full items-center gap-3 rounded-lg border-2 border-dashed border-gray-300 bg-white px-4 py-3 text-sm transition hover:border-blue-400 hover:bg-blue-50 dark:border-gray-700 dark:bg-gray-800"
+                        className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed border-border bg-card px-4 py-4 text-sm transition-colors hover:border-primary/50 hover:bg-primary/5"
                     >
-                        <Upload className="h-4 w-4 shrink-0 text-gray-400" />
+                        <Upload className="h-4 w-4 shrink-0 text-primary" />
                         <span
                             className={
                                 selectedFile
-                                    ? 'truncate font-medium text-gray-800 dark:text-gray-200'
-                                    : 'text-gray-400'
+                                    ? 'truncate font-semibold text-foreground'
+                                    : 'text-muted-foreground'
                             }
                         >
                             {selectedFile
                                 ? selectedFile.name
-                                : 'Click to choose file…'}
+                                : 'Click to choose a file…'}
                         </span>
                     </button>
-                    <p className="text-[11px] text-gray-400">
+                    <p className="text-xs text-muted-foreground">
                         {selectedType === 'pdf'
                             ? 'PDF only'
                             : selectedType === 'word'
@@ -1625,17 +1819,32 @@ function ContentPicker({ initial, onSave, onCancel }: ContentPickerProps) {
                     </p>
                 </div>
             )}
-            <div className="flex gap-2 pt-1">
-                <Button variant="ghost" size="sm" onClick={onCancel}>
+            <div className="flex items-center justify-end gap-2 border-t pt-4">
+                {selectedType === 'flipbook' && !canSave && title.trim() ? (
+                    <p className="mr-auto text-xs text-muted-foreground">
+                        Add a topic or some text to at least one page.
+                    </p>
+                ) : selectedType === 'flipbook' &&
+                  flipbookDirty &&
+                  lastDraftSave ? (
+                    <p
+                        className="mr-auto flex items-center gap-1.5 text-xs text-muted-foreground"
+                        aria-live="polite"
+                    >
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                        Draft kept in this browser ·{' '}
+                        {formatDraftTime(lastDraftSave)}
+                    </p>
+                ) : null}
+                <Button variant="ghost" onClick={onCancel}>
                     Cancel
                 </Button>
-                <Button
-                    size="sm"
-                    className="bg-[#1e3a8a] text-white hover:bg-[#1e3a8a]/90"
-                    disabled={!canSave}
-                    onClick={handleSave}
-                >
-                    {isEdit ? 'Save Changes' : 'Add Content'}
+                <Button disabled={!canSave} onClick={handleSave}>
+                    {isEdit
+                        ? 'Save changes'
+                        : selectedType === 'flipbook'
+                          ? 'Save flipbook'
+                          : 'Add content'}
                 </Button>
             </div>
         </div>
@@ -1734,145 +1943,201 @@ function QuizBuilder({ initial, onSave, onCancel }: QuizBuilderProps) {
         setShowQForm(false);
     };
 
+    const canSaveQuestion =
+        qText.trim() !== '' && opts.every((o) => o.trim() !== '');
+
     return (
-        <div className="space-y-4">
-            <div className="space-y-2">
+        <div className="space-y-5">
+            <div className="space-y-2.5">
                 <Input
-                    placeholder="Quiz title *"
+                    placeholder="Quiz title"
+                    aria-label="Quiz title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="font-medium"
+                    className="h-12 font-display text-lg font-bold"
                 />
-                <textarea
-                    placeholder="Description (optional)"
+                <Textarea
+                    placeholder="What is this checkpoint about? (optional)"
+                    aria-label="Quiz description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={2}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
                 />
             </div>
 
-            {/* Questions list */}
+            {/* Questions so far */}
             {questions.length > 0 && (
-                <div className="space-y-2">
+                <ol className="space-y-2">
                     {questions.map((q, i) => (
-                        <div
+                        <li
                             key={q.id}
-                            className="group flex items-start gap-2 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900"
+                            className="group flex items-start gap-3 rounded-2xl border bg-card p-3.5"
                         >
-                            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#1e3a8a]/10 text-xs font-bold text-[#1e3a8a]">
+                            <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-violet-100 text-xs font-extrabold text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
                                 {i + 1}
                             </span>
                             <div className="min-w-0 flex-1">
-                                <p className="line-clamp-2 text-sm font-medium text-gray-800 dark:text-gray-200">
+                                <p className="line-clamp-2 font-bold text-foreground">
                                     {q.question}
                                 </p>
-                                <p className="mt-0.5 flex items-center gap-1 text-xs text-green-600">
-                                    <CheckCircle className="h-3 w-3" />
+                                <p className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300">
+                                    <CheckCircle className="size-3.5" />
                                     {q.options[q.correctIndex]}
                                 </p>
-                                <p className="mt-0.5 text-[10px] text-gray-400">
-                                    {q.options.length} options
-                                </p>
                             </div>
-                            <div className="flex shrink-0 gap-0.5 opacity-0 transition group-hover:opacity-100">
-                                <button
+                            <div className="flex shrink-0 gap-1 transition lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100">
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="size-8"
                                     onClick={() => openEditQ(q)}
-                                    className="rounded p-1 text-gray-400 hover:text-blue-600"
+                                    aria-label={`Edit question ${i + 1}`}
                                 >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                </button>
-                                <button
+                                    <Pencil className="size-4" />
+                                </Button>
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="size-8 hover:text-red-600"
                                     onClick={() =>
                                         setQuestions((prev) =>
                                             prev.filter((x) => x.id !== q.id),
                                         )
                                     }
-                                    className="rounded p-1 text-gray-400 hover:text-red-500"
+                                    aria-label={`Delete question ${i + 1}`}
                                 >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                </button>
+                                    <Trash2 className="size-4" />
+                                </Button>
                             </div>
-                        </div>
+                        </li>
                     ))}
-                </div>
+                </ol>
             )}
 
-            {/* Question form */}
+            {/* Question editor with a live student preview */}
             {showQForm ? (
-                <div className="space-y-3 rounded-xl border border-blue-200 bg-blue-50/40 p-4">
-                    <p className="text-xs font-semibold tracking-widest text-[#1e3a8a]/70 uppercase">
-                        {editingQ ? 'Edit Question' : 'New Question'}
-                    </p>
-                    <textarea
-                        placeholder="Question text *"
-                        value={qText}
-                        onChange={(e) => setQText(e.target.value)}
-                        rows={2}
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
-                    />
-                    <div className="space-y-2">
-                        <p className="text-xs font-medium text-gray-400">
-                            Answer options — click circle to mark correct
+                <section
+                    aria-label={editingQ ? 'Edit question' : 'New question'}
+                    className="grid gap-4 rounded-3xl border-2 border-violet-200 bg-violet-50/40 p-4 sm:p-5 xl:grid-cols-2 dark:border-violet-500/30 dark:bg-violet-500/5"
+                >
+                    <div className="space-y-3">
+                        <p className="text-sm font-bold text-primary">
+                            {editingQ
+                                ? 'Edit question'
+                                : `Question ${questions.length + 1}`}
                         </p>
-                        {opts.map((opt, j) => (
-                            <div key={j} className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setCorrectIdx(j)}
-                                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all ${correctIdx === j ? 'border-green-500 bg-green-500' : 'border-gray-300 hover:border-green-400'}`}
-                                >
-                                    {correctIdx === j && (
-                                        <div className="h-2 w-2 rounded-full bg-white" />
-                                    )}
-                                </button>
-                                <Input
-                                    placeholder={`Option ${j + 1}${correctIdx === j ? ' (correct)' : ''}`}
-                                    value={opt}
-                                    onChange={(e) => {
-                                        const o = [...opts];
-                                        o[j] = e.target.value;
-                                        setOpts(o);
-                                    }}
-                                    className={`text-sm ${correctIdx === j ? 'border-green-300 bg-green-50 dark:border-green-700' : ''}`}
+                        <Textarea
+                            placeholder="Type the question"
+                            aria-label="Question text"
+                            value={qText}
+                            onChange={(e) => setQText(e.target.value)}
+                            rows={2}
+                        />
+                        <p className="text-xs font-semibold text-muted-foreground">
+                            Tap a letter to mark the correct answer.
+                        </p>
+                        <div className="space-y-2">
+                            {opts.map((opt, j) => {
+                                const isCorrect = correctIdx === j;
+                                return (
+                                    <div
+                                        key={j}
+                                        className="flex items-center gap-2"
+                                    >
+                                        <button
+                                            type="button"
+                                            onClick={() => setCorrectIdx(j)}
+                                            aria-pressed={isCorrect}
+                                            aria-label={`Mark option ${String.fromCharCode(65 + j)} as correct`}
+                                            className={`grid size-11 shrink-0 place-items-center rounded-xl text-sm font-extrabold transition-colors ${isCorrect ? 'bg-emerald-600 text-white shadow-[0_3px_0_0_var(--color-emerald-800)]' : 'bg-card text-muted-foreground ring-2 ring-border hover:text-emerald-700 hover:ring-emerald-300'}`}
+                                        >
+                                            {isCorrect ? (
+                                                <CheckCircle className="size-5" />
+                                            ) : (
+                                                String.fromCharCode(65 + j)
+                                            )}
+                                        </button>
+                                        <Input
+                                            placeholder={`Option ${String.fromCharCode(65 + j)}`}
+                                            aria-label={`Option ${String.fromCharCode(65 + j)}`}
+                                            value={opt}
+                                            onChange={(e) => {
+                                                const o = [...opts];
+                                                o[j] = e.target.value;
+                                                setOpts(o);
+                                            }}
+                                            className={
+                                                isCorrect
+                                                    ? 'border-emerald-400 dark:border-emerald-600'
+                                                    : undefined
+                                            }
+                                        />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className="flex gap-2 pt-1">
+                            <Button
+                                onClick={saveQuestion}
+                                disabled={!canSaveQuestion}
+                            >
+                                {editingQ ? 'Update question' : 'Add question'}
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                onClick={() => setShowQForm(false)}
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div
+                        className="rounded-2xl border bg-card p-4 sm:p-5"
+                        aria-label="Student preview"
+                    >
+                        <p className="text-eyebrow text-muted-foreground">
+                            Student preview
+                        </p>
+                        <p className="mt-2 font-display text-lg leading-snug font-bold">
+                            {qText.trim() || 'Your question appears here'}
+                        </p>
+                        <div className="mt-3 grid gap-2">
+                            {opts.map((opt, j) => (
+                                <AnswerTile
+                                    key={j}
+                                    label={
+                                        opt.trim() ||
+                                        `Option ${String.fromCharCode(65 + j)}`
+                                    }
+                                    index={j}
+                                    state={
+                                        correctIdx === j ? 'correct' : 'idle'
+                                    }
+                                    disabled
+                                    className="disabled:opacity-100"
                                 />
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
-                    <div className="flex gap-2 pt-1">
-                        <Button
-                            size="sm"
-                            className="bg-[#1e3a8a] text-white hover:bg-[#1e3a8a]/90"
-                            onClick={saveQuestion}
-                            disabled={
-                                !qText.trim() || opts.some((o) => !o.trim())
-                            }
-                        >
-                            {editingQ ? 'Update Question' : 'Add Question'}
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setShowQForm(false)}
-                        >
-                            Cancel
-                        </Button>
-                    </div>
-                </div>
+                </section>
             ) : (
                 <button
+                    type="button"
                     onClick={openNewQ}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#1e3a8a]/30 py-2.5 text-sm font-medium text-[#1e3a8a] transition hover:bg-[#1e3a8a]/5 dark:border-indigo-700 dark:text-indigo-400"
+                    className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-primary/30 text-sm font-bold text-primary transition hover:border-primary/60 hover:bg-primary/5"
                 >
-                    <Plus className="h-4 w-4" />
-                    Add Question{' '}
-                    {questions.length > 0 && `(${questions.length} added)`}
+                    <Plus className="size-4" />
+                    {questions.length === 0
+                        ? 'Add the first question'
+                        : 'Add another question'}
                 </button>
             )}
 
-            <div className="flex gap-2 border-t border-gray-100 pt-3 dark:border-gray-800">
+            <div className="flex gap-2 border-t pt-4">
                 <Button
-                    className="flex-1 bg-[#1e3a8a] text-white hover:bg-[#1e3a8a]/90"
+                    size="lg"
+                    className="flex-1"
                     onClick={() => {
                         clearDraft();
                         onSave({
@@ -1886,10 +2151,11 @@ function QuizBuilder({ initial, onSave, onCancel }: QuizBuilderProps) {
                     disabled={!title.trim() || questions.length === 0}
                 >
                     {isEdit
-                        ? 'Save Changes'
-                        : `Save Quiz${questions.length > 0 ? ` (${questions.length} Q${questions.length !== 1 ? 's' : ''})` : ''}`}
+                        ? 'Save changes'
+                        : `Save quiz${questions.length > 0 ? ` · ${questions.length} ${questions.length === 1 ? 'question' : 'questions'}` : ''}`}
                 </Button>
                 <Button
+                    size="lg"
                     variant="outline"
                     onClick={() => {
                         clearDraft();
@@ -1980,7 +2246,7 @@ function AssignmentBuilder({
                 value={instructions}
                 onChange={(e) => setInstructions(e.target.value)}
                 rows={4}
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-400 focus:border-violet-400 focus:ring-2 focus:ring-violet-100 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
             />
             <div className="flex gap-2">
                 <div className="flex-1">
@@ -2050,11 +2316,11 @@ function AssessmentPicker({ onAdd, onCancel }: AssessmentPickerProps) {
         return (
             <div>
                 <div className="mb-3 flex items-center gap-2">
-                    <ClipboardList className="h-4 w-4 text-[#1e3a8a]" />
+                    <ClipboardList className="h-4 w-4 text-primary" />
                     <p className="text-sm font-semibold">Create Quiz</p>
                     <button
                         onClick={() => setMode('choose')}
-                        className="ml-auto text-xs text-gray-400 hover:text-blue-600"
+                        className="ml-auto text-xs text-gray-400 hover:text-violet-600"
                     >
                         ← Back
                     </button>
@@ -2070,7 +2336,7 @@ function AssessmentPicker({ onAdd, onCancel }: AssessmentPickerProps) {
                     <p className="text-sm font-semibold">Create Assignment</p>
                     <button
                         onClick={() => setMode('choose')}
-                        className="ml-auto text-xs text-gray-400 hover:text-blue-600"
+                        className="ml-auto text-xs text-gray-400 hover:text-violet-600"
                     >
                         ← Back
                     </button>
@@ -2080,15 +2346,15 @@ function AssessmentPicker({ onAdd, onCancel }: AssessmentPickerProps) {
         );
     return (
         <>
-            <p className="mb-3 text-xs font-semibold tracking-widest text-gray-400 uppercase">
+            <p className="mb-3 text-xs font-semibold tracking-wider text-gray-400 uppercase">
                 Add Assessment
             </p>
             <div className="grid grid-cols-2 gap-3">
                 <button
                     onClick={() => setMode('quiz')}
-                    className="flex flex-col items-center gap-2 rounded-xl border-2 border-transparent bg-white p-4 shadow-sm transition hover:border-[#1e3a8a]/30 hover:bg-[#1e3a8a]/5 dark:bg-gray-800"
+                    className="flex flex-col items-center gap-2 rounded-xl border-2 border-transparent bg-white p-4 shadow-sm transition hover:border-primary/30 hover:bg-primary/5 dark:bg-gray-800"
                 >
-                    <ClipboardList className="h-7 w-7 text-[#1e3a8a]" />
+                    <ClipboardList className="h-7 w-7 text-primary" />
                     <span className="text-sm font-semibold">Quiz</span>
                     <span className="text-[10px] text-gray-400">
                         Multiple choice questions
@@ -2382,7 +2648,7 @@ function MeetingBuilder({ initial, onSave, onCancel }: MeetingBuilderProps) {
         <div className="space-y-5">
             {/* Title */}
             <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400">
+                <label className="block text-xs font-semibold text-muted-foreground">
                     Meeting Title
                 </label>
                 <Input
@@ -2395,7 +2661,7 @@ function MeetingBuilder({ initial, onSave, onCancel }: MeetingBuilderProps) {
 
             {/* Google Meet link */}
             <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400">
+                <label className="block text-xs font-semibold text-muted-foreground">
                     Google Meet Link
                 </label>
                 <div className="relative">
@@ -2413,7 +2679,7 @@ function MeetingBuilder({ initial, onSave, onCancel }: MeetingBuilderProps) {
             <div className="space-y-1.5">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400">
+                        <label className="block text-xs font-semibold text-muted-foreground">
                             Date
                         </label>
                         <Input
@@ -2424,7 +2690,7 @@ function MeetingBuilder({ initial, onSave, onCancel }: MeetingBuilderProps) {
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400">
+                        <label className="block text-xs font-semibold text-muted-foreground">
                             Start Time
                         </label>
                         <Input
@@ -2435,7 +2701,7 @@ function MeetingBuilder({ initial, onSave, onCancel }: MeetingBuilderProps) {
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400">
+                        <label className="block text-xs font-semibold text-muted-foreground">
                             End Time
                         </label>
                         <Input
@@ -2459,8 +2725,8 @@ function MeetingBuilder({ initial, onSave, onCancel }: MeetingBuilderProps) {
 
             {/* Timezone selector */}
             <div className="space-y-1.5">
-                <label className="block flex items-center gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-400">
-                    <Globe className="h-3.5 w-3.5 text-blue-400" /> Timezone
+                <label className="block flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                    <Globe className="h-3.5 w-3.5 text-violet-400" /> Timezone
                 </label>
                 <select
                     value={timezone}
@@ -2486,7 +2752,7 @@ function MeetingBuilder({ initial, onSave, onCancel }: MeetingBuilderProps) {
             <button
                 type="button"
                 onClick={() => setShowAdvanced((v) => !v)}
-                className="flex items-center gap-1.5 text-xs font-semibold text-blue-500 transition-colors hover:text-blue-700"
+                className="flex items-center gap-1.5 text-xs font-semibold text-violet-500 transition-colors hover:text-violet-700"
             >
                 <Globe className="h-3.5 w-3.5" />
                 World Time Zones
@@ -2516,8 +2782,8 @@ function MeetingBuilder({ initial, onSave, onCancel }: MeetingBuilderProps) {
                                     onClick={() => setTimezone(tz)}
                                     className={`flex items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-xs transition-all ${
                                         isSelected
-                                            ? 'border-blue-400 bg-blue-50 dark:border-blue-600 dark:bg-blue-950/40'
-                                            : 'border-gray-100 bg-gray-50 hover:border-blue-200 hover:bg-blue-50/50 dark:border-gray-800 dark:bg-gray-900/60'
+                                            ? 'border-violet-400 bg-violet-50 dark:border-violet-600 dark:bg-violet-950/40'
+                                            : 'border-gray-100 bg-gray-50 hover:border-violet-200 hover:bg-violet-50/50 dark:border-gray-800 dark:bg-gray-900/60'
                                     }`}
                                 >
                                     <span className="text-base leading-none">
@@ -2525,12 +2791,12 @@ function MeetingBuilder({ initial, onSave, onCancel }: MeetingBuilderProps) {
                                     </span>
                                     <div className="min-w-0 flex-1">
                                         <p
-                                            className={`truncate font-semibold ${isSelected ? 'text-blue-700 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}`}
+                                            className={`truncate font-semibold ${isSelected ? 'text-violet-700 dark:text-violet-400' : 'text-foreground/85'}`}
                                         >
                                             {city}
                                         </p>
                                         <p
-                                            className={`font-mono tabular-nums ${isSelected ? 'text-blue-600 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
+                                            className={`font-mono tabular-nums ${isSelected ? 'text-violet-600 dark:text-violet-300' : 'text-muted-foreground'}`}
                                         >
                                             {timeStr}
                                         </p>
@@ -2547,7 +2813,7 @@ function MeetingBuilder({ initial, onSave, onCancel }: MeetingBuilderProps) {
 
             {/* Description */}
             <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400">
+                <label className="block text-xs font-semibold text-muted-foreground">
                     Description{' '}
                     <span className="font-normal text-gray-400">
                         (optional)
@@ -2582,82 +2848,88 @@ function MeetingBuilder({ initial, onSave, onCancel }: MeetingBuilderProps) {
 // ─── Games ────────────────────────────────────────────────────────────────────
 const GAME_TYPE_META: Record<
     GameType,
-    { label: string; tagline: string; icon: string; chip: string; ring: string }
+    {
+        label: string;
+        tagline: string;
+        icon: LucideIcon;
+        chip: string;
+        ring: string;
+    }
 > = {
     quiz_quest: {
         label: 'Quiz Quest',
         tagline: 'Timed multiple-choice with streak bonuses',
-        icon: '⚡',
+        icon: Zap,
         chip: 'bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300',
         ring: 'border-violet-400 bg-violet-50 dark:border-violet-600 dark:bg-violet-950/40',
     },
     memory_match: {
         label: 'Memory Match',
         tagline: 'Flip & match prompt ↔ answer pairs',
-        icon: '🧠',
+        icon: Brain,
         chip: 'bg-pink-100 text-pink-600 dark:bg-pink-500/15 dark:text-pink-300',
         ring: 'border-pink-400 bg-pink-50 dark:border-pink-600 dark:bg-pink-950/40',
     },
     word_scramble: {
         label: 'Word Scramble',
         tagline: 'Unscramble the answer to each clue',
-        icon: '🔤',
+        icon: Shuffle,
         chip: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-300',
         ring: 'border-cyan-400 bg-cyan-50 dark:border-cyan-600 dark:bg-cyan-950/40',
     },
     crossword: {
         label: 'Crossword',
         tagline: 'Fill the grid using the clues',
-        icon: '🧩',
+        icon: Grid3x3,
         chip: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300',
         ring: 'border-emerald-400 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-950/40',
     },
     hangman: {
         label: 'Word Rescue',
         tagline: 'Guess the word before you run out of tries',
-        icon: '🪢',
+        icon: LifeBuoy,
         chip: 'bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300',
         ring: 'border-amber-400 bg-amber-50 dark:border-amber-600 dark:bg-amber-950/40',
     },
     fault_lab: {
         label: 'Fault Lab',
         tagline: '3D simulation: stress, faults and how earthquakes begin',
-        icon: '🌋',
+        icon: Layers,
         chip: 'bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300',
         ring: 'border-orange-400 bg-orange-50 dark:border-orange-600 dark:bg-orange-950/40',
     },
     shake_town: {
         label: 'Shake Town',
         tagline: '3D simulation: depth, magnitude and intensity',
-        icon: '🏘️',
+        icon: Building2,
         chip: 'bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300',
         ring: 'border-sky-400 bg-sky-50 dark:border-sky-600 dark:bg-sky-950/40',
     },
     wave_tank: {
         label: 'Wave Tank',
         tagline: '3D simulation: P, S and surface waves',
-        icon: '🌊',
+        icon: Waves,
         chip: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-300',
         ring: 'border-cyan-400 bg-cyan-50 dark:border-cyan-600 dark:bg-cyan-950/40',
     },
     quake_tracker: {
         label: 'Quake Tracker',
         tagline: '3D simulation: earthquakes in the Philippines',
-        icon: '🗺️',
+        icon: MapIcon,
         chip: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300',
         ring: 'border-emerald-400 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-950/40',
     },
     ground_test: {
         label: 'Ground Test',
         tagline: '3D simulation: landslides, liquefaction, rupture',
-        icon: '⛰️',
+        icon: Mountain,
         chip: 'bg-lime-100 text-lime-700 dark:bg-lime-500/15 dark:text-lime-300',
         ring: 'border-lime-400 bg-lime-50 dark:border-lime-600 dark:bg-lime-950/40',
     },
     quake_ready: {
         label: 'Quake Ready',
         tagline: '3D simulation: before, during and after',
-        icon: '🎒',
+        icon: ShieldCheck,
         chip: 'bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300',
         ring: 'border-rose-400 bg-rose-50 dark:border-rose-600 dark:bg-rose-950/40',
     },
@@ -2707,32 +2979,32 @@ const GAME_ITEM_LABELS: Record<
     quiz_quest: {
         prompt: 'Question',
         answer: 'Correct answer',
-        promptPlaceholder: 'e.g. Who wrote the Gospel of Luke?',
-        answerPlaceholder: 'e.g. Luke the physician',
+        promptPlaceholder: 'e.g. Which wave arrives first after an earthquake?',
+        answerPlaceholder: 'e.g. The P wave',
     },
     memory_match: {
         prompt: 'Term / prompt',
         answer: 'Matching answer',
-        promptPlaceholder: 'e.g. Alpha',
-        answerPlaceholder: 'e.g. The Beginning',
+        promptPlaceholder: 'e.g. Epicenter',
+        answerPlaceholder: 'e.g. The point on the surface above the focus',
     },
     word_scramble: {
         prompt: 'Clue / hint',
         answer: 'Answer to unscramble',
-        promptPlaceholder: 'e.g. The first book of the Bible',
-        answerPlaceholder: 'e.g. Genesis',
+        promptPlaceholder: 'e.g. A crack where blocks of crust move',
+        answerPlaceholder: 'e.g. Fault',
     },
     crossword: {
         prompt: 'Clue',
         answer: 'Answer (single word)',
-        promptPlaceholder: 'e.g. Jesus turned water into this',
-        answerPlaceholder: 'e.g. Wine',
+        promptPlaceholder: 'e.g. Instrument that records ground shaking',
+        answerPlaceholder: 'e.g. Seismograph',
     },
     hangman: {
         prompt: 'Clue / hint',
         answer: 'Word to guess (single word)',
-        promptPlaceholder: 'e.g. He was swallowed by a great fish',
-        answerPlaceholder: 'e.g. Jonah',
+        promptPlaceholder: 'e.g. Giant sea wave caused by an undersea quake',
+        answerPlaceholder: 'e.g. Tsunami',
     },
     fault_lab: SIMULATION_LABELS,
     shake_town: SIMULATION_LABELS,
@@ -2859,7 +3131,7 @@ function GameBuilder({ initial, onSave, onCancel }: GameBuilderProps) {
         <div className="space-y-5">
             {/* Game type picker */}
             <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400">
+                <label className="block text-xs font-semibold text-muted-foreground">
                     Game Type
                 </label>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -2871,12 +3143,14 @@ function GameBuilder({ initial, onSave, onCancel }: GameBuilderProps) {
                                 key={t}
                                 type="button"
                                 onClick={() => setGameType(t)}
-                                className={`flex flex-col gap-1 rounded-xl border p-3 text-left transition-all ${selected ? meta.ring : 'border-gray-200 bg-white hover:border-violet-200 dark:border-gray-800 dark:bg-gray-900'}`}
+                                className={`flex flex-col gap-1.5 rounded-2xl border-2 p-3.5 text-left transition-all ${selected ? `${meta.ring} shadow-[0_3px_0_0_var(--color-violet-300)] dark:shadow-none` : 'border-border bg-card hover:border-violet-300'}`}
                             >
-                                <span className="text-lg leading-none">
-                                    {meta.icon}
+                                <span
+                                    className={`grid size-10 place-items-center rounded-xl ${meta.chip}`}
+                                >
+                                    <meta.icon className="size-5" />
                                 </span>
-                                <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                                <span className="text-sm font-semibold text-foreground">
                                     {meta.label}
                                 </span>
                                 <span className="text-[11px] leading-snug text-gray-400">
@@ -2891,13 +3165,13 @@ function GameBuilder({ initial, onSave, onCancel }: GameBuilderProps) {
             {/* Title + points + lives */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto_auto]">
                 <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400">
+                    <label className="block text-xs font-semibold text-muted-foreground">
                         Game Title
                     </label>
                     <Input
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        placeholder="e.g. Books of the Bible Challenge"
+                        placeholder="e.g. Fault Finder Challenge"
                         className={`h-9 ${titleError ? 'border-red-400 focus-visible:ring-red-400' : ''}`}
                     />
                     {titleError && (
@@ -2907,7 +3181,7 @@ function GameBuilder({ initial, onSave, onCancel }: GameBuilderProps) {
                     )}
                 </div>
                 <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400">
+                    <label className="block text-xs font-semibold text-muted-foreground">
                         Points
                     </label>
                     <div className="relative">
@@ -2927,7 +3201,7 @@ function GameBuilder({ initial, onSave, onCancel }: GameBuilderProps) {
                     </div>
                 </div>
                 <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400">
+                    <label className="block text-xs font-semibold text-muted-foreground">
                         Lives / day
                     </label>
                     <div className="relative">
@@ -2962,7 +3236,7 @@ function GameBuilder({ initial, onSave, onCancel }: GameBuilderProps) {
             {/* Items */}
             <div className={isSimulation ? 'hidden' : 'space-y-2'}>
                 <div className="flex items-center justify-between">
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400">
+                    <label className="block text-xs font-semibold text-muted-foreground">
                         {itemNoun === 'pair'
                             ? 'Pairs'
                             : itemNoun === 'word'
@@ -3092,13 +3366,16 @@ function GameBuilder({ initial, onSave, onCancel }: GameBuilderProps) {
                 <DialogContent className="max-w-sm">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <span className="text-lg leading-none">
-                                {GAME_TYPE_META[gameType].icon}
-                            </span>
+                            {(() => {
+                                const GameIcon = GAME_TYPE_META[gameType].icon;
+                                return (
+                                    <GameIcon className="size-5 text-primary" />
+                                );
+                            })()}
                             {initial ? 'Save Changes?' : 'Add this Game?'}
                         </DialogTitle>
                     </DialogHeader>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-muted-foreground">
                         "<strong>{title.trim()}</strong>" ·{' '}
                         {GAME_TYPE_META[gameType].label}
                         {!isSimulation &&
@@ -3131,6 +3408,7 @@ function GameBuilder({ initial, onSave, onCancel }: GameBuilderProps) {
 // ─── Content Panel Editor (right panel, edit mode) ────────────────────────────
 interface ContentPanelEditorProps {
     session: Session;
+    courseId?: string;
     onAddContent: (c: ContentItem) => void;
     onUpdateContent: (c: ContentItem) => void;
     onDeleteContent: (id: string) => void;
@@ -3146,6 +3424,7 @@ interface ContentPanelEditorProps {
 }
 function ContentPanelEditor({
     session,
+    courseId,
     onAddContent,
     onUpdateContent,
     onDeleteContent,
@@ -3170,6 +3449,14 @@ function ContentPanelEditor({
         | 'add-game'
         | 'edit-game';
     const [mode, setMode] = useState<PanelMode>('list');
+    const [resumeDraft, setResumeDraft] = useState(false);
+    const { auth } = usePage<SharedData>().props;
+    const pendingDraft =
+        mode === 'list'
+            ? readFlipbookDraft(
+                  flipbookDraftKey(auth.user?.id, courseId, session.id),
+              )
+            : null;
     const [editingContent, setEditingContent] = useState<ContentItem | null>(
         null,
     );
@@ -3187,6 +3474,7 @@ function ContentPanelEditor({
 
     const reset = () => {
         setMode('list');
+        setResumeDraft(false);
         setEditingContent(null);
         setEditingAssessment(null);
         setEditingMeeting(null);
@@ -3199,7 +3487,7 @@ function ContentPanelEditor({
                 <div className="flex items-center gap-2">
                     <button
                         onClick={reset}
-                        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-600"
+                        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-violet-600"
                     >
                         <ArrowLeft className="h-4 w-4" />
                         {mode === 'edit-content'
@@ -3207,9 +3495,12 @@ function ContentPanelEditor({
                             : 'Add Content'}
                     </button>
                 </div>
-                <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-4">
+                <div className="rounded-3xl border bg-card p-4 shadow-panel sm:p-5">
                     <ContentPicker
                         initial={editingContent ?? undefined}
+                        courseId={courseId}
+                        lessonId={session.id}
+                        resumeDraft={resumeDraft}
                         onSave={(item) => {
                             mode === 'edit-content'
                                 ? onUpdateContent(item)
@@ -3230,7 +3521,7 @@ function ContentPanelEditor({
                 <div className="flex items-center gap-2">
                     <button
                         onClick={reset}
-                        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-600"
+                        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-violet-600"
                     >
                         <ArrowLeft className="h-4 w-4" />
                         {isEditAssessment
@@ -3333,8 +3624,8 @@ function ContentPanelEditor({
         <div className="flex flex-1 flex-col overflow-y-auto">
             {/* Session header — minimal */}
             <div className="shrink-0 border-b border-gray-100 px-5 py-3.5 dark:border-gray-800">
-                <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
-                    {session.title}
+                <p className="truncate text-sm font-semibold text-foreground">
+                    {lessonLabel(session.title)}
                 </p>
                 <p className="mt-0.5 text-[11px] text-gray-400">
                     {session.contents.length} material
@@ -3357,22 +3648,50 @@ function ContentPanelEditor({
                         </span>
                         <button
                             onClick={() => setMode('add-content')}
-                            className="flex items-center gap-1 text-[11px] font-medium text-blue-500 transition-colors hover:text-blue-700"
+                            className="flex items-center gap-1 text-[11px] font-medium text-violet-500 transition-colors hover:text-violet-700"
                         >
                             <Plus className="h-3 w-3" />
                             Add
                         </button>
                     </div>
-                    {session.contents.length === 0 ? (
+                    {pendingDraft && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setResumeDraft(true);
+                                setMode('add-content');
+                            }}
+                            className="mb-2 flex w-full cursor-pointer items-center gap-2.5 rounded-xl bg-amber-50 px-2.5 py-2 text-left transition-colors hover:bg-amber-100 dark:bg-amber-400/10 dark:hover:bg-amber-400/15"
+                        >
+                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-amber-200 text-amber-800 dark:bg-amber-400/20 dark:text-amber-200">
+                                <History className="h-3.5 w-3.5" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                                <span className="block truncate text-xs font-bold text-amber-950 dark:text-amber-100">
+                                    {pendingDraft.title || 'Untitled flipbook'}{' '}
+                                    · unsaved
+                                </span>
+                                <span className="block text-[11px] text-amber-800/80 dark:text-amber-200/70">
+                                    {pendingDraft.pages.length}{' '}
+                                    {pendingDraft.pages.length === 1
+                                        ? 'page'
+                                        : 'pages'}{' '}
+                                    · {formatDraftTime(pendingDraft.savedAt)} ·
+                                    Continue editing
+                                </span>
+                            </span>
+                        </button>
+                    )}
+                    {session.contents.length === 0 && !pendingDraft ? (
                         <p className="text-xs text-gray-300 dark:text-gray-600">
                             No materials yet.
                         </p>
-                    ) : (
+                    ) : session.contents.length === 0 ? null : (
                         <div className="space-y-0.5">
                             {session.contents.map((c) => (
                                 <div
                                     key={c.id}
-                                    className="group flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/40"
+                                    className="group flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-accent/50"
                                 >
                                     <span
                                         className={`flex h-6 w-6 shrink-0 items-center justify-center rounded text-xs ${CONTENT_META[c.type].badge}`}
@@ -3380,7 +3699,7 @@ function ContentPanelEditor({
                                         {CONTENT_META[c.type].icon}
                                     </span>
                                     <div className="min-w-0 flex-1">
-                                        <p className="truncate text-[13px] font-medium text-gray-800 dark:text-gray-200">
+                                        <p className="truncate text-[13px] font-medium text-foreground">
                                             {c.title}
                                         </p>
                                         <p className="text-[11px] text-gray-400">
@@ -3393,7 +3712,7 @@ function ContentPanelEditor({
                                                 setEditingContent(c);
                                                 setMode('edit-content');
                                             }}
-                                            className="rounded p-1 text-gray-300 transition hover:text-blue-500"
+                                            className="rounded p-1 text-gray-300 transition hover:text-violet-500"
                                         >
                                             <Pencil className="h-3.5 w-3.5" />
                                         </button>
@@ -3439,10 +3758,10 @@ function ContentPanelEditor({
                             {session.assessments.map((a) => (
                                 <div
                                     key={a.id}
-                                    className="group flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/40"
+                                    className="group flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-accent/50"
                                 >
                                     <span
-                                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded ${a.kind === 'quiz' ? 'bg-[#1e3a8a]/10 text-[#1e3a8a]' : 'bg-amber-50 text-amber-500'}`}
+                                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded ${a.kind === 'quiz' ? 'bg-primary/10 text-primary' : 'bg-amber-50 text-amber-500'}`}
                                     >
                                         {a.kind === 'quiz' ? (
                                             <ClipboardList className="h-3.5 w-3.5" />
@@ -3451,7 +3770,7 @@ function ContentPanelEditor({
                                         )}
                                     </span>
                                     <div className="min-w-0 flex-1">
-                                        <p className="truncate text-[13px] font-medium text-gray-800 dark:text-gray-200">
+                                        <p className="truncate text-[13px] font-medium text-foreground">
                                             {a.title}
                                         </p>
                                         <p className="text-[11px] text-gray-400">
@@ -3466,7 +3785,7 @@ function ContentPanelEditor({
                                                 setEditingAssessment(a);
                                                 setMode('edit-assessment');
                                             }}
-                                            className="rounded p-1 text-gray-300 transition hover:text-blue-500"
+                                            className="rounded p-1 text-gray-300 transition hover:text-violet-500"
                                         >
                                             <Pencil className="h-3.5 w-3.5" />
                                         </button>
@@ -3517,15 +3836,15 @@ function ContentPanelEditor({
                                 return (
                                     <div
                                         key={g.id}
-                                        className="group flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/40"
+                                        className="group flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-accent/50"
                                     >
                                         <span
                                             className={`flex h-6 w-6 shrink-0 items-center justify-center rounded text-xs ${meta.chip}`}
                                         >
-                                            {meta.icon}
+                                            <meta.icon className="size-3.5" />
                                         </span>
                                         <div className="min-w-0 flex-1">
-                                            <p className="truncate text-[13px] font-medium text-gray-800 dark:text-gray-200">
+                                            <p className="truncate text-[13px] font-medium text-foreground">
                                                 {g.title}
                                             </p>
                                             <p className="text-[11px] text-gray-400">
@@ -3534,13 +3853,15 @@ function ContentPanelEditor({
                                                     g.gameType,
                                                 )
                                                     ? 'checkpoints'
-                                                    : g.gameType === 'memory_match'
-                                                    ? 'pairs'
                                                     : g.gameType ===
-                                                            'crossword' ||
-                                                        g.gameType === 'hangman'
-                                                      ? 'words'
-                                                      : 'questions'}{' '}
+                                                        'memory_match'
+                                                      ? 'pairs'
+                                                      : g.gameType ===
+                                                              'crossword' ||
+                                                          g.gameType ===
+                                                              'hangman'
+                                                        ? 'words'
+                                                        : 'questions'}{' '}
                                                 · {g.points} pts
                                                 {g.lives > 0
                                                     ? ` · ${g.lives}♥/day`
@@ -3553,7 +3874,7 @@ function ContentPanelEditor({
                                                     setEditingGame(g);
                                                     setMode('edit-game');
                                                 }}
-                                                className="rounded p-1 text-gray-300 transition hover:text-blue-500"
+                                                className="rounded p-1 text-gray-300 transition hover:text-violet-500"
                                             >
                                                 <Pencil className="h-3.5 w-3.5" />
                                             </button>
@@ -3636,13 +3957,13 @@ function ContentPanelEditor({
                                 return (
                                     <div
                                         key={m.id}
-                                        className="group flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/40"
+                                        className="group flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-accent/50"
                                     >
                                         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-emerald-50 text-emerald-500">
                                             <Video className="h-3.5 w-3.5" />
                                         </span>
                                         <div className="min-w-0 flex-1">
-                                            <p className="truncate text-[13px] font-medium text-gray-800 dark:text-gray-200">
+                                            <p className="truncate text-[13px] font-medium text-foreground">
                                                 {m.title}
                                             </p>
                                             <p className="text-[11px] text-gray-400">
@@ -3666,7 +3987,7 @@ function ContentPanelEditor({
                                                     setEditingMeeting(m);
                                                     setMode('edit-meeting');
                                                 }}
-                                                className="rounded p-1 text-gray-300 transition hover:text-blue-500"
+                                                className="rounded p-1 text-gray-300 transition hover:text-violet-500"
                                             >
                                                 <Pencil className="h-3.5 w-3.5" />
                                             </button>
@@ -3711,7 +4032,7 @@ function ContentPanelEditor({
                             ?
                         </DialogTitle>
                     </DialogHeader>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-muted-foreground">
                         "<strong>{deleteTarget?.name}</strong>" will be
                         permanently removed.
                     </p>
@@ -3818,7 +4139,7 @@ const SidebarSession = memo(function SidebarSession({
     return (
         <div ref={setNodeRef} style={style} className={indent ? 'pl-4' : ''}>
             <div
-                className={`group/sess flex items-center gap-2 rounded-lg px-3 py-3 transition-all ${locked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${isActive && !activeContentId && !activeAssessmentId ? 'bg-[#1e3a8a]/10 text-[#1e3a8a] dark:bg-indigo-900/20 dark:text-indigo-300' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/60'}`}
+                className={`group/sess flex items-center gap-2 rounded-xl px-3 py-3 transition-all ${locked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${isActive && !activeContentId && !activeAssessmentId ? 'bg-primary/10 text-primary dark:bg-violet-900/20 dark:text-violet-300' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/60'}`}
                 onClick={() => {
                     if (renaming || locked) {
                         return;
@@ -3841,13 +4162,13 @@ const SidebarSession = memo(function SidebarSession({
                     </button>
                 )}
                 <div
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${isActive && !activeContentId && !activeAssessmentId ? 'bg-[#1e3a8a]/20' : locked ? 'bg-gray-100 dark:bg-gray-800' : 'bg-gray-100 dark:bg-gray-800'}`}
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${isActive && !activeContentId && !activeAssessmentId ? 'bg-primary/20' : locked ? 'bg-muted' : 'bg-muted'}`}
                 >
                     {locked ? (
                         <Lock className="h-3 w-3 text-gray-400" />
                     ) : (
                         <BookOpen
-                            className={`h-3 w-3 ${isActive && !activeContentId && !activeAssessmentId ? 'text-[#1e3a8a]' : 'text-gray-400'}`}
+                            className={`h-3 w-3 ${isActive && !activeContentId && !activeAssessmentId ? 'text-primary' : 'text-gray-400'}`}
                         />
                     )}
                 </div>
@@ -3871,7 +4192,7 @@ const SidebarSession = memo(function SidebarSession({
                         <Button
                             type="submit"
                             size="sm"
-                            className="h-6 bg-[#1e3a8a] px-2 text-xs text-white hover:bg-[#1e3a8a]/90"
+                            className="h-6 bg-primary px-2 text-xs text-white hover:bg-primary/90"
                         >
                             ✓
                         </Button>
@@ -3913,9 +4234,9 @@ const SidebarSession = memo(function SidebarSession({
                             );
                         return (
                             <span
-                                className={`line-clamp-2 flex-1 text-xs leading-snug ${allCompleted && !active ? 'font-normal text-gray-500 dark:text-gray-400' : 'font-semibold'}`}
+                                className={`line-clamp-2 flex-1 text-xs leading-snug ${allCompleted && !active ? 'font-normal text-muted-foreground' : 'font-semibold'}`}
                             >
-                                {session.title}
+                                {lessonLabel(session.title)}
                             </span>
                         );
                     })()
@@ -3923,7 +4244,7 @@ const SidebarSession = memo(function SidebarSession({
                 {!editMode && hasSubItems && (
                     <>
                         <span
-                            className={`shrink-0 text-[10px] font-medium ${isActive && !activeContentId && !activeAssessmentId ? 'text-[#1e3a8a]/50' : 'text-gray-400'}`}
+                            className={`shrink-0 text-[10px] font-medium ${isActive && !activeContentId && !activeAssessmentId ? 'text-primary/50' : 'text-gray-400'}`}
                         >
                             {subItemCount}
                         </span>
@@ -3951,7 +4272,7 @@ const SidebarSession = memo(function SidebarSession({
                         onClick={(e) => e.stopPropagation()}
                     >
                         <button
-                            className="rounded p-1 text-gray-400 hover:text-blue-600"
+                            className="rounded p-1 text-gray-400 hover:text-violet-600"
                             onClick={() => {
                                 setRenaming(true);
                                 setRenameVal(session.title);
@@ -3971,7 +4292,7 @@ const SidebarSession = memo(function SidebarSession({
 
             {/* Sub-items (view mode only) */}
             {!editMode && hasSubItems && subOpen && (
-                <div className="mt-0.5 ml-4 space-y-px border-l-2 border-gray-100 pl-3 dark:border-gray-700">
+                <div className="mt-0.5 ml-5 space-y-px border-l-2 border-dashed border-[color-mix(in_oklab,var(--world-accent,var(--color-violet-600))_35%,transparent)] pl-3">
                     {session.contents.map((c) => {
                         const seen = viewedIds.has(c.id);
                         const done = !!(
@@ -3981,10 +4302,10 @@ const SidebarSession = memo(function SidebarSession({
                             <div
                                 key={c.id}
                                 onClick={() => onSelectContent(session, c)}
-                                className={`flex cursor-pointer items-center gap-2 rounded-md px-3 py-3 text-sm transition-all ${activeContentId === c.id ? 'bg-[#1e3a8a]/10 text-[#1e3a8a] dark:bg-indigo-900/20 dark:text-indigo-300' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                                className={`flex cursor-pointer items-center gap-2 rounded-md px-3 py-3 text-sm transition-all ${activeContentId === c.id ? 'bg-primary/10 text-primary dark:bg-violet-900/20 dark:text-violet-300' : 'text-gray-500 hover:bg-accent'}`}
                             >
                                 <span
-                                    className={`shrink-0 ${activeContentId === c.id ? 'text-[#1e3a8a]' : 'text-gray-400'}`}
+                                    className={`shrink-0 ${activeContentId === c.id ? 'text-primary' : 'text-gray-400'}`}
                                 >
                                     {CONTENT_META[c.type].icon}
                                 </span>
@@ -3995,7 +4316,7 @@ const SidebarSession = memo(function SidebarSession({
                                 </span>
                                 {done && (
                                     <CheckCircle2
-                                        className={`h-3 w-3 shrink-0 ${activeContentId === c.id ? 'text-[#1e3a8a]' : 'text-emerald-500'}`}
+                                        className={`h-3 w-3 shrink-0 ${activeContentId === c.id ? 'text-primary' : 'text-emerald-500'}`}
                                     />
                                 )}
                             </div>
@@ -4092,7 +4413,7 @@ const SidebarSession = memo(function SidebarSession({
                                 className="flex items-center gap-2 rounded-md px-3 py-3 text-sm text-gray-500 transition-all hover:bg-violet-50 hover:text-violet-700 dark:hover:bg-violet-950/20"
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                <span className="shrink-0">{meta.icon}</span>
+                                <meta.icon className="size-4 shrink-0" />
                                 <span
                                     className={`flex-1 truncate ${completed ? 'font-normal' : 'font-semibold'}`}
                                 >
@@ -4117,12 +4438,12 @@ const SidebarSession = memo(function SidebarSession({
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <AlertTriangle className="h-5 w-5 text-red-500" />
-                            Delete Session?
+                            Delete lesson?
                         </DialogTitle>
                     </DialogHeader>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        "<strong>{session.title}</strong>" and all its content
-                        will be removed.
+                    <p className="text-sm text-muted-foreground">
+                        "<strong>{lessonLabel(session.title)}</strong>" and all
+                        its content will be removed.
                     </p>
                     <DialogFooter className="gap-2">
                         <Button
@@ -4270,7 +4591,7 @@ const SidebarLessonGroup = memo(function SidebarLessonGroup({
                             <Button
                                 type="submit"
                                 size="sm"
-                                className="h-6 bg-[#1e3a8a] px-2 text-xs text-white hover:bg-[#1e3a8a]/90"
+                                className="h-6 bg-primary px-2 text-xs text-white hover:bg-primary/90"
                             >
                                 ✓
                             </Button>
@@ -4296,7 +4617,7 @@ const SidebarLessonGroup = memo(function SidebarLessonGroup({
                 {editMode && !renaming && (
                     <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition group-hover/lg:opacity-100">
                         <button
-                            className="rounded p-1 text-gray-400 hover:text-blue-600"
+                            className="rounded p-1 text-gray-400 hover:text-violet-600"
                             onClick={() => {
                                 setRenaming(true);
                                 setRenameVal(group.title);
@@ -4373,7 +4694,7 @@ const SidebarLessonGroup = memo(function SidebarLessonGroup({
                                     className="flex items-center gap-1"
                                 >
                                     <Input
-                                        placeholder="Session title…"
+                                        placeholder="Lesson title…"
                                         value={newSessionTitle}
                                         onChange={(e) =>
                                             setNewSessionTitle(e.target.value)
@@ -4384,7 +4705,7 @@ const SidebarLessonGroup = memo(function SidebarLessonGroup({
                                     <Button
                                         type="submit"
                                         size="sm"
-                                        className="h-7 bg-[#1e3a8a] px-2 text-xs text-white hover:bg-[#1e3a8a]/90"
+                                        className="h-7 bg-primary px-2 text-xs text-white hover:bg-primary/90"
                                         disabled={!newSessionTitle.trim()}
                                     >
                                         Add
@@ -4408,7 +4729,7 @@ const SidebarLessonGroup = memo(function SidebarLessonGroup({
                                     className="flex items-center gap-1 text-[11px] text-amber-600 hover:text-amber-800 dark:hover:text-amber-300"
                                 >
                                     <Plus className="h-3 w-3" />
-                                    Add Session
+                                    Add lesson
                                 </button>
                             )}
                         </div>
@@ -4421,11 +4742,11 @@ const SidebarLessonGroup = memo(function SidebarLessonGroup({
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <AlertTriangle className="h-5 w-5 text-red-500" />
-                            Delete Lesson Group?
+                            Delete unit?
                         </DialogTitle>
                     </DialogHeader>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        "<strong>{group.title}</strong>" and all its sessions
+                    <p className="text-sm text-muted-foreground">
+                        "<strong>{group.title}</strong>" and all its lessons
                         will be removed.
                     </p>
                     <DialogFooter className="gap-2">
@@ -4563,15 +4884,12 @@ const SidebarModule = memo(function SidebarModule({
     };
 
     return (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+        <div className="overflow-hidden rounded-2xl border bg-card shadow-panel">
             <button
                 onClick={() => setOpen((v) => !v)}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-accent/50"
             >
-                <div
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
-                    style={{ background: PORTAL_GRADIENT }}
-                >
+                <div className="grid size-9 shrink-0 place-items-center bg-(--world-accent,var(--color-violet-600)) font-display text-sm font-extrabold text-white [clip-path:polygon(50%_0,93%_25%,93%_75%,50%_100%,7%_75%,7%_25%)]">
                     {moduleIndex + 1}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -4596,7 +4914,7 @@ const SidebarModule = memo(function SidebarModule({
                             <Button
                                 type="submit"
                                 size="sm"
-                                className="h-6 bg-[#1e3a8a] px-2 text-xs text-white hover:bg-[#1e3a8a]/90"
+                                className="h-6 bg-primary px-2 text-xs text-white hover:bg-primary/90"
                             >
                                 ✓
                             </Button>
@@ -4614,12 +4932,13 @@ const SidebarModule = memo(function SidebarModule({
                             </Button>
                         </form>
                     ) : (
-                        <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                        <p className="truncate text-sm font-semibold text-foreground">
                             {mod.title}
                         </p>
                     )}
                     <p className="text-[11px] text-gray-400">
-                        {sessionCount} sessions
+                        {sessionCount}{' '}
+                        {sessionCount === 1 ? 'lesson' : 'lessons'}
                     </p>
                 </div>
                 {open ? (
@@ -4633,7 +4952,7 @@ const SidebarModule = memo(function SidebarModule({
             {editMode && !renaming && (
                 <div className="flex items-center gap-1 border-t border-gray-100 px-4 py-1.5 dark:border-gray-800">
                     <button
-                        className="rounded p-1 text-gray-400 hover:text-blue-600"
+                        className="rounded p-1 text-gray-400 hover:text-violet-600"
                         title="Rename module"
                         onClick={() => {
                             setRenaming(true);
@@ -4762,7 +5081,7 @@ const SidebarModule = memo(function SidebarModule({
                                     className="flex items-center gap-1 px-1"
                                 >
                                     <Input
-                                        placeholder="Session title…"
+                                        placeholder="Lesson title…"
                                         value={addTitle}
                                         onChange={(e) =>
                                             setAddTitle(e.target.value)
@@ -4773,7 +5092,7 @@ const SidebarModule = memo(function SidebarModule({
                                     <Button
                                         type="submit"
                                         size="sm"
-                                        className="h-7 bg-[#1e3a8a] px-2 text-xs text-white hover:bg-[#1e3a8a]/90"
+                                        className="h-7 bg-primary px-2 text-xs text-white hover:bg-primary/90"
                                         disabled={!addTitle.trim()}
                                     >
                                         Add
@@ -4794,10 +5113,10 @@ const SidebarModule = memo(function SidebarModule({
                             ) : (
                                 <button
                                     onClick={() => setAddType('session')}
-                                    className="flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-[#1e3a8a]/30 px-2.5 py-1.5 text-[11px] font-medium text-[#1e3a8a] transition hover:bg-[#1e3a8a]/5 dark:border-indigo-700 dark:text-indigo-400"
+                                    className="flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-primary/30 px-2.5 py-1.5 text-[11px] font-medium text-primary transition hover:bg-primary/5 dark:border-violet-700 dark:text-violet-400"
                                 >
                                     <Plus className="h-3 w-3" />
-                                    Session
+                                    Lesson
                                 </button>
                             )}
                         </div>
@@ -4812,7 +5131,7 @@ const SidebarModule = memo(function SidebarModule({
                         onClick={() =>
                             onTogglePrerequisite?.(!mod.prerequisite)
                         }
-                        title="When enabled, students must complete each session before accessing the next"
+                        title="When enabled, students must complete each lesson before opening the next"
                         className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition ${
                             mod.prerequisite
                                 ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
@@ -4843,7 +5162,7 @@ const SidebarModule = memo(function SidebarModule({
                             Delete Module?
                         </DialogTitle>
                     </DialogHeader>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-muted-foreground">
                         "<strong>{mod.title}</strong>" and all its content will
                         be permanently removed.
                     </p>
@@ -4952,18 +5271,18 @@ function AnnouncementFooterButton({
             className={`mb-[max(10px,env(safe-area-inset-bottom))] flex w-full shrink-0 items-center gap-2.5 border-t border-gray-200 px-4 py-3 text-left transition-colors dark:border-gray-800 ${
                 active
                     ? 'bg-amber-50 dark:bg-amber-500/10'
-                    : 'bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800/50'
+                    : 'bg-white hover:bg-muted/50 dark:hover:bg-gray-800/50'
             }`}
         >
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400">
                 <Megaphone className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-semibold tracking-widest text-gray-400 uppercase">
+                <p className="text-sm font-bold text-muted-foreground">
                     Announcements
                 </p>
                 {latest ? (
-                    <p className="truncate text-xs text-gray-600 dark:text-gray-300">
+                    <p className="truncate text-xs text-muted-foreground">
                         {latest.body}
                     </p>
                 ) : (
@@ -5021,7 +5340,7 @@ function AnnouncementsPanel({
                     <Megaphone className="h-5 w-5" />
                 </div>
                 <div>
-                    <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                    <h2 className="text-lg font-bold text-foreground">
                         Announcements
                     </h2>
                     <p className="text-sm text-gray-500">
@@ -5042,22 +5361,22 @@ function AnnouncementsPanel({
                     {announcements.map((a) => (
                         <div
                             key={a.id}
-                            className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
+                            className="overflow-hidden rounded-3xl border bg-card shadow-panel"
                         >
                             <div className="flex items-start gap-3 p-4 sm:p-5">
-                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-700 text-sm font-bold text-white">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-700 text-sm font-bold text-white">
                                     {acInitials(a.author?.name ?? '?')}
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <div className="flex flex-wrap items-baseline gap-2">
-                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                        <p className="text-sm font-semibold text-foreground">
                                             {a.author?.name ?? 'Unknown'}
                                         </p>
                                         <p className="text-xs text-gray-400">
                                             {announcementTime(a.created_at)}
                                         </p>
                                     </div>
-                                    <p className="mt-1.5 text-sm leading-relaxed whitespace-pre-wrap text-gray-700 dark:text-gray-300">
+                                    <p className="mt-1.5 text-sm leading-relaxed whitespace-pre-wrap text-foreground/85">
                                         {a.body}
                                     </p>
                                 </div>
@@ -5075,8 +5394,8 @@ function AnnouncementsPanel({
                                                     c.author?.name ?? '?',
                                                 )}
                                             </div>
-                                            <p className="text-xs leading-relaxed text-gray-600 dark:text-gray-400">
-                                                <span className="font-semibold text-gray-700 dark:text-gray-300">
+                                            <p className="text-xs leading-relaxed text-muted-foreground">
+                                                <span className="font-semibold text-foreground/85">
                                                     {c.author?.name ??
                                                         'Unknown'}
                                                 </span>{' '}
@@ -5108,7 +5427,7 @@ function AnnouncementsPanel({
                                 <button
                                     onClick={() => submitComment(a.id)}
                                     disabled={!drafts[a.id]?.trim()}
-                                    className="shrink-0 p-1.5 text-blue-600 transition-colors hover:text-blue-700 disabled:text-gray-300"
+                                    className="shrink-0 p-1.5 text-violet-600 transition-colors hover:text-violet-700 disabled:text-gray-300"
                                     aria-label="Send comment"
                                 >
                                     <Send className="h-4 w-4" />
@@ -5176,7 +5495,9 @@ function TeacherCourseDetail({
         status: 'uploading' | 'success' | 'error';
         message?: string;
     } | null>(null);
-    const editModeStorageKey = courseId ? `dulatuon:editMode:${courseId}` : null;
+    const editModeStorageKey = courseId
+        ? `dulatuon:editMode:${courseId}`
+        : null;
     const [editMode, setEditMode] = useState(() => {
         if (typeof window === 'undefined' || !editModeStorageKey) return false;
         return window.localStorage.getItem(editModeStorageKey) === '1';
@@ -5267,6 +5588,13 @@ function TeacherCourseDetail({
         return (
             new URLSearchParams(window.location.search).get('view') ===
             'announcements'
+        );
+    });
+    const [showLeaderboard, setShowLeaderboard] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        return (
+            new URLSearchParams(window.location.search).get('view') ===
+            'leaderboard'
         );
     });
     const [mobilePanel, setMobilePanel] = useState<'curriculum' | 'content'>(
@@ -5391,6 +5719,7 @@ function TeacherCourseDetail({
     const handleSelectContent = useCallback(
         (session: Session, content: ContentItem) => {
             setShowAnnouncements(false);
+            setShowLeaderboard(false);
             setActiveSession(session);
             setActiveContent(content);
             setActiveAssessment(null);
@@ -5402,6 +5731,7 @@ function TeacherCourseDetail({
     const handleSelectAssessment = useCallback(
         (session: Session, assessment: Assessment) => {
             setShowAnnouncements(false);
+            setShowLeaderboard(false);
             setActiveSession(session);
             setActiveAssessment(assessment);
             setActiveContent(null);
@@ -5413,6 +5743,7 @@ function TeacherCourseDetail({
     const handleSelectSession = useCallback(
         (session: Session) => {
             setShowAnnouncements(false);
+            setShowLeaderboard(false);
             setActiveSession(session);
             if (!effectiveEditMode) {
                 if (session.contents.length > 0) {
@@ -5876,6 +6207,11 @@ function TeacherCourseDetail({
                 ...s,
                 contents: [...s.contents, content],
             }));
+            if (content.type === 'flipbook') {
+                clearFlipbookDraft(
+                    flipbookDraftKey(auth.user?.id, courseId, sessionId),
+                );
+            }
             return;
         }
         try {
@@ -5918,13 +6254,26 @@ function TeacherCourseDetail({
                 created = await capi<ContentItem>(
                     'POST',
                     `/curriculum/${courseId}/sessions/${sess.dbId}/content`,
-                    {
-                        type: content.type,
-                        title: content.title,
-                        description: content.description,
-                        url: content.url,
-                    },
+                    content.type === 'flipbook'
+                        ? {
+                              type: content.type,
+                              title: content.title,
+                              description: content.description,
+                              pages: content.pages,
+                          }
+                        : {
+                              type: content.type,
+                              title: content.title,
+                              description: content.description,
+                              url: content.url,
+                          },
                 );
+                if (content.type === 'flipbook') {
+                    clearFlipbookDraft(
+                        flipbookDraftKey(auth.user?.id, courseId, sessionId),
+                    );
+                    toast(`"${content.title}" flipbook saved`, 'success');
+                }
             }
             updateSessionById(sessionId, (s) => ({
                 ...s,
@@ -5943,6 +6292,8 @@ function TeacherCourseDetail({
                         : u,
                 );
                 toast(`Upload failed: ${(e as Error).message}`, 'error');
+            } else if (content.type === 'flipbook') {
+                toast(`Flipbook not saved: ${(e as Error).message}`, 'error');
             }
         }
     };
@@ -5997,6 +6348,26 @@ function TeacherCourseDetail({
                         ),
                     1800,
                 );
+            } else if (content.type === 'flipbook') {
+                capi('PUT', `/curriculum/${courseId}/content/${content.dbId}`, {
+                    title: content.title,
+                    description: content.description,
+                    pages: content.pages,
+                })
+                    .then(() => {
+                        clearFlipbookDraft(
+                            flipbookDraftKey(
+                                auth.user?.id,
+                                courseId,
+                                sessionId,
+                                content.dbId,
+                            ),
+                        );
+                        toast(`"${content.title}" flipbook saved`, 'success');
+                    })
+                    .catch((e: Error) =>
+                        toast(`Flipbook not saved: ${e.message}`, 'error'),
+                    );
             } else {
                 capi('PUT', `/curriculum/${courseId}/content/${content.dbId}`, {
                     title: content.title,
@@ -6278,21 +6649,31 @@ function TeacherCourseDetail({
         0,
     );
 
+    const courseWorld = worldFor({ title: course.courseTitle });
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head
                 title={`${course.courseTitle} — ${isStudent ? 'My Course' : 'My Class'}`}
             />
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div
+                className="flex min-h-0 flex-1 flex-col overflow-hidden"
+                style={worldStyle(courseWorld) as CSSProperties}
+            >
                 {/* Header */}
-                <div className="shrink-0 border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
+                <div className="shrink-0 border-b bg-card">
+                    <div
+                        aria-hidden
+                        className="h-1"
+                        style={{ backgroundColor: courseWorld.accent }}
+                    />
                     {/* Title row */}
                     <div className="flex items-center gap-2 px-3 py-2.5 sm:px-6 sm:py-3">
                         <Link href="/my-course">
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 w-8 shrink-0 p-0 text-gray-500 hover:text-[#1e3a8a] sm:h-auto sm:w-auto sm:gap-1.5 sm:px-3 dark:text-gray-400"
+                                className="size-9 shrink-0 p-0 text-muted-foreground hover:text-primary sm:h-9 sm:w-auto sm:gap-1.5 sm:px-3"
                             >
                                 <ArrowLeft className="h-4 w-4" />
                                 <span className="hidden sm:inline">
@@ -6300,17 +6681,21 @@ function TeacherCourseDetail({
                                 </span>
                             </Button>
                         </Link>
-                        <div className="min-w-0 flex-1">
-                            <h1 className="truncate text-sm font-bold text-gray-900 sm:text-base dark:text-white">
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
+                            <h1 className="truncate font-display text-lg leading-tight font-extrabold tracking-[-0.02em] text-foreground sm:text-xl">
                                 {course.courseTitle}
                             </h1>
+                            <WorldChip
+                                world={courseWorld}
+                                className="hidden sm:inline-flex"
+                            />
                         </div>
                         {!isStudent &&
                             propCanEdit &&
                             (effectiveEditMode ? (
                                 <Button
                                     size="sm"
-                                    className={`h-8 shrink-0 gap-1.5 bg-teal-600 text-xs text-white hover:bg-teal-700 sm:text-sm ${wiggleDone ? 'animate-wiggle' : ''}`}
+                                    className={`h-9 shrink-0 gap-1.5 bg-emerald-600 text-xs text-white [--press:var(--color-emerald-800)] hover:bg-emerald-600 sm:text-sm ${wiggleDone ? 'animate-wiggle' : ''}`}
                                     onClick={() => setConfirmSaveOpen(true)}
                                 >
                                     <CheckCircle className="h-3.5 w-3.5" />
@@ -6320,19 +6705,17 @@ function TeacherCourseDetail({
                                     <span className="sm:hidden">Done</span>
                                 </Button>
                             ) : (
-                                <button
-                                    className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-[#1e3a8a] transition hover:opacity-80 sm:text-sm"
-                                    style={{
-                                        background: `linear-gradient(white, white) padding-box, ${PORTAL_GRADIENT} border-box`,
-                                        border: '1.5px solid transparent',
-                                    }}
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-9 shrink-0 gap-1.5"
                                     onClick={() => setConfirmEditOpen(true)}
                                 >
-                                    <Pencil className="h-3.5 w-3.5" />
+                                    <Pencil className="size-4" />
                                     <span className="hidden sm:inline">
-                                        Edit Course
+                                        Edit course
                                     </span>
-                                </button>
+                                </Button>
                             ))}
                     </div>
 
@@ -6340,14 +6723,14 @@ function TeacherCourseDetail({
                     {effectiveEditMode && (
                         <div className="flex items-center gap-3 border-t border-amber-200 bg-amber-50 px-4 py-2 sm:px-6 dark:border-amber-900/50 dark:bg-amber-950/30">
                             <span className="flex h-2 w-2 shrink-0 animate-pulse rounded-full bg-amber-500" />
-                            <span className="text-[10px] font-bold tracking-widest text-amber-700 uppercase dark:text-amber-400">
-                                Editing Mode
+                            <span className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                                Editing mode
                             </span>
                             <span className="text-amber-300 dark:text-amber-700">
                                 ·
                             </span>
                             <span className="hidden text-xs text-amber-600 sm:inline dark:text-amber-500">
-                                Drag sessions to reorder · Click a session to
+                                Drag lessons to reorder · Click a lesson to
                                 manage its content
                             </span>
                         </div>
@@ -6357,14 +6740,14 @@ function TeacherCourseDetail({
                     <div className="flex border-t border-gray-100 md:hidden dark:border-gray-800">
                         <button
                             onClick={() => setMobilePanel('curriculum')}
-                            className={`flex flex-1 items-center justify-center gap-1.5 border-b-2 py-2 text-xs font-semibold transition-all ${mobilePanel === 'curriculum' ? 'border-[#1e3a8a] text-[#1e3a8a] dark:text-indigo-300' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+                            className={`flex min-h-11 flex-1 items-center justify-center gap-1.5 border-b-2 text-sm font-bold transition-all ${mobilePanel === 'curriculum' ? 'border-primary text-primary dark:text-violet-300' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
                         >
                             <LayoutList className="h-3.5 w-3.5" />
                             Curriculum
                         </button>
                         <button
                             onClick={() => setMobilePanel('content')}
-                            className={`flex flex-1 items-center justify-center gap-1.5 border-b-2 py-2 text-xs font-semibold transition-all ${mobilePanel === 'content' ? 'border-[#1e3a8a] text-[#1e3a8a] dark:text-indigo-300' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+                            className={`flex min-h-11 flex-1 items-center justify-center gap-1.5 border-b-2 text-sm font-bold transition-all ${mobilePanel === 'content' ? 'border-primary text-primary dark:text-violet-300' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
                         >
                             <Play className="h-3.5 w-3.5" />
                             Content
@@ -6372,7 +6755,7 @@ function TeacherCourseDetail({
                         {effectiveEditMode && (
                             <button
                                 onClick={() => setMobilePanel('curriculum')}
-                                className="flex flex-1 items-center justify-center gap-1.5 py-2 text-xs font-semibold text-gray-400 hover:text-blue-600"
+                                className="flex flex-1 items-center justify-center gap-1.5 py-2 text-xs font-semibold text-gray-400 hover:text-violet-600"
                             >
                                 <GripVertical className="h-3.5 w-3.5" />
                                 Reorder
@@ -6393,25 +6776,19 @@ function TeacherCourseDetail({
                                 <button
                                     onClick={() => {
                                         setShowAnnouncements(false);
+                                        setShowLeaderboard(false);
                                         setActiveSession(null);
                                         setActiveContent(null);
                                         setActiveAssessment(null);
                                         setMobilePanel('content');
                                     }}
-                                    className={`group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${
+                                    className={`group flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition-all ${
                                         !activeSession &&
                                         !activeContent &&
                                         !activeAssessment
-                                            ? 'text-white shadow-sm'
-                                            : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800'
+                                            ? 'bg-primary text-primary-foreground shadow-[0_3px_0_0_var(--press)]'
+                                            : 'border-2 border-border bg-card text-foreground hover:border-primary/40'
                                     }`}
-                                    style={
-                                        !activeSession &&
-                                        !activeContent &&
-                                        !activeAssessment
-                                            ? { background: PORTAL_GRADIENT }
-                                            : undefined
-                                    }
                                 >
                                     <div
                                         className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
@@ -6419,7 +6796,7 @@ function TeacherCourseDetail({
                                             !activeContent &&
                                             !activeAssessment
                                                 ? 'bg-white/20'
-                                                : 'bg-gray-100 dark:bg-gray-800'
+                                                : 'bg-muted'
                                         }`}
                                     >
                                         <Info className="h-4 w-4" />
@@ -6429,13 +6806,23 @@ function TeacherCourseDetail({
                             </div>
 
                             <div className="flex shrink-0 items-center justify-between px-4 py-2">
-                                <p className="text-[11px] font-semibold tracking-widest text-gray-400 uppercase">
-                                    Curriculum
+                                <p className="font-display text-base font-bold text-foreground">
+                                    Your path
                                 </p>
-                                <div className="flex items-center gap-2 text-[11px] text-gray-400">
-                                    <span>{course.modules.length} modules</span>
+                                <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                                    <span>
+                                        {course.modules.length}{' '}
+                                        {course.modules.length === 1
+                                            ? 'module'
+                                            : 'modules'}
+                                    </span>
                                     <span>·</span>
-                                    <span>{totalSessions} sessions</span>
+                                    <span>
+                                        {totalSessions}{' '}
+                                        {totalSessions === 1
+                                            ? 'lesson'
+                                            : 'lessons'}
+                                    </span>
                                 </div>
                             </div>
                             <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-6">
@@ -6566,7 +6953,7 @@ function TeacherCourseDetail({
                                                 <Button
                                                     type="submit"
                                                     size="sm"
-                                                    className="h-8 bg-[#1e3a8a] text-white hover:bg-[#1e3a8a]/90"
+                                                    className="h-8 bg-primary text-white hover:bg-primary/90"
                                                     disabled={
                                                         !newModuleTitle.trim()
                                                     }
@@ -6591,7 +6978,7 @@ function TeacherCourseDetail({
                                                 onClick={() =>
                                                     setAddingModule(true)
                                                 }
-                                                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#1e3a8a]/30 py-3 text-sm font-medium text-[#1e3a8a] transition hover:bg-[#1e3a8a]/5 dark:border-indigo-700 dark:text-indigo-400"
+                                                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 py-3 text-sm font-medium text-primary transition hover:bg-primary/5 dark:border-violet-700 dark:text-violet-400"
                                             >
                                                 <Plus className="h-4 w-4" />
                                                 Add Module
@@ -6612,11 +6999,25 @@ function TeacherCourseDetail({
                                 )}
                             </div>
 
+                            {courseId && (
+                                <LeaderboardFooterButton
+                                    active={showLeaderboard}
+                                    onOpen={() => {
+                                        setShowLeaderboard(true);
+                                        setShowAnnouncements(false);
+                                        setActiveSession(null);
+                                        setActiveContent(null);
+                                        setActiveAssessment(null);
+                                        setMobilePanel('content');
+                                    }}
+                                />
+                            )}
                             <AnnouncementFooterButton
                                 announcements={announcements}
                                 active={showAnnouncements}
                                 onOpen={() => {
                                     setShowAnnouncements(true);
+                                    setShowLeaderboard(false);
                                     setActiveSession(null);
                                     setActiveContent(null);
                                     setActiveAssessment(null);
@@ -6628,10 +7029,12 @@ function TeacherCourseDetail({
 
                     {/* Right panel */}
                     <main
-                        className={`flex-1 overflow-hidden bg-white dark:bg-gray-950 ${mobilePanel === 'content' ? 'flex flex-col' : 'hidden'} md:flex md:flex-col`}
+                        className={`flex-1 overflow-hidden bg-card ${mobilePanel === 'content' ? 'flex flex-col' : 'hidden'} md:flex md:flex-col`}
                     >
-                        {/* Announcements feed (opened from the sidebar button) */}
-                        {showAnnouncements ? (
+                        {/* Leaderboard and announcements (opened from the sidebar buttons) */}
+                        {showLeaderboard && courseId ? (
+                            <CourseLeaderboard courseId={courseId} />
+                        ) : showAnnouncements ? (
                             <AnnouncementsPanel
                                 announcements={announcements}
                                 setAnnouncements={setAnnouncements}
@@ -6640,6 +7043,7 @@ function TeacherCourseDetail({
                             <ContentPanelEditor
                                 key={liveActiveSession.id}
                                 session={liveActiveSession}
+                                courseId={courseId}
                                 onAddContent={(c) =>
                                     addContent(liveActiveSession.id, c)
                                 }
@@ -6679,15 +7083,15 @@ function TeacherCourseDetail({
                             />
                         ) : effectiveEditMode ? (
                             <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-                                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100 dark:bg-gray-800">
+                                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
                                     <Pencil className="h-8 w-8 text-gray-300" />
                                 </div>
                                 <div className="max-w-xs">
                                     <h3 className="text-lg font-bold text-gray-800 dark:text-white">
-                                        Select a Session
+                                        Select a lesson
                                     </h3>
                                     <p className="mt-2 text-sm text-gray-500">
-                                        Click any session in the sidebar to
+                                        Click any lesson in the sidebar to
                                         manage its content and assessments here.
                                     </p>
                                 </div>
@@ -6698,11 +7102,13 @@ function TeacherCourseDetail({
                                 <div className="mb-4 flex items-center gap-2 text-xs text-gray-400">
                                     <BookOpen className="h-3.5 w-3.5" />
                                     <span className="truncate">
-                                        {activeSession?.title}
+                                        {activeSession
+                                            ? lessonLabel(activeSession.title)
+                                            : null}
                                     </span>
                                     <ChevronRight className="h-3 w-3 shrink-0" />
                                     <span
-                                        className={`font-semibold ${activeAssessment.kind === 'quiz' ? 'text-[#1e3a8a]' : 'text-amber-500'}`}
+                                        className={`font-semibold ${activeAssessment.kind === 'quiz' ? 'text-primary' : 'text-amber-500'}`}
                                     >
                                         {activeAssessment.title}
                                     </span>
@@ -6746,10 +7152,14 @@ function TeacherCourseDetail({
                                 {/* Fixed content header */}
                                 <div className="shrink-0 border-b border-gray-100 bg-white px-4 pt-4 pb-3 sm:px-6 dark:border-gray-800 dark:bg-gray-950">
                                     <div className="mb-2 flex items-center justify-between gap-2">
-                                        <div className="flex min-w-0 items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                        <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
                                             <BookOpen className="h-3 w-3 shrink-0" />
                                             <span className="truncate">
-                                                {activeSession?.title}
+                                                {activeSession
+                                                    ? lessonLabel(
+                                                          activeSession.title,
+                                                      )
+                                                    : null}
                                             </span>
                                         </div>
                                         {isStudent &&
@@ -6821,19 +7231,18 @@ function TeacherCourseDetail({
                             </div>
                         ) : activeSession ? (
                             <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-                                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100 dark:bg-gray-800">
+                                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
                                     <BookOpen className="h-8 w-8 text-gray-300" />
                                 </div>
                                 <div>
-                                    <p className="text-xs font-semibold tracking-widest text-[#1e3a8a]/60 uppercase">
-                                        Selected Session
+                                    <p className="text-xs font-semibold tracking-wider text-primary/60 uppercase">
+                                        Selected lesson
                                     </p>
-                                    <h3 className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
-                                        {activeSession.title}
+                                    <h3 className="mt-1 text-xl font-bold text-foreground">
+                                        {lessonLabel(activeSession.title)}
                                     </h3>
                                     <p className="mt-2 text-sm text-gray-500">
-                                        No content uploaded for this session
-                                        yet.
+                                        No content uploaded for this lesson yet.
                                     </p>
                                 </div>
                             </div>
@@ -6891,21 +7300,21 @@ function TeacherCourseDetail({
                                                 </>
                                             )}
                                         </div>
-                                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                                        <h2 className="text-xl font-bold text-foreground">
                                             {course.courseTitle}
                                         </h2>
                                     </div>
 
                                     {/* Description */}
                                     {course.description && (
-                                        <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900">
+                                        <div className="rounded-2xl bg-muted/50 p-4">
                                             <div className="mb-2 flex items-center gap-2">
-                                                <Info className="h-4 w-4 shrink-0 text-[#1e3a8a]/60" />
-                                                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                                <Info className="h-4 w-4 shrink-0 text-primary/60" />
+                                                <h3 className="text-sm font-semibold text-foreground/85">
                                                     About this Course
                                                 </h3>
                                             </div>
-                                            <p className="text-sm leading-relaxed whitespace-pre-wrap text-gray-600 dark:text-gray-400">
+                                            <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
                                                 {course.description}
                                             </p>
                                         </div>
@@ -6913,19 +7322,19 @@ function TeacherCourseDetail({
 
                                     {/* Instructor */}
                                     {courseData?.instructor && (
-                                        <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900">
+                                        <div className="rounded-2xl bg-muted/50 p-4">
                                             <div className="mb-3 flex items-center gap-2">
-                                                <GraduationCap className="h-4 w-4 shrink-0 text-[#1e3a8a]/60" />
-                                                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                                <GraduationCap className="h-4 w-4 shrink-0 text-primary/60" />
+                                                <h3 className="text-sm font-semibold text-foreground/85">
                                                     Instructor
                                                 </h3>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1e3a8a]/10 dark:bg-indigo-900/30">
-                                                    <User className="h-5 w-5 text-[#1e3a8a] dark:text-indigo-300" />
+                                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 dark:bg-violet-900/30">
+                                                    <User className="h-5 w-5 text-primary dark:text-violet-300" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                    <p className="text-sm font-semibold text-foreground">
                                                         {
                                                             courseData
                                                                 .instructor.name
@@ -6940,10 +7349,10 @@ function TeacherCourseDetail({
                                     )}
 
                                     {/* Curriculum summary */}
-                                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900">
+                                    <div className="rounded-2xl bg-muted/50 p-4">
                                         <div className="mb-3 flex items-center gap-2">
-                                            <Layers className="h-4 w-4 shrink-0 text-[#1e3a8a]/60" />
-                                            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                            <Layers className="h-4 w-4 shrink-0 text-primary/60" />
+                                            <h3 className="text-sm font-semibold text-foreground/85">
                                                 Course Curriculum
                                             </h3>
                                         </div>
@@ -6970,9 +7379,9 @@ function TeacherCourseDetail({
                                                         return (
                                                             <div
                                                                 key={mod.id}
-                                                                className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"
+                                                                className="flex items-center gap-2 text-sm text-muted-foreground"
                                                             >
-                                                                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#1e3a8a]/10 text-[10px] font-bold text-[#1e3a8a] dark:bg-indigo-900/30 dark:text-indigo-300">
+                                                                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary dark:bg-violet-900/30 dark:text-violet-300">
                                                                     {i + 1}
                                                                 </span>
                                                                 <span className="flex-1 truncate">
@@ -6980,7 +7389,7 @@ function TeacherCourseDetail({
                                                                 </span>
                                                                 <span className="shrink-0 text-xs text-gray-400">
                                                                     {count}{' '}
-                                                                    session
+                                                                    lesson
                                                                     {count !== 1
                                                                         ? 's'
                                                                         : ''}
@@ -7011,11 +7420,12 @@ function TeacherCourseDetail({
                         {/* Linear prev / next navigation */}
                         {!effectiveEditMode &&
                             !showAnnouncements &&
+                            !showLeaderboard &&
                             (activeContent || activeAssessment) &&
                             navLessons.length > 1 && (
                                 <div className="shrink-0 border-t border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-950">
                                     <div
-                                        className="h-1 w-full bg-gray-100 dark:bg-gray-800"
+                                        className="h-1 w-full bg-muted"
                                         role="progressbar"
                                         aria-valuenow={currentNavIndex + 1}
                                         aria-valuemin={1}
@@ -7023,7 +7433,7 @@ function TeacherCourseDetail({
                                         aria-label="Lesson progress"
                                     >
                                         <div
-                                            className="h-full bg-[#1e3a8a] transition-all duration-300 motion-reduce:transition-none dark:bg-indigo-500"
+                                            className="h-full bg-primary transition-all duration-300 motion-reduce:transition-none dark:bg-violet-500"
                                             style={{
                                                 width: `${((currentNavIndex + 1) / navLessons.length) * 100}%`,
                                             }}
@@ -7059,7 +7469,7 @@ function TeacherCourseDetail({
                                             onClick={() =>
                                                 nextNav && goToNav(nextNav)
                                             }
-                                            className="h-auto min-h-[44px] min-w-0 gap-1.5 bg-[#1e3a8a] py-2 text-white hover:bg-[#1e3a8a]/90 disabled:opacity-50"
+                                            className="h-auto min-h-[44px] min-w-0 gap-1.5 bg-primary py-2 text-white hover:bg-primary/90 disabled:opacity-50"
                                         >
                                             <span className="flex min-w-0 flex-col items-end leading-tight">
                                                 <span className="text-[9px] font-semibold tracking-wide uppercase opacity-80">
@@ -7091,12 +7501,12 @@ function TeacherCourseDetail({
                         >
                             <Pencil className="h-5 w-5 text-white" />
                         </div>
-                        <h2 className="text-base font-bold text-gray-900 dark:text-white">
-                            Edit this Course?
+                        <h2 className="text-base font-bold text-foreground">
+                            Edit this course?
                         </h2>
-                        <p className="mt-1.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                             You'll enter editing mode where you can rename
-                            sessions, add content, and rearrange the curriculum.
+                            lessons, add content and rearrange the curriculum.
                         </p>
                         <div className="mt-5 flex w-full gap-2">
                             <Button
@@ -7107,7 +7517,7 @@ function TeacherCourseDetail({
                                 Cancel
                             </Button>
                             <button
-                                className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg text-sm font-semibold text-[#1e3a8a] transition-colors hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                                className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg text-sm font-semibold text-primary transition-colors hover:bg-violet-50 dark:hover:bg-violet-950/30"
                                 style={{
                                     background: `linear-gradient(white, white) padding-box, ${PORTAL_GRADIENT} border-box`,
                                     border: '1.5px solid transparent',
@@ -7136,10 +7546,10 @@ function TeacherCourseDetail({
                         <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-teal-600">
                             <CheckCircle className="h-5 w-5 text-white" />
                         </div>
-                        <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                        <h2 className="text-base font-bold text-foreground">
                             Exit Editing Mode?
                         </h2>
-                        <p className="mt-1.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                             Changes are saved automatically. You can re-enter
                             editing mode at any time.
                         </p>
@@ -7187,10 +7597,10 @@ function TeacherCourseDetail({
                         >
                             <Pencil className="h-5 w-5 text-white" />
                         </div>
-                        <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                        <h2 className="text-base font-bold text-foreground">
                             Leave editing mode?
                         </h2>
-                        <p className="mt-1.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                             Your edits are saved automatically. You can come
                             back later to continue editing.
                         </p>
@@ -7203,7 +7613,7 @@ function TeacherCourseDetail({
                                 Stay
                             </Button>
                             <button
-                                className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg text-sm font-semibold text-[#1e3a8a] transition-colors hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                                className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg text-sm font-semibold text-primary transition-colors hover:bg-violet-50 dark:hover:bg-violet-950/30"
                                 style={{
                                     background: `linear-gradient(white, white) padding-box, ${PORTAL_GRADIENT} border-box`,
                                     border: '1.5px solid transparent',
@@ -7238,12 +7648,12 @@ function TeacherCourseDetail({
                         <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600">
                             <CheckCircle2 className="h-5 w-5 text-white" />
                         </div>
-                        <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                        <h2 className="text-base font-bold text-foreground">
                             Mark as Completed?
                         </h2>
-                        <p className="mt-1.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                             Mark{' '}
-                            <span className="font-semibold text-gray-700 dark:text-gray-300">
+                            <span className="font-semibold text-foreground/85">
                                 "{confirmDoneContent?.title}"
                             </span>{' '}
                             as completed.
@@ -7295,7 +7705,7 @@ function TeacherCourseDetail({
                                         ? 'bg-emerald-100 text-emerald-600'
                                         : upload?.status === 'error'
                                           ? 'bg-red-100 text-red-600'
-                                          : 'bg-blue-100 text-blue-600'
+                                          : 'bg-violet-100 text-violet-600'
                                 }`}
                             >
                                 {upload?.status === 'success' ? (
@@ -7307,7 +7717,7 @@ function TeacherCourseDetail({
                                 )}
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                <p className="text-sm font-semibold text-foreground">
                                     {upload?.status === 'success'
                                         ? 'Upload complete'
                                         : upload?.status === 'error'
@@ -7325,14 +7735,14 @@ function TeacherCourseDetail({
                                 {upload?.progress ?? 0}%
                             </span>
                         </div>
-                        <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                        <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
                             <div
                                 className={`h-full rounded-full transition-all duration-200 ${
                                     upload?.status === 'success'
                                         ? 'bg-emerald-500'
                                         : upload?.status === 'error'
                                           ? 'bg-red-400'
-                                          : 'bg-[#1e3a8a]'
+                                          : 'bg-primary'
                                 }`}
                                 style={{ width: `${upload?.progress ?? 0}%` }}
                             />

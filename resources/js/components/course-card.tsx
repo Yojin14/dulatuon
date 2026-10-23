@@ -1,6 +1,8 @@
+import { LowPolyBlock } from '@/components/game/low-poly-scene';
+import { WorldChip } from '@/components/world/world-scope';
+import { worldFor, type WorldTheme } from '@/lib/worlds';
 import type { LucideIcon } from 'lucide-react';
-import { BookOpen } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 export interface AccentColors {
     accent: string;
@@ -10,18 +12,17 @@ export interface AccentColors {
     outlineBtn: string;
     solidBtn: string;
 }
-// comment
 
 export const ACCENT_POOL: AccentColors[] = [
     {
-        accent: 'bg-blue-600',
-        iconBg: 'bg-blue-50 dark:bg-blue-900/40',
-        iconColor: 'text-blue-600 dark:text-blue-400',
-        dotColor: 'bg-blue-600',
+        accent: 'bg-violet-600',
+        iconBg: 'bg-violet-50 dark:bg-violet-900/40',
+        iconColor: 'text-violet-600 dark:text-violet-400',
+        dotColor: 'bg-violet-600',
         outlineBtn:
-            'border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-600 dark:hover:text-white',
+            'border-violet-600 text-violet-600 hover:bg-violet-600 hover:text-white dark:border-violet-400 dark:text-violet-400 dark:hover:bg-violet-600 dark:hover:text-white',
         solidBtn:
-            'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700',
+            'bg-violet-600 text-white hover:bg-violet-700 dark:bg-violet-600 dark:hover:bg-violet-700',
     },
     {
         accent: 'bg-teal-600',
@@ -44,14 +45,14 @@ export const ACCENT_POOL: AccentColors[] = [
             'bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700',
     },
     {
-        accent: 'bg-indigo-600',
-        iconBg: 'bg-indigo-50 dark:bg-indigo-900/40',
-        iconColor: 'text-indigo-600 dark:text-indigo-400',
-        dotColor: 'bg-indigo-600',
+        accent: 'bg-violet-600',
+        iconBg: 'bg-violet-50 dark:bg-violet-900/40',
+        iconColor: 'text-violet-600 dark:text-violet-400',
+        dotColor: 'bg-violet-600',
         outlineBtn:
-            'border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white dark:border-indigo-400 dark:text-indigo-400 dark:hover:bg-indigo-600 dark:hover:text-white',
+            'border-violet-600 text-violet-600 hover:bg-violet-600 hover:text-white dark:border-violet-400 dark:text-violet-400 dark:hover:bg-violet-600 dark:hover:text-white',
         solidBtn:
-            'bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700',
+            'bg-violet-600 text-white hover:bg-violet-700 dark:bg-violet-600 dark:hover:bg-violet-700',
     },
     {
         accent: 'bg-amber-500',
@@ -82,13 +83,16 @@ interface CourseCardProps {
     thumbnail?: string | null;
     thumbnailFocus?: string;
     thumbnailOverlay?: ReactNode;
-    colors: AccentColors;
+    /** @deprecated The course world now drives the card colours. */
+    colors?: AccentColors;
     badge: ReactNode;
     badgeAlign?: 'left' | 'right';
     stats: StatItem[];
     meta: MetaItem[];
     cta: ReactNode;
     titleExtra?: ReactNode;
+    /** The course's world. Inferred from the title when omitted. */
+    world?: WorldTheme;
 }
 
 export function CourseCard({
@@ -97,103 +101,78 @@ export function CourseCard({
     thumbnail,
     thumbnailFocus = 'center',
     thumbnailOverlay,
-    colors,
     badge,
     badgeAlign = 'right',
     stats,
     meta,
     cta,
     titleExtra,
+    world: worldProp,
 }: CourseCardProps) {
+    const world = worldProp ?? worldFor({ title });
+    const [failedSrc, setFailedSrc] = useState<string | null>(null);
+    const showImage = Boolean(thumbnail) && failedSrc !== thumbnail;
+
     return (
-        <div className="group flex flex-col overflow-hidden rounded-xl bg-white ring-1 ring-gray-200/80 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg dark:bg-gray-900 dark:ring-gray-800">
-            {/* Cover — photo or styled placeholder */}
-            <div className="relative h-32 w-full overflow-hidden">
-                {thumbnail ? (
+        <article className="group flex flex-col overflow-hidden rounded-3xl border bg-card shadow-panel transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-float">
+            {/* Cover: the course photo, or a low-poly diorama on sky */}
+            <div className="relative aspect-2/1 w-full overflow-hidden">
+                {showImage ? (
                     <img
-                        src={thumbnail}
-                        alt={title}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                        src={thumbnail ?? undefined}
+                        alt=""
+                        onError={() => setFailedSrc(thumbnail ?? null)}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
                         style={{ objectPosition: thumbnailFocus }}
                     />
                 ) : (
-                    <div className="h-full w-full bg-gray-50 dark:bg-gray-900">
-                        <div
-                            className="absolute inset-0 opacity-60 dark:opacity-30"
-                            style={{
-                                backgroundImage:
-                                    'radial-gradient(circle at 1px 1px, rgba(15,23,42,0.08) 1px, transparent 0)',
-                                backgroundSize: '14px 14px',
-                            }}
+                    <div
+                        className="grid h-full w-full place-items-center"
+                        style={{ backgroundImage: `linear-gradient(180deg, var(--color-sky) 0%, var(--color-sky-soft) 45%, ${world.accentSoft} 100%)` }}
+                    >
+                        <LowPolyBlock
+                            biome={world.biome}
+                            className="w-36 translate-y-3 drop-shadow-[0_12px_12px_rgba(30,20,10,0.22)] transition-transform duration-500 ease-out group-hover:-translate-y-0"
                         />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <BookOpen className="h-14 w-14 text-gray-300 dark:text-gray-700" />
-                        </div>
                     </div>
                 )}
-                {/* Badge overlay */}
-                <div
-                    className={`absolute top-3 ${badgeAlign === 'left' ? 'left-3' : 'right-3'}`}
-                >
-                    {badge}
-                </div>
+                <WorldChip world={world} className="absolute bottom-3 left-3 shadow-sm" />
+                <div className={`absolute top-3 ${badgeAlign === 'left' ? 'left-3' : 'right-3'}`}>{badge}</div>
                 {thumbnailOverlay}
             </div>
 
-            <div className="flex flex-1 flex-col px-5 pt-4 pb-5">
-                {/* Header: title/desc + right slot */}
+            <div className="flex flex-1 flex-col p-5">
                 <div className="flex items-start gap-3">
                     <div className="min-w-0 flex-1">
-                        <h3 className="line-clamp-2 text-[14px] leading-snug font-semibold text-gray-900 dark:text-white">
-                            {title}
-                        </h3>
-                        <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-gray-400">
-                            {description ?? 'No description provided.'}
-                        </p>
+                        <h3 className="line-clamp-2 font-display text-lg leading-snug font-bold tracking-[-0.02em] text-foreground">{title}</h3>
+                        <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{description ?? 'No description provided.'}</p>
                     </div>
-                    {titleExtra && (
-                        <div className="shrink-0 pt-0.5">{titleExtra}</div>
-                    )}
+                    {titleExtra && <div className="shrink-0 pt-0.5">{titleExtra}</div>}
                 </div>
 
-                {/* Stats — divided layout */}
-                <div className="mt-4 flex items-stretch divide-x divide-gray-100 border-t border-gray-100 pt-4 dark:divide-gray-800 dark:border-gray-800">
+                <dl className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 text-sm">
                     {stats.map(({ icon: Icon, value, label }) => (
-                        <div
-                            key={label}
-                            className="flex flex-1 flex-col items-center gap-0.5 px-2 first:pl-0 last:pr-0"
-                        >
-                            <span className="text-[15px] font-bold text-gray-800 tabular-nums dark:text-gray-100">
-                                {value}
-                            </span>
-                            <div className="flex items-center gap-1">
-                                <Icon
-                                    className={`h-3 w-3 ${colors.iconColor}`}
-                                />
-                                <span className="text-[10px] tracking-wide text-gray-400 uppercase">
-                                    {label}
-                                </span>
-                            </div>
+                        <div key={label} className="flex items-center gap-1.5">
+                            <Icon className="size-4" style={{ color: world.accentInk }} aria-hidden />
+                            <dd className="font-bold text-foreground tabular-nums">{value}</dd>
+                            <dt className="text-muted-foreground">{label}</dt>
                         </div>
                     ))}
-                </div>
+                </dl>
 
-                {/* Meta */}
-                <div className="mt-3 flex flex-col gap-1">
+                <div className="mt-2 flex flex-col gap-1">
                     {meta.map(({ icon: Icon, text }, i) => (
-                        <div
-                            key={i}
-                            className="flex items-center gap-1.5 text-[11px] text-gray-400"
-                        >
-                            <Icon className="h-3.5 w-3.5 shrink-0" />
+                        <div key={i} className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <Icon className="size-4 shrink-0" aria-hidden />
                             <span className="truncate">{text}</span>
                         </div>
                     ))}
                 </div>
 
-                {/* CTA */}
-                <div className="mt-5">{cta}</div>
+                <div className="mt-auto pt-5">{cta}</div>
             </div>
-        </div>
+        </article>
     );
 }

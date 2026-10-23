@@ -77,13 +77,13 @@ function initials(name: string) {
 
 function avatarColor(name: string) {
     const colors = [
-        'bg-blue-500',
+        'bg-violet-500',
         'bg-violet-500',
         'bg-emerald-500',
         'bg-rose-500',
         'bg-amber-500',
         'bg-cyan-500',
-        'bg-indigo-500',
+        'bg-violet-500',
         'bg-pink-500',
         'bg-teal-500',
     ];
@@ -126,7 +126,7 @@ function formatDateDivider(dateString: string) {
 // ─── Room type config ─────────────────────────────────────────────────────────
 
 const ROOM_TYPE = {
-    course: { icon: MessageCircle, dot: 'bg-blue-500', label: 'Course' },
+    course: { icon: MessageCircle, dot: 'bg-violet-500', label: 'Course' },
     global: { icon: Users, dot: 'bg-emerald-500', label: 'Global' },
 } as const;
 
@@ -150,11 +150,11 @@ function RoomListItem({
         <button
             onClick={onClick}
             className={`group relative w-full px-3 py-3 text-left transition-colors ${
-                isActive ? 'bg-blue-50 dark:bg-blue-950/60' : 'hover:bg-gray-50 dark:hover:bg-white/5'
+                isActive ? 'bg-violet-50 dark:bg-violet-950/60' : 'hover:bg-gray-50 dark:hover:bg-white/5'
             }`}
         >
             {/* Active indicator */}
-            {isActive && <span className="absolute inset-y-0 left-0 w-0.5 rounded-r bg-blue-600" />}
+            {isActive && <span className="absolute inset-y-0 left-0 w-0.5 rounded-r bg-violet-600" />}
 
             <div className="flex items-center gap-3">
                 {/* Avatar with optional unread badge */}
@@ -166,7 +166,7 @@ function RoomListItem({
                     </div>
                     {/* Unread count badge */}
                     {unread > 0 && !isActive && (
-                        <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-bold leading-none text-white shadow">
+                        <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-violet-600 px-1 text-[10px] font-bold leading-none text-white shadow">
                             {unread > 99 ? '99+' : unread}
                         </span>
                     )}
@@ -176,13 +176,13 @@ function RoomListItem({
                 <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-1">
                         <p
-                            className={`truncate text-sm font-semibold ${isActive ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}`}
+                            className={`truncate text-sm font-semibold ${isActive ? 'text-violet-700 dark:text-violet-300' : 'text-foreground'}`}
                         >
                             {room.name}
                         </p>
-                        <span className="shrink-0 text-[11px] text-gray-400 dark:text-gray-500">{formatTimeAgo(room.lastActivity)}</span>
+                        <span className="shrink-0 text-[11px] text-muted-foreground/80">{formatTimeAgo(room.lastActivity)}</span>
                     </div>
-                    <p className={`truncate text-xs ${unread > 0 && !isActive ? 'font-semibold text-gray-700 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`}>
+                    <p className={`truncate text-xs ${unread > 0 && !isActive ? 'font-semibold text-foreground/85' : 'text-muted-foreground'}`}>
                         {room.lastMessage
                             ? room.lastMessageBy
                                 ? `${room.lastMessageBy}: ${room.lastMessage}`
@@ -235,13 +235,13 @@ function MessageBubble({
 
             <div className={`flex max-w-[72%] flex-col gap-0.5 sm:max-w-[60%] ${isOwn ? 'items-end' : 'items-start'}`}>
                 {showName && !isOwn && (
-                    <p className="px-1 text-[11px] font-semibold text-gray-500 dark:text-gray-400">{message.user.name}</p>
+                    <p className="px-1 text-[11px] font-semibold text-muted-foreground">{message.user.name}</p>
                 )}
 
                 <div
                     className={`rounded-2xl px-3.5 py-2 text-sm leading-relaxed shadow-sm ${
                         isOwn
-                            ? 'rounded-br-sm bg-blue-600 text-white'
+                            ? 'rounded-br-sm bg-violet-600 text-white'
                             : 'rounded-bl-sm bg-white text-gray-900 ring-1 ring-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:ring-white/10'
                     }`}
                 >
@@ -252,7 +252,7 @@ function MessageBubble({
                 {(showTime || (isOwn && seenBy.length > 0)) && (
                     <div className={`flex items-center gap-1.5 px-1 ${isOwn ? 'flex-row-reverse' : ''}`}>
                         {showTime && (
-                            <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                            <span className="text-[10px] text-muted-foreground/80">
                                 {formatTime(message.created_at)}
                             </span>
                         )}
@@ -268,7 +268,7 @@ function MessageBubble({
                                     </div>
                                 ))}
                                 {seenBy.length > 5 && (
-                                    <span className="text-[9px] text-gray-400 dark:text-gray-500">+{seenBy.length - 5}</span>
+                                    <span className="text-[9px] text-muted-foreground/80">+{seenBy.length - 5}</span>
                                 )}
                             </div>
                         )}
@@ -524,7 +524,7 @@ export default function ChatIndex({ rooms: initialRooms, messages: initialMessag
                 >
                     {/* Sidebar header */}
                     <div className="flex items-center gap-2 border-b border-gray-200 px-4 py-3.5 dark:border-white/10">
-                        <h2 className="flex-1 text-base font-bold text-gray-900 dark:text-white">Messages</h2>
+                        <h2 className="flex-1 text-base font-bold text-foreground">Messages</h2>
                         {canManage && (
                             <button className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white">
                                 <Plus className="h-4 w-4" />
@@ -598,8 +598,8 @@ export default function ChatIndex({ rooms: initialRooms, messages: initialMessag
                                 </div>
 
                                 <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-bold text-gray-900 dark:text-white">{selectedRoom.name}</p>
-                                    <p className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                                    <p className="truncate text-sm font-bold text-foreground">{selectedRoom.name}</p>
+                                    <p className="flex items-center gap-1 text-xs text-muted-foreground">
                                         <Users className="h-3 w-3" />
                                         {selectedRoom.participantsCount} participants
                                     </p>
@@ -643,7 +643,7 @@ export default function ChatIndex({ rooms: initialRooms, messages: initialMessag
                                             <MessageCircle className="h-7 w-7 text-gray-400" />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">No messages yet</p>
+                                            <p className="text-sm font-semibold text-muted-foreground">No messages yet</p>
                                             <p className="text-xs text-gray-400">Be the first to say hello!</p>
                                         </div>
                                     </div>
@@ -682,7 +682,7 @@ export default function ChatIndex({ rooms: initialRooms, messages: initialMessag
                                             setAtBottom(true);
                                             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
                                         }}
-                                        className="absolute right-4 bottom-4 flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-transform hover:scale-105"
+                                        className="absolute right-4 bottom-4 flex h-9 w-9 items-center justify-center rounded-full bg-violet-600 text-white shadow-lg transition-transform hover:scale-105"
                                     >
                                         <ChevronDown className="h-5 w-5" />
                                     </button>
@@ -712,7 +712,7 @@ export default function ChatIndex({ rooms: initialRooms, messages: initialMessag
                                                     handleSendMessage(e as unknown as React.FormEvent);
                                                 }
                                             }}
-                                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition-colors focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder-gray-500 dark:focus:bg-white/10 dark:focus:ring-blue-900/40"
+                                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition-colors focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder-gray-500 dark:focus:bg-white/10 dark:focus:ring-violet-900/40"
                                         />
                                     </div>
 
@@ -726,7 +726,7 @@ export default function ChatIndex({ rooms: initialRooms, messages: initialMessag
                                     <button
                                         type="submit"
                                         disabled={!messageInput.trim()}
-                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm transition-all hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white shadow-sm transition-all hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-40"
                                     >
                                         <Send className="h-4 w-4" />
                                     </button>
@@ -735,12 +735,12 @@ export default function ChatIndex({ rooms: initialRooms, messages: initialMessag
                         </>
                     ) : (
                         /* Empty state — desktop only (mobile stays on sidebar) */
-                        <div className="hidden flex-1 flex-col items-center justify-center gap-4 bg-gray-50 dark:bg-gray-950 sm:flex">
+                        <div className="hidden flex-1 flex-col items-center justify-center gap-4 bg-muted/40 sm:flex">
                             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-800">
                                 <MessageCircle className="h-10 w-10 text-gray-400" />
                             </div>
                             <div className="text-center">
-                                <p className="text-base font-semibold text-gray-700 dark:text-gray-300">Select a conversation</p>
+                                <p className="text-base font-semibold text-foreground/85">Select a conversation</p>
                                 <p className="text-sm text-gray-400">Choose a room from the list to start chatting</p>
                             </div>
                         </div>
@@ -768,7 +768,7 @@ function RoomSection({
 }) {
     return (
         <div className="mb-1">
-            <p className="px-4 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">{label}</p>
+            <p className="px-4 pb-1 pt-3 text-xs font-bold text-muted-foreground">{label}</p>
             {rooms.map((room) => (
                 <RoomListItem
                     key={room.id}

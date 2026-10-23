@@ -118,8 +118,8 @@ function Choice<T extends string | number | boolean>({
 }) {
     return (
         <div>
-            <p className="mb-1 text-xs font-bold text-gray-600 dark:text-gray-300">{label}</p>
-            <div className="flex gap-1 rounded-xl bg-gray-100 p-1 dark:bg-gray-800" role="group" aria-label={label}>
+            <p className="mb-1 text-xs font-bold text-muted-foreground">{label}</p>
+            <div className="flex gap-1 rounded-2xl bg-muted p-1" role="group" aria-label={label}>
                 {options.map((option) => (
                     <button
                         key={String(option.value)}
@@ -127,7 +127,7 @@ function Choice<T extends string | number | boolean>({
                         disabled={disabled}
                         aria-pressed={option.value === value}
                         onClick={() => onChange(option.value)}
-                        className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-bold transition disabled:opacity-60 ${option.value === value ? 'bg-violet-600 text-white shadow' : 'text-gray-600 hover:bg-white dark:text-gray-300 dark:hover:bg-gray-700'}`}
+                        className={`min-h-9 flex-1 rounded-xl px-2 py-1.5 text-xs font-bold transition disabled:opacity-60 ${option.value === value ? 'bg-violet-600 text-white shadow-[0_2px_0_0_var(--color-violet-800)]' : 'text-gray-600 hover:bg-card dark:text-gray-300 dark:hover:bg-gray-700'}`}
                     >
                         {option.label}
                     </button>
@@ -263,7 +263,7 @@ export default function GroundTest({ items, onFinish }: GroundTestProps) {
                 type="button"
                 disabled={running}
                 onClick={shake}
-                className="mt-1 flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-base font-extrabold text-white shadow-lg transition active:scale-[0.98] disabled:opacity-60"
+                className="mt-1 pressable flex h-14 items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-amber-500 to-orange-600 text-base font-extrabold text-white [--press:var(--color-orange-800)] hover:brightness-105 disabled:opacity-60"
             >
                 <Zap className="h-5 w-5" />
                 {running ? 'Shaking…' : 'Shake the land'}
@@ -278,14 +278,14 @@ export default function GroundTest({ items, onFinish }: GroundTestProps) {
     );
 
     const hintBox = (hint: string) => (
-        <p className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+        <p className="flex animate-pop-in items-start gap-2.5 rounded-2xl bg-amber-50 p-3.5 text-sm font-medium text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
             <Lightbulb className="mt-0.5 h-4 w-4 shrink-0" />
             {hint}
         </p>
     );
 
     const continueButton = (
-        <Button onClick={() => goTo(stepIndex + 1)} className="h-11 bg-violet-600 font-bold text-white hover:bg-violet-700">
+        <Button onClick={() => goTo(stepIndex + 1)} className="h-12 w-full text-base">
             Continue <ArrowRight className="h-4 w-4" />
         </Button>
     );
@@ -346,13 +346,13 @@ export default function GroundTest({ items, onFinish }: GroundTestProps) {
                         <StepHeading eyebrow="Land tested" title="What you found out" />
                         <ul className="flex flex-col gap-2">
                             {TAKEAWAYS.map((line) => (
-                                <li key={line} className="flex items-start gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+                                <li key={line} className="flex items-start gap-2 text-sm font-medium text-foreground/85">
                                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
                                     {line}
                                 </li>
                             ))}
                         </ul>
-                        <Button onClick={() => onFinish(answers)} className="h-11 bg-violet-600 font-bold text-white hover:bg-violet-700">
+                        <Button onClick={() => onFinish(answers)} className="h-12 w-full text-base">
                             See my score <ArrowRight className="h-4 w-4" />
                         </Button>
                     </div>

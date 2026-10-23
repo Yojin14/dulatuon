@@ -1,22 +1,13 @@
+import { EmptyState } from '@/components/game/empty-state';
+import { ProgressTrack } from '@/components/game/xp-bar';
+import { PageHeader } from '@/components/page-header';
+import { Button } from '@/components/ui/button';
+import { WorldEmblem } from '@/components/world/world-scope';
+import { worldFor } from '@/lib/worlds';
 import { type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import {
-    ArrowRight,
-    BookOpen,
-    ClipboardText,
-    PencilSimple,
-    Users,
-} from '@phosphor-icons/react';
-import {
-    BarList,
-    ChartCard,
-    DonutProgress,
-    EmptyState,
-    greetingFor,
-    PortalHeader,
-    SectionHeader,
-    StatCard,
-} from './shared';
+import { ArrowRight, ChevronRight, ClipboardCheck, Users } from 'lucide-react';
+import { greetingFor } from './shared';
 
 interface ClassRow {
     id: number;
@@ -58,130 +49,120 @@ export default function TeacherDashboard({ stats, classes, gradingQueue }: Teach
     const firstName = auth.user.firstname || auth.user.name.split(' ')[0];
     const greeting = greetingFor(new Date().getHours());
 
-    const chartData = classes.map((c) => ({
-        label: c.title.length > 24 ? `${c.title.slice(0, 24)}…` : c.title,
-        value: c.students,
-    }));
-
     return (
-        <div className="min-h-full bg-white dark:bg-gray-950">
-            <PortalHeader
-                portal="Teacher Portal"
+        <div className="min-h-full pb-12">
+            <PageHeader
                 title={`${greeting}, ${firstName}.`}
-                subtitle={
-                    stats.toGrade > 0
-                        ? `${stats.toGrade} submission${stats.toGrade !== 1 ? 's' : ''} waiting to be graded.`
-                        : 'No pending submissions today.'
+                description={`${stats.totalStudents} students in ${stats.classCount} ${stats.classCount === 1 ? 'class' : 'classes'} · ${stats.avgProgress}% average progress`}
+                actions={
+                    stats.toGrade > 0 ? (
+                        <Button asChild size="lg">
+                            <Link href="/class-management">
+                                <ClipboardCheck />
+                                Grade {stats.toGrade} {stats.toGrade === 1 ? 'submission' : 'submissions'}
+                            </Link>
+                        </Button>
+                    ) : (
+                        <Button asChild variant="outline" size="lg">
+                            <Link href="/my-course">Open your courses</Link>
+                        </Button>
+                    )
                 }
             />
 
-            <div className="space-y-8 px-4 py-6 sm:space-y-10 sm:px-6 sm:py-8 lg:px-8">
-                {/* Stat cards */}
-                <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-                    <StatCard
-                        label="Students"
-                        value={stats.totalStudents}
-                        hint={`across ${stats.classCount} class${stats.classCount !== 1 ? 'es' : ''}`}
-                        icon={Users}
-                    />
-                    <StatCard label="Classes" value={stats.classCount} hint="active this semester" icon={BookOpen} />
-                    <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
-                        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Avg Progress</p>
-                        <div className="mt-3 flex items-center gap-2 sm:mt-4 sm:gap-3">
-                            <div className="relative shrink-0">
-                                <DonutProgress value={stats.avgProgress} size={44} strokeWidth={4} fillColor="#1e3a8a" />
-                                <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-gray-700 dark:text-gray-200">
-                                    {stats.avgProgress}%
-                                </span>
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-xl font-bold text-gray-900 sm:text-2xl dark:text-white">{stats.avgProgress}%</p>
-                                <p className="mt-0.5 text-xs text-gray-400">class avg</p>
-                            </div>
-                        </div>
+            <div className="mx-auto grid max-w-[1600px] gap-10 px-5 pt-8 sm:px-8 lg:grid-cols-12">
+                <section aria-labelledby="classes-title" className="lg:col-span-8">
+                    <div className="flex items-baseline justify-between gap-4">
+                        <h2 id="classes-title" className="text-xl font-bold tracking-[-0.02em]">
+                            Your classes
+                        </h2>
+                        <Link href="/class-management" className="text-sm font-bold text-primary hover:underline">
+                            Manage
+                        </Link>
                     </div>
-                    <StatCard
-                        label="To Grade"
-                        value={stats.toGrade}
-                        hint="pending submissions"
-                        icon={ClipboardText}
-                        accent={stats.toGrade > 0}
-                    />
-                </div>
 
-                {/* Students per class chart */}
-                {classes.length > 0 && (
-                    <ChartCard title="Students per Class" subtitle="Active enrolment by course" height={Math.max(140, classes.length * 40)}>
-                        <BarList items={chartData} />
-                    </ChartCard>
-                )}
-
-                {/* My Classes + Grading Queue */}
-                <div className="grid gap-8 lg:grid-cols-3">
-                    <div className="space-y-4 lg:col-span-2">
-                        <SectionHeader title="My Classes" href="/class-management" linkLabel="Manage" />
-                        {classes.length === 0 ? (
-                            <EmptyState icon={BookOpen} message="No classes assigned yet" />
-                        ) : (
-                            <div className="divide-y divide-gray-100 rounded-xl border border-gray-100 dark:divide-gray-800 dark:border-gray-800">
+                    {classes.length === 0 ? (
+                        <EmptyState className="mt-4" title="No classes yet" description="Classes you're assigned to will show up here with their progress." />
+                    ) : (
+                        <div className="mt-4 overflow-hidden rounded-3xl border bg-card shadow-panel">
+                            <div className="hidden grid-cols-[minmax(0,1fr)_6rem_12rem_6rem_1.25rem] gap-4 border-b px-5 py-3 text-xs font-bold text-muted-foreground sm:grid">
+                                <span>Class</span>
+                                <span>Students</span>
+                                <span>Progress</span>
+                                <span>To grade</span>
+                                <span />
+                            </div>
+                            <ul className="divide-y">
                                 {classes.map((c) => (
-                                    <Link key={c.id} href="/class-management">
-                                        <div className="group flex items-center gap-3 px-4 py-4 transition-colors hover:bg-gray-50 sm:gap-5 sm:px-5 dark:hover:bg-gray-900">
-                                            <div className="relative shrink-0">
-                                                <DonutProgress value={c.progress} size={40} strokeWidth={4} fillColor="#1e3a8a" />
-                                                <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-gray-600 dark:text-gray-300">
-                                                    {c.progress}%
-                                                </span>
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{c.title}</p>
-                                                <p className="mt-0.5 text-xs text-gray-400">{c.students} students</p>
-                                            </div>
-                                            {c.pending > 0 && (
-                                                <span className="hidden shrink-0 text-xs font-semibold text-amber-500 sm:inline">
-                                                    {c.pending} to grade
-                                                </span>
-                                            )}
-                                            {c.pending > 0 && (
-                                                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-50 text-[10px] font-bold text-amber-500 sm:hidden dark:bg-amber-900/20">
-                                                    {c.pending}
-                                                </span>
-                                            )}
-                                            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-gray-300 transition-colors group-hover:text-gray-400" weight="bold" />
-                                        </div>
-                                    </Link>
+                                    <li key={c.id}>
+                                        <Link
+                                            href="/class-management"
+                                            className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 px-5 py-4 transition-colors hover:bg-accent/50 sm:grid-cols-[minmax(0,1fr)_6rem_12rem_6rem_1.25rem]"
+                                        >
+                                            <span className="flex min-w-0 items-center gap-3">
+                                                <WorldEmblem world={worldFor(c)} size="sm" />
+                                                <span className="truncate font-bold">{c.title}</span>
+                                            </span>
+                                            <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground tabular-nums sm:text-foreground">
+                                                <Users className="size-4 text-muted-foreground" />
+                                                {c.students}
+                                            </span>
+                                            <span className="col-span-2 flex items-center gap-2.5 sm:col-span-1">
+                                                <ProgressTrack value={c.progress} className="h-2.5" />
+                                                <span className="w-9 shrink-0 text-right text-sm font-bold tabular-nums">{c.progress}%</span>
+                                            </span>
+                                            <span className="hidden sm:block">
+                                                {c.pending > 0 ? (
+                                                    <span className="rounded-full bg-orange-100 px-2.5 py-1 text-xs font-bold text-orange-800 dark:bg-orange-500/15 dark:text-orange-300">
+                                                        {c.pending}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-sm text-muted-foreground">None</span>
+                                                )}
+                                            </span>
+                                            <ChevronRight className="hidden size-5 text-muted-foreground transition-transform group-hover:translate-x-0.5 sm:block" />
+                                        </Link>
+                                    </li>
                                 ))}
-                            </div>
-                        )}
+                            </ul>
+                        </div>
+                    )}
+                </section>
+
+                <aside aria-labelledby="queue-title" className="lg:col-span-4">
+                    <div className="flex items-baseline justify-between gap-4">
+                        <h2 id="queue-title" className="text-xl font-bold tracking-[-0.02em]">
+                            Grading queue
+                        </h2>
+                        <span className="text-sm font-bold text-muted-foreground tabular-nums">{stats.toGrade}</span>
                     </div>
 
-                    <div className="space-y-4">
-                        <SectionHeader title="Grading Queue" href="/class-management" linkLabel="View all" />
-                        {gradingQueue.length === 0 ? (
-                            <EmptyState icon={ClipboardText} message="Nothing to grade" />
-                        ) : (
-                            <div className="divide-y divide-gray-100 rounded-xl border border-gray-100 dark:divide-gray-800 dark:border-gray-800">
-                                {gradingQueue.map((item) => (
-                                    <Link key={item.id} href="/class-management">
-                                        <div className="group flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900">
-                                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 text-[10px] font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                                                {initials(item.student)}
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="truncate text-xs font-medium text-gray-800 dark:text-gray-200">{item.student}</p>
-                                                <p className="truncate text-[11px] text-gray-400">{item.assignment}</p>
-                                            </div>
-                                            <div className="shrink-0 text-right">
-                                                <p className="text-[10px] text-gray-400">{item.submitted}</p>
-                                                <PencilSimple className="mt-0.5 ml-auto h-3 w-3 text-gray-300 transition-colors group-hover:text-blue-500" weight="bold" />
-                                            </div>
-                                        </div>
+                    {gradingQueue.length === 0 ? (
+                        <p className="mt-4 rounded-2xl bg-muted/70 px-4 py-3 text-sm font-semibold text-muted-foreground">Nothing waiting. Nice.</p>
+                    ) : (
+                        <ul className="mt-4 space-y-2">
+                            {gradingQueue.map((item) => (
+                                <li key={item.id}>
+                                    <Link href="/class-management" className="group flex items-center gap-3 rounded-2xl border bg-card px-4 py-3 transition-colors hover:border-primary/40">
+                                        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-violet-100 text-xs font-extrabold text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
+                                            {initials(item.student)}
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block truncate text-sm font-bold">{item.student}</span>
+                                            <span className="block truncate text-xs text-muted-foreground">{item.assignment}</span>
+                                        </span>
+                                        <span className="shrink-0 text-xs font-semibold text-muted-foreground">{item.submitted}</span>
                                     </Link>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    {gradingQueue.length > 0 && (
+                        <Link href="/class-management" className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-primary hover:underline">
+                            Open grading <ArrowRight className="size-4" />
+                        </Link>
+                    )}
+                </aside>
             </div>
         </div>
     );

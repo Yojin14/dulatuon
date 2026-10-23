@@ -15,15 +15,14 @@ import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
 
-const activeIndicator =
-    'relative before:pointer-events-none before:absolute before:left-0 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-r-full before:bg-sidebar-primary before:opacity-0 before:transition-opacity data-[active=true]:before:opacity-100';
+const itemClass = 'h-11 group-data-[collapsible=icon]:size-10!';
 
 export function NavMain({ items = [], label = 'Platform' }: { items: NavItem[]; label?: string }) {
     const page = usePage();
     const pathname = page.url.split('?')[0];
 
     return (
-        <SidebarGroup className="px-3 py-0 md:px-2">
+        <SidebarGroup className="px-3 py-1 md:px-2">
             <SidebarGroupLabel>{label}</SidebarGroupLabel>
             <SidebarMenu>
                 {items.map((item) =>
@@ -40,12 +39,12 @@ export function NavMain({ items = [], label = 'Platform' }: { items: NavItem[]; 
                                 <CollapsibleTrigger asChild>
                                     <SidebarMenuButton
                                         tooltip={{ children: item.title }}
-                                        className={activeIndicator}
+                                        className={itemClass}
                                         isActive={item.items.some((sub) =>
                                             pathname.startsWith(resolveUrl(sub.href)),
                                         )}
                                     >
-                                        {item.icon && <Icon iconNode={item.icon} className="h-4 w-4" />}
+                                        {item.icon && <Icon iconNode={item.icon} className="size-[18px]" />}
                                         <span>{item.title}</span>
                                         <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                                     </SidebarMenuButton>
@@ -75,10 +74,10 @@ export function NavMain({ items = [], label = 'Platform' }: { items: NavItem[]; 
                                 asChild
                                 isActive={pathname.startsWith(resolveUrl(item.href))}
                                 tooltip={{ children: item.title }}
-                                className={activeIndicator}
+                                className={itemClass}
                             >
                                 <Link href={item.href} prefetch>
-                                    {item.icon && <Icon iconNode={item.icon} className="h-4 w-4" />}
+                                    {item.icon && <Icon iconNode={item.icon} className="size-[18px]" />}
                                     <span>{item.title}</span>
                                 </Link>
                             </SidebarMenuButton>

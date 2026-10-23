@@ -19,11 +19,11 @@ export function ChartCard({
     height?: number;
 }) {
     return (
-        <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-5 dark:border-gray-800 dark:bg-gray-900">
+        <div className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
             <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h3>
-                    {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
+                    <h3 className="text-base font-bold text-foreground">{title}</h3>
+                    {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
                 </div>
                 {action}
             </div>
@@ -47,15 +47,15 @@ export function StatCard({
     accent?: boolean;
 }) {
     return (
-        <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{label}</p>
-            <p className={`mt-3 text-3xl font-bold sm:mt-4 sm:text-4xl ${accent ? 'text-amber-500' : 'text-gray-900 dark:text-white'}`}>
+        <div className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
+            <p className="text-sm font-bold text-muted-foreground">{label}</p>
+            <p className={`mt-2 font-display text-3xl font-extrabold tracking-[-0.03em] tabular-nums sm:text-4xl ${accent ? 'text-orange-600 dark:text-orange-400' : 'text-foreground'}`}>
                 {value}
             </p>
             {hint && (
                 <div className="mt-1.5 flex items-center gap-1">
-                    {Icon && <Icon className="h-3 w-3 shrink-0 text-gray-300" weight="bold" />}
-                    <p className="truncate text-xs text-gray-400">{hint}</p>
+                    {Icon && <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" weight="bold" />}
+                    <p className="truncate text-sm text-muted-foreground">{hint}</p>
                 </div>
             )}
         </div>
@@ -76,13 +76,11 @@ export function PortalHeader({
     subtitle: string;
 }) {
     return (
-        <div className="px-4 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8" style={{ background: PORTAL_GRADIENT }}>
-            <div className="flex items-start justify-between gap-4">
-                <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-300/70">{portal}</p>
-                    <h1 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">{title}</h1>
-                    <p className="mt-1 text-sm text-blue-200/50">{subtitle}</p>
-                </div>
+        <div className="px-5 py-7 sm:px-8 lg:py-9" style={{ background: PORTAL_GRADIENT }}>
+            <div className="mx-auto max-w-[1600px]">
+                <p className="text-sm font-bold text-violet-300">{portal}</p>
+                <h1 className="mt-1 font-display text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-extrabold tracking-[-0.03em] text-white">{title}</h1>
+                <p className="mt-1.5 text-white/70">{subtitle}</p>
             </div>
         </div>
     );
@@ -95,7 +93,7 @@ export function DonutProgress({
     size = 52,
     strokeWidth = 5,
     trackColor = '#e5e7eb',
-    fillColor = '#1e3a8a',
+    fillColor = '#7c3aed',
 }: {
     value: number;
     size?: number;
@@ -125,9 +123,9 @@ export function DonutProgress({
 export function ProgressBar({ value }: { value: number }) {
     const animate = useMountAnimation();
     return (
-        <div className="h-1 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
             <div
-                className="h-full rounded-full bg-blue-600 transition-[width] duration-700 ease-out"
+                className="h-full rounded-full bg-primary transition-[width] duration-700 ease-out"
                 style={{ width: animate ? `${value}%` : '0%' }}
             />
         </div>
@@ -145,13 +143,13 @@ export function SectionHeader({
 }) {
     return (
         <div className="flex items-center justify-between">
-            <h2 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+            <h2 className="text-xl font-bold tracking-[-0.02em] text-foreground">
                 {title}
             </h2>
             {href && (
                 <Link
                     href={href}
-                    className="flex items-center gap-1 text-xs text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400"
+                    className="flex items-center gap-1 text-sm font-bold text-primary hover:underline"
                 >
                     {linkLabel}
                     <ArrowRight className="h-3 w-3" weight="bold" />
@@ -163,12 +161,12 @@ export function SectionHeader({
 
 export function EmptyState({ icon: Icon, message }: { icon: Icon; message: string }) {
     return (
-        <div className="flex flex-col items-center gap-2 py-10 text-center">
-            <Icon className="h-6 w-6 text-gray-200 dark:text-gray-700" weight="light" />
-            <p className="text-xs text-gray-400">{message}</p>
+        <div className="flex flex-col items-center gap-2 rounded-3xl border-2 border-dashed py-10 text-center">
+            <Icon className="h-7 w-7 text-muted-foreground/60" weight="duotone" />
+            <p className="text-sm font-semibold text-muted-foreground">{message}</p>
         </div>
     );
 }
 
-/** Gradient banner identical to the landing-page card style */
-export const PORTAL_GRADIENT = 'linear-gradient(135deg, #1e3a8a 0%, #24335a 45%, #97aae9 75%, #312e81 100%)';
+/** Game-night banner, matching the simulation pages' violet night. */
+export const PORTAL_GRADIENT = 'linear-gradient(120deg, #0f172a 0%, #1e1b4b 45%, #2e1065 100%)';

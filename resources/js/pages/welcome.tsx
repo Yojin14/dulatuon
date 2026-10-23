@@ -1,31 +1,62 @@
+import AppLogo from '@/components/app-logo';
+import { LowPolyBlock, LowPolyClouds } from '@/components/game/low-poly-scene';
+import { MotionRoot, Reveal } from '@/components/game/reveal';
+import { XpBar } from '@/components/game/xp-bar';
+import { HeroWorld } from '@/components/three/hero-world';
+import { Button } from '@/components/ui/button';
+import { WorldEmblem } from '@/components/world/world-scope';
+import { computeLevel } from '@/lib/gamification';
+import { cn } from '@/lib/utils';
+import { WORLDS, type Biome } from '@/lib/worlds';
 import { dashboard, login, register } from '@/routes';
 import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { type CSSProperties, type ReactNode } from 'react';
+import { ArrowRight, Check, Lock, MessageCircle, Smartphone, Timer, Users, type LucideIcon } from 'lucide-react';
+import { type ComponentProps, type ReactNode } from 'react';
 
-const lessonSteps = [
-    {
-        text: 'Watch the video or read the notes your teacher posted.',
-        done: true,
-    },
-    {
-        text: 'Play the game for that session. You get three lives.',
-        done: true,
-    },
-    { text: 'Take the quiz and hand in your assignment.', done: false },
-    { text: 'Finish the module and download your certificate.', done: false },
+const earthLabs = [
+    { name: 'Fault Lab', line: 'Pull, push and slide the crust until the fault gives way.' },
+    { name: 'Shake Town', line: 'Same magnitude, different depth. See which town takes the damage.' },
+    { name: 'Wave Tank', line: 'Race P waves against S waves through rock and water.' },
+    { name: 'Quake Tracker', line: 'Trace real Philippine quakes back to their faults.' },
+    { name: 'Ground Test', line: 'Soak the soil, steepen the slope, watch the hill let go.' },
+    { name: 'Quake Ready', line: 'Make the right call before, during and after the shaking.' },
 ];
 
-const leaderboard = [
-    { rank: 1, name: 'Andrea Villanueva', score: 980 },
-    { rank: 2, name: 'Miguel Santos', score: 945 },
-    { rank: 3, name: 'You', score: 910, isYou: true },
-    { rank: 4, name: 'Bea Dela Cruz', score: 880 },
-    { rank: 5, name: 'Paolo Reyes', score: 855 },
+const upcoming: { label: string; biome: Biome }[] = [
+    { label: 'Course 2', biome: 'weather' },
+    { label: 'Course 3', biome: 'ocean' },
+    { label: 'Course 4', biome: 'space' },
 ];
 
-const focusRing =
-    'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--dl-yellow)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--dl-paper)]';
+const climb = [
+    { step: 'Lesson', detail: 'A short video or reading from your teacher.' },
+    { step: 'Lab', detail: 'Run the experiment in 3D. Three hearts per run.' },
+    { step: 'Checkpoint', detail: 'Timed questions unlock the next lesson.' },
+    { step: 'Clear', detail: 'XP, a rank, and a certificate per module.' },
+];
+
+const studentPerks: { name: string; detail: string; icon: LucideIcon }[] = [
+    { name: 'Works on the phone you already have', detail: 'Light enough for a budget Android on school Wi-Fi. Nothing to install.', icon: Smartphone },
+    { name: 'Ten minutes at a time', detail: 'Short lessons that fit between classes. It remembers exactly where you stopped.', icon: Timer },
+    { name: 'Your whole class, in the same course', detail: 'Climb the class board, race your classmates and see who earns the next medal.', icon: Users },
+    { name: 'Stuck? Ask right there', detail: 'Message your teacher from inside the lesson instead of waiting for the next meeting.', icon: MessageCircle },
+];
+
+function PrimaryLink({ href, children, tone = 'violet' }: { href: ComponentProps<typeof Link>['href']; children: ReactNode; tone?: 'violet' | 'light' }) {
+    return (
+        <Button
+            asChild
+            size="lg"
+            className={cn('h-14 rounded-2xl px-7 text-base', tone === 'light' && 'bg-white text-violet-900 shadow-none hover:bg-violet-50')}
+        >
+            <Link href={href}>
+                {children}
+                <ArrowRight className="size-5" />
+            </Link>
+        </Button>
+    );
+}
 
 export default function Welcome({
     canRegister = true,
@@ -38,67 +69,47 @@ export default function Welcome({
     const primaryAction = isSignedIn
         ? { href: dashboard(), label: 'Go to your dashboard' }
         : canRegister
-          ? { href: register(), label: 'Create your account' }
+          ? { href: register(), label: 'Start your first course' }
           : { href: login(), label: 'Log in' };
 
     const showLoginLink = !isSignedIn && canRegister;
+    const examplePlayer = computeLevel(410);
+    const earth = WORLDS.earth;
 
     return (
-        <>
-            <Head title="Dulatuon, play and study">
+        <MotionRoot>
+            <Head title="Learn science by playing it">
                 <meta
                     name="description"
-                    content="Dulatuon turns each lesson in your class into a game: quizzes, crosswords, word scrambles and more, with a live class leaderboard and certificates."
-                />
-                <link rel="preconnect" href="https://fonts.bunny.net" />
-                <link
-                    href="https://fonts.bunny.net/css?family=shantell-sans:400,600,700|atkinson-hyperlegible:400,700&display=swap"
-                    rel="stylesheet"
+                    content="Learn science by playing it. Every course on Dulatuon is built from 3D labs, short lessons and checkpoints, with XP, badges and a class leaderboard. The first course is Earthquakes."
                 />
             </Head>
 
-            <div className="dl-page min-h-dvh overflow-x-hidden">
-                <a
-                    href="#main"
-                    className={`sr-only z-50 rounded-lg bg-[var(--dl-ink)] px-4 py-2 font-bold text-[var(--dl-paper)] focus:not-sr-only focus:fixed focus:top-4 focus:left-4 ${focusRing}`}
-                >
+            <div className="min-h-dvh overflow-x-hidden bg-background text-foreground">
+                <a href="#main" className="sr-only z-50 rounded-xl bg-primary px-4 py-2 font-bold text-white focus:not-sr-only focus:fixed focus:top-4 focus:left-4">
                     Skip to content
                 </a>
 
-                <div className="dl-ruled">
-                    <header className="dl-gutter mx-auto flex max-w-6xl items-center justify-between gap-4 pt-6 pb-4">
-                        <Link
-                            href="/"
-                            className={`dl-hand flex items-center gap-2 rounded-lg text-2xl font-bold ${focusRing}`}
-                        >
-                            <StarMark className="h-6 w-6 text-[var(--dl-red)]" />
-                            dulatuon
-                        </Link>
+                {/* Hero: the sky and a live world are the image */}
+                <div className="relative isolate overflow-hidden bg-world-sky text-slate-900">
+                    <LowPolyClouds className="absolute inset-x-0 top-16 -z-10 w-[140%] max-w-none opacity-90 sm:w-full" />
 
-                        <nav
-                            aria-label="Account"
-                            className="flex items-center gap-1 sm:gap-2"
-                        >
+                    <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 pt-5 sm:px-8">
+                        <Link href="/" className="flex items-center rounded-xl focus-visible:ring-4 focus-visible:ring-violet-500/30 focus-visible:outline-none">
+                            <AppLogo />
+                        </Link>
+                        <nav aria-label="Account" className="flex items-center gap-1 text-sm font-bold">
                             {isSignedIn ? (
-                                <Link
-                                    href={dashboard()}
-                                    className={`dl-btn dl-btn-sm ${focusRing}`}
-                                >
+                                <Link href={dashboard()} className="inline-flex h-10 items-center rounded-xl bg-white/70 px-4 ring-1 ring-black/5 hover:bg-white">
                                     Dashboard
                                 </Link>
                             ) : (
                                 <>
-                                    <Link
-                                        href={login()}
-                                        className={`dl-link inline-flex min-h-11 items-center rounded-lg px-3 font-bold ${focusRing}`}
-                                    >
+                                    <Link href={login()} className="inline-flex h-10 items-center rounded-xl px-3 hover:bg-white/60">
                                         Log in
                                     </Link>
                                     {canRegister && (
-                                        <Link
-                                            href={register()}
-                                            className={`dl-btn dl-btn-sm hidden sm:inline-flex ${focusRing}`}
-                                        >
+                                        <Link href={register()} className="inline-flex h-10 items-center rounded-xl bg-white/70 px-4 ring-1 ring-black/5 hover:bg-white">
                                             Create account
                                         </Link>
                                     )}
@@ -107,589 +118,230 @@ export default function Welcome({
                         </nav>
                     </header>
 
-                    <main id="main">
-                        {/* Hero: the name explains itself */}
-                        <section className="dl-gutter relative mx-auto max-w-6xl pt-10 pb-24 sm:pt-16 lg:pb-32">
-                            <h1 className="dl-hand flex flex-wrap items-start gap-x-5 gap-y-14 text-[clamp(4rem,13vw,9.5rem)] leading-[0.9] font-bold tracking-tight sm:gap-x-8">
-                                <Gloss word="Dula" meaning="play" />
-                                <span
-                                    aria-hidden="true"
-                                    className="text-[var(--dl-ink-soft)]"
-                                >
-                                    +
-                                </span>
-                                <Gloss word="tuon" meaning="study" />
-                                <span className="sr-only">
-                                    : play and study
-                                </span>
-                            </h1>
-
-                            <p className="mt-16 max-w-[34rem] text-xl leading-8 text-[var(--dl-ink-soft)] sm:text-[1.375rem]">
-                                Dulatuon turns every lesson in your class into a
-                                game you can play. Your teacher adds the quiz,
-                                the crossword or the word scramble. You play it,
-                                earn your score and keep moving through the
-                                course.
-                            </p>
-
-                            <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-4">
-                                <Link
-                                    href={primaryAction.href}
-                                    className={`dl-btn ${focusRing}`}
-                                >
-                                    {primaryAction.label}
-                                </Link>
+                    <main id="main" className="relative mx-auto grid max-w-7xl gap-6 px-5 pt-12 pb-10 sm:px-8 lg:grid-cols-12 lg:items-center lg:pt-8 lg:pb-0">
+                        <div className="lg:col-span-5 lg:pb-24">
+                            <Reveal>
+                                <h1 className="font-display text-[clamp(2.75rem,7vw,5.5rem)] leading-[0.95] font-extrabold tracking-[-0.04em] text-balance">
+                                    Learn science by playing it.
+                                </h1>
+                            </Reveal>
+                            <Reveal delay={0.12}>
+                                <p className="mt-6 max-w-[36ch] text-lg leading-relaxed font-medium text-slate-700">
+                                    Every course on Dulatuon is built from 3D labs, short lessons and checkpoints. Run the experiment, then prove you understand it.
+                                </p>
+                            </Reveal>
+                            <Reveal delay={0.22} className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
+                                <PrimaryLink href={primaryAction.href}>{primaryAction.label}</PrimaryLink>
                                 {showLoginLink && (
-                                    <p className="text-[var(--dl-ink-soft)]">
-                                        Already in a class?{' '}
-                                        <Link
-                                            href={login()}
-                                            className={`dl-link rounded font-bold ${focusRing}`}
-                                        >
-                                            Log in
-                                        </Link>
-                                    </p>
+                                    <Link href={login()} className="font-bold underline decoration-current/30 decoration-2 underline-offset-[6px] hover:decoration-current">
+                                        I already have a class
+                                    </Link>
                                 )}
-                            </div>
+                            </Reveal>
+                        </div>
 
-                            <TeacherStamp className="dl-stamp pointer-events-none absolute right-6 bottom-12 hidden w-52 lg:block xl:right-12 xl:w-60" />
-                        </section>
+                        <div className="relative -mx-5 sm:-mx-8 lg:col-span-7 lg:mx-0 lg:-mr-24">
+                            <HeroWorld className="aspect-[5/4] w-full lg:aspect-square" />
+                            <p className="pointer-events-none absolute bottom-4 left-5 max-w-[32ch] text-xs font-semibold text-slate-700 sm:left-8 lg:bottom-20 lg:left-6">
+                                Live from the Earthquakes course, Shake Town lab.<span className="hidden pointer-fine:inline"> Drag to look around.</span>
+                            </p>
+                        </div>
                     </main>
+
+                    <div aria-hidden className="h-6 bg-[linear-gradient(180deg,#6fbf5a_0_45%,#4f9a43_45%_60%,transparent_60%)]" />
                 </div>
 
-                {/* A lesson, as a checklist on a loose sheet */}
-                <section
-                    aria-labelledby="lesson-heading"
-                    className="dl-gutter mx-auto grid max-w-6xl gap-12 py-24 lg:grid-cols-[1fr_1.15fr] lg:gap-20"
-                >
-                    <div>
-                        <h2
-                            id="lesson-heading"
-                            className="dl-hand text-4xl leading-tight font-bold text-balance sm:text-5xl"
-                        >
-                            How a lesson goes
+                {/* Course map */}
+                <section aria-labelledby="worlds" className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-28">
+                    <Reveal className="max-w-2xl">
+                        <h2 id="worlds" className="font-display text-[clamp(2rem,4vw,3.25rem)] leading-[1.02] font-extrabold tracking-[-0.035em]">
+                            Pick a course. Play your way through it.
                         </h2>
-                        <p className="mt-5 max-w-md text-lg leading-8 text-[var(--dl-ink-soft)]">
-                            Each course is split into modules and sessions. Work
-                            through them in order and your progress saves as you
-                            go.
+                        <p className="mt-4 max-w-[52ch] text-lg leading-relaxed text-muted-foreground">
+                            Every topic is its own course with its own labs. Clear one and the next opens up, and your rank and badges come with you.
                         </p>
-                    </div>
+                    </Reveal>
 
-                    <ol className="dl-sheet relative rounded-sm px-6 py-4 sm:px-10">
-                        {lessonSteps.map((step, index) => (
-                            <li
-                                key={step.text}
-                                className="flex gap-4 border-b border-[var(--dl-rule)] py-4 text-lg leading-7 last:border-b-0"
-                            >
-                                <span className="dl-hand w-6 shrink-0 text-right font-bold text-[var(--dl-ink-soft)]">
-                                    {index + 1}.
-                                </span>
-                                <span
-                                    className={
-                                        step.done
-                                            ? 'text-[var(--dl-ink-soft)]'
-                                            : ''
-                                    }
+                    <div className="mt-12 grid gap-6 lg:grid-cols-12">
+                        {/* Course 1, open */}
+                        <Reveal className="lg:col-span-8">
+                            <article className="overflow-hidden rounded-4xl border bg-card shadow-panel">
+                                <div
+                                    className="relative grid gap-4 px-6 pt-6 pb-2 text-slate-900 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:px-8 sm:pt-8"
+                                    style={{ backgroundImage: `linear-gradient(180deg, var(--color-sky) 0%, var(--color-sky-soft) 50%, ${earth.accentSoft} 100%)` }}
                                 >
-                                    {step.text}
-                                </span>
-                                {step.done && (
-                                    <Tick
-                                        className="ml-auto h-7 w-7 shrink-0 text-[var(--dl-green)]"
-                                        label="done"
-                                    />
-                                )}
-                            </li>
-                        ))}
-                    </ol>
-                </section>
+                                    <div>
+                                        <div className="flex items-center gap-3">
+                                            <WorldEmblem world={earth} />
+                                            <div>
+                                                <p className="text-sm font-bold" style={{ color: earth.accentInk }}>
+                                                    Course 1 · Open now
+                                                </p>
+                                                <h3 className="font-display text-2xl font-extrabold tracking-[-0.02em] sm:text-3xl">{earth.name}</h3>
+                                            </div>
+                                        </div>
+                                        <p className="mt-3 max-w-[44ch] font-medium text-slate-700">Faults, seismic waves, intensity and staying safe, set in the Philippines.</p>
+                                    </div>
+                                    <LowPolyBlock variant="quake" biome="earth" className="hidden w-48 drop-shadow-[0_16px_16px_rgba(85,48,28,0.25)] sm:block" />
+                                </div>
+                                {/* The earth world's own signature: strata depth markers */}
+                                <div aria-hidden className="flex h-2">
+                                    <span className="flex-1 bg-[#c99a6b]" />
+                                    <span className="flex-1 bg-[#a3623f]" />
+                                    <span className="flex-1 bg-[#6f3b2a]" />
+                                </div>
+                                <ol className="grid sm:grid-cols-2">
+                                    {earthLabs.map((lab, index) => (
+                                        <li key={lab.name} className="flex gap-4 border-t px-6 py-5 sm:px-8 sm:[&:nth-child(even)]:border-l">
+                                            <span className="font-display text-sm font-bold tabular-nums" style={{ color: earth.accentInk }}>
+                                                {String(index + 1).padStart(2, '0')}
+                                            </span>
+                                            <div>
+                                                <p className="font-display text-lg font-bold tracking-[-0.01em]">{lab.name}</p>
+                                                <p className="mt-0.5 text-sm text-muted-foreground">{lab.line}</p>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ol>
+                            </article>
+                        </Reveal>
 
-                {/* The five games, as index cards */}
-                <section
-                    aria-labelledby="games-heading"
-                    className="dl-gutter mx-auto max-w-6xl py-24"
-                >
-                    <h2
-                        id="games-heading"
-                        className="dl-hand max-w-2xl text-4xl leading-tight font-bold text-balance sm:text-5xl"
-                    >
-                        Five games your teacher can add to any session
-                    </h2>
-
-                    <ul className="mt-14 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-                        <FlashCard
-                            tilt="-1.5deg"
-                            title="Quiz Quest"
-                            description="Multiple choice, one question at a time."
-                        >
-                            <p className="font-bold">
-                                Which planet is closest to the sun?
-                            </p>
-                            <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[var(--dl-ink-soft)]">
-                                <li>a. Venus</li>
-                                <li>
-                                    <span className="dl-circled">
-                                        b. Mercury
-                                    </span>
-                                </li>
-                                <li>c. Mars</li>
-                                <li>d. Earth</li>
-                            </ul>
-                        </FlashCard>
-
-                        <FlashCard
-                            tilt="1deg"
-                            title="Memory Match"
-                            description="Flip the tiles and pair each term with its meaning."
-                        >
-                            <div className="grid grid-cols-4 gap-2">
-                                <span className="dl-tile dl-tile-open">
-                                    H₂O
-                                </span>
-                                <span className="dl-tile" />
-                                <span className="dl-tile dl-tile-open">
-                                    water
-                                </span>
-                                <span className="dl-tile" />
-                                <span className="dl-tile" />
-                                <span className="dl-tile" />
-                                <span className="dl-tile" />
-                                <span className="dl-tile" />
-                            </div>
-                        </FlashCard>
-
-                        <FlashCard
-                            tilt="-0.5deg"
-                            title="Word Scramble"
-                            description="Put the letters back in the right order."
-                        >
-                            <div className="flex flex-wrap gap-1.5">
-                                {['T', 'E', 'N', 'A', 'L', 'P'].map(
-                                    (letter, index) => (
-                                        <span
-                                            key={index}
-                                            className="dl-tile dl-tile-open dl-hand text-lg font-bold"
-                                        >
-                                            {letter}
-                                        </span>
-                                    ),
-                                )}
-                            </div>
-                        </FlashCard>
-
-                        <FlashCard
-                            tilt="1.75deg"
-                            title="Crossword"
-                            description="Answer the clues across and down."
-                        >
-                            <MiniCrossword />
-                        </FlashCard>
-
-                        <FlashCard
-                            tilt="-1deg"
-                            title="Hangman"
-                            description="Guess the word before the drawing is finished."
-                        >
-                            <div className="flex items-end justify-between gap-4">
-                                <p className="dl-hand text-2xl font-bold tracking-[0.3em]">
-                                    V_LC_NO
-                                </p>
-                                <HangmanDoodle className="h-16 w-14 shrink-0 text-[var(--dl-ink-soft)]" />
-                            </div>
-                        </FlashCard>
-
-                        <li className="flex items-center px-2">
-                            <p className="dl-hand max-w-xs text-xl leading-8 text-[var(--dl-ink-soft)]">
-                                Every game has three lives and posts your score
-                                to the class leaderboard.
-                            </p>
-                        </li>
-                    </ul>
-                </section>
-
-                {/* Leaderboard on the chalkboard */}
-                <section
-                    aria-labelledby="board-heading"
-                    className="dl-gutter mx-auto grid max-w-6xl items-center gap-12 py-24 lg:grid-cols-[1.1fr_1fr] lg:gap-20"
-                >
-                    <figure className="dl-board rounded-xl">
-                        <figcaption className="dl-hand text-xl font-bold">
-                            Grade 6 Sampaguita, Word Scramble
-                        </figcaption>
-                        <table className="mt-5 w-full text-left text-lg">
-                            <caption className="sr-only">
-                                Example class leaderboard
-                            </caption>
-                            <thead className="sr-only">
-                                <tr>
-                                    <th scope="col">Rank</th>
-                                    <th scope="col">Student</th>
-                                    <th scope="col">Score</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {leaderboard.map((row) => (
-                                    <tr
-                                        key={row.rank}
-                                        className={
-                                            row.isYou ? 'dl-board-you' : ''
-                                        }
-                                    >
-                                        <td className="dl-hand w-10 py-2 font-bold opacity-70">
-                                            {row.rank}
-                                        </td>
-                                        <td className="py-2">{row.name}</td>
-                                        <td className="py-2 text-right tabular-nums">
-                                            {row.score}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </figure>
-
-                    <div>
-                        <h2
-                            id="board-heading"
-                            className="dl-hand text-4xl leading-tight font-bold text-balance sm:text-5xl"
-                        >
-                            See where you stand
-                        </h2>
-                        <p className="mt-5 max-w-md text-lg leading-8 text-[var(--dl-ink-soft)]">
-                            Scores update while your classmates play. Chase the
-                            top spot, or just beat your own best from last week.
-                        </p>
-                    </div>
-                </section>
-
-                {/* Close */}
-                <section aria-labelledby="close-heading" className="dl-ruled">
-                    <div className="dl-gutter mx-auto max-w-6xl py-24 sm:py-32">
-                        <h2
-                            id="close-heading"
-                            className="dl-hand max-w-3xl text-5xl leading-[1.05] font-bold text-balance sm:text-6xl"
-                        >
-                            Ready when your class is.
-                        </h2>
-                        <p className="mt-6 max-w-lg text-lg leading-8 text-[var(--dl-ink-soft)]">
-                            Sign up with your school email, then join the
-                            courses your teacher shares with you.
-                        </p>
-                        <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-4">
-                            <Link
-                                href={primaryAction.href}
-                                className={`dl-btn ${focusRing}`}
-                            >
-                                {primaryAction.label}
-                            </Link>
-                            {showLoginLink && (
-                                <Link
-                                    href={login()}
-                                    className={`dl-link rounded font-bold ${focusRing}`}
-                                >
-                                    Log in instead
-                                </Link>
-                            )}
+                        {/* Next courses, locked */}
+                        <div className="grid gap-4 lg:col-span-4">
+                            {upcoming.map((world, index) => (
+                                <Reveal key={world.label} delay={index * 0.06}>
+                                    <div className="flex items-center gap-4 rounded-3xl border-2 border-dashed bg-card/60 p-4">
+                                        <LowPolyBlock biome={world.biome} className="w-24 shrink-0 opacity-60 grayscale" />
+                                        <div>
+                                            <p className="inline-flex items-center gap-1.5 text-sm font-bold text-muted-foreground">
+                                                <Lock className="size-4" />
+                                                {world.label}
+                                            </p>
+                                            <p className="mt-0.5 text-sm text-muted-foreground">In development</p>
+                                        </div>
+                                    </div>
+                                </Reveal>
+                            ))}
                         </div>
                     </div>
                 </section>
 
-                <footer className="dl-gutter mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 py-10 text-[var(--dl-ink-soft)]">
-                    <p className="dl-hand text-lg font-bold text-[var(--dl-ink)]">
-                        Dula ug tuon.
-                    </p>
-                    <p>&copy; {new Date().getFullYear()} Dulatuon</p>
-                </footer>
+                {/* How a course works: game-night mode */}
+                <section aria-labelledby="climb" className="bg-game-night text-white">
+                    <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-28">
+                        <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
+                            <Reveal className="lg:col-span-7">
+                                <h2 id="climb" className="font-display text-[clamp(2rem,4vw,3.25rem)] leading-[1.02] font-extrabold tracking-[-0.035em]">
+                                    Every lesson is a short climb, and you feel every step.
+                                </h2>
+                            </Reveal>
+                            <p className="max-w-[40ch] leading-relaxed text-white/75 lg:col-span-5">
+                                No grinding for points. XP comes from finishing real work, ranks follow mastery, and checkpoints decide when you move on.
+                            </p>
+                        </div>
 
-                <style>{styles}</style>
+                        <ol className="relative mt-14 grid gap-8 sm:grid-cols-4 sm:gap-6">
+                            <span aria-hidden className="absolute top-[11px] right-0 left-0 hidden h-[3px] bg-[repeating-linear-gradient(90deg,rgba(255,255,255,0.5)_0_14px,transparent_14px_22px)] sm:block" />
+                            {climb.map((item, index) => (
+                                <Reveal as="li" key={item.step} delay={index * 0.08} className="relative flex gap-4 sm:block">
+                                    <span
+                                        className={cn(
+                                            'relative z-10 grid size-6 shrink-0 place-items-center rounded-full ring-4 ring-[#1e1b4b]',
+                                            index === climb.length - 1 ? 'bg-amber-300 text-amber-950' : 'bg-white text-violet-900',
+                                        )}
+                                    >
+                                        <Check className="size-3.5" strokeWidth={3} />
+                                    </span>
+                                    <div className="sm:mt-5">
+                                        <p className="font-display text-xl font-bold">{item.step}</p>
+                                        <p className="mt-1 text-sm leading-relaxed text-white/70">{item.detail}</p>
+                                    </div>
+                                </Reveal>
+                            ))}
+                        </ol>
+
+                        <div className="mt-16 grid gap-6 lg:grid-cols-12 lg:items-center">
+                            <Reveal className="lg:col-span-6">
+                                <figure className="rounded-3xl bg-white p-6 text-slate-900 shadow-float sm:p-7">
+                                    <p className="text-eyebrow text-violet-600">Checkpoint · Earthquakes</p>
+                                    <p className="mt-2 font-display text-xl leading-snug font-bold tracking-[-0.02em]">
+                                        Two earthquakes have the same magnitude. One starts 10 km deep, the other 300 km deep. Which shakes the town above it more?
+                                    </p>
+                                    <div className="mt-5 grid gap-2.5 text-[15px] font-semibold">
+                                        <span className="rounded-xl border-2 border-violet-500 bg-violet-50 px-4 py-3 text-violet-900">The shallow one (10 km)</span>
+                                        <span className="rounded-xl border-2 border-slate-200 px-4 py-3 text-slate-700">Both the same</span>
+                                        <span className="rounded-xl border-2 border-slate-200 px-4 py-3 text-slate-700">The deep one (300 km)</span>
+                                    </div>
+                                    <figcaption className="sr-only">A checkpoint question from the Shake Town lab.</figcaption>
+                                </figure>
+                            </Reveal>
+                            <Reveal delay={0.1} className="lg:col-span-5 lg:col-start-8">
+                                <p className="font-display text-[clamp(2.5rem,5vw,4rem)] leading-none font-extrabold tracking-[-0.04em] text-amber-300">+50 XP</p>
+                                <p className="mt-3 max-w-[34ch] leading-relaxed text-white/75">Right answer, first try. The run keeps its hearts and the next lesson unlocks.</p>
+                                <div className="mt-6 max-w-sm rounded-2xl bg-white/6 p-4 ring-1 ring-white/10 [&_.text-foreground]:text-white [&_.text-muted-foreground]:text-white/65">
+                                    <XpBar player={examplePlayer} />
+                                </div>
+                            </Reveal>
+                        </div>
+                    </div>
+                </section>
+
+                {/* For students */}
+                <section aria-labelledby="students" className="mx-auto grid max-w-7xl gap-12 px-5 py-20 sm:px-8 lg:grid-cols-12 lg:py-28">
+                    <div className="lg:col-span-5">
+                        <Reveal>
+                            <h2 id="students" className="font-display text-[clamp(2rem,4vw,3.25rem)] leading-[1.02] font-extrabold tracking-[-0.035em]">
+                                Made for the way you actually study.
+                            </h2>
+                        </Reveal>
+                        <p className="mt-5 max-w-[38ch] leading-relaxed text-muted-foreground">
+                            No thick modules to scroll through. You play a lab, answer a few questions, and you're done until next time.
+                        </p>
+                    </div>
+                    <ul className="lg:col-span-6 lg:col-start-7">
+                        {studentPerks.map(({ name, detail, icon: Icon }, index) => (
+                            <Reveal as="li" key={name} delay={index * 0.06} className="flex gap-4 border-t py-6 last:border-b">
+                                <Icon className="mt-1 size-6 shrink-0 text-primary" aria-hidden />
+                                <div>
+                                    <h3 className="font-display text-xl font-bold tracking-[-0.02em]">{name}</h3>
+                                    <p className="mt-1.5 max-w-[46ch] leading-relaxed text-muted-foreground">{detail}</p>
+                                </div>
+                            </Reveal>
+                        ))}
+                    </ul>
+                </section>
+
+                {/* Call to action: brand drench */}
+                <section aria-labelledby="start" className="relative isolate overflow-hidden bg-[radial-gradient(120%_120%_at_85%_100%,#8b5cf6_0%,#6d28d9_40%,#2e1065_100%)] text-white">
+                    <div className="mx-auto grid max-w-7xl gap-8 px-5 py-24 sm:px-8 lg:grid-cols-12 lg:items-end lg:py-32">
+                        <div className="lg:col-span-8">
+                            <Reveal>
+                                <h2 id="start" className="max-w-[16ch] font-display text-[clamp(2.75rem,7vw,6rem)] leading-[0.95] font-extrabold tracking-[-0.045em]">
+                                    Your first course is waiting.
+                                </h2>
+                            </Reveal>
+                            <Reveal delay={0.12} className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-4">
+                                <PrimaryLink href={primaryAction.href} tone="light">
+                                    {primaryAction.label}
+                                </PrimaryLink>
+                                {showLoginLink && (
+                                    <Link href={login()} className="font-bold underline decoration-white/40 decoration-2 underline-offset-[6px] hover:decoration-white">
+                                        Log in
+                                    </Link>
+                                )}
+                            </Reveal>
+                        </div>
+                        <LowPolyBlock biome="default" className="hidden w-64 justify-self-end drop-shadow-[0_24px_24px_rgba(20,0,60,0.45)] lg:col-span-4 lg:block" />
+                    </div>
+
+                    <footer className="border-t border-white/15">
+                        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-6 text-sm text-white/75 sm:px-8">
+                            <span className="font-display text-base font-bold text-white">Dulatuon</span>
+                            <span>Dula, to play. Tuon, to study. © {new Date().getFullYear()}</span>
+                        </div>
+                    </footer>
+                </section>
             </div>
-        </>
+        </MotionRoot>
     );
 }
-
-function Gloss({ word, meaning }: { word: string; meaning: string }) {
-    return (
-        <span className="relative inline-flex flex-col">
-            <span>{word}</span>
-            <span
-                aria-hidden="true"
-                className="dl-note absolute top-full left-2 mt-1 flex items-start gap-1 text-[clamp(1.1rem,2.2vw,1.6rem)] font-semibold tracking-normal"
-            >
-                <svg
-                    viewBox="0 0 24 24"
-                    className="mt-0.5 h-[1em] w-[1em]"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                >
-                    <path d="M6 20c1-6 4-11 10-15M16 5l-5 .5M16 5l-.5 5" />
-                </svg>
-                {meaning}
-            </span>
-        </span>
-    );
-}
-
-function FlashCard({
-    title,
-    description,
-    tilt,
-    children,
-}: {
-    title: string;
-    description: string;
-    tilt: string;
-    children: ReactNode;
-}) {
-    return (
-        <li
-            className="dl-card rounded-sm p-5 pt-8"
-            style={{ '--dl-tilt': tilt } as CSSProperties}
-        >
-            <div className="min-h-24">{children}</div>
-            <h3 className="dl-hand mt-6 text-2xl font-bold">{title}</h3>
-            <p className="mt-1 text-[var(--dl-ink-soft)]">{description}</p>
-        </li>
-    );
-}
-
-function MiniCrossword() {
-    const grid = ['ATOM ', 'R   E', 'EARTH', 'A   E', '  SUN'];
-
-    return (
-        <div className="inline-grid grid-cols-5 gap-px">
-            {grid.flatMap((row, rowIndex) =>
-                row.split('').map((cell, cellIndex) => (
-                    <span
-                        key={`${rowIndex}-${cellIndex}`}
-                        className={`dl-hand flex h-7 w-7 items-center justify-center text-sm font-bold ${
-                            cell === ' '
-                                ? ''
-                                : 'border-[1.5px] border-[var(--dl-ink-soft)] bg-[var(--dl-paper)]'
-                        }`}
-                    >
-                        {cell !== ' ' && rowIndex === 2 ? cell : ''}
-                    </span>
-                )),
-            )}
-        </div>
-    );
-}
-
-function Tick({ className, label }: { className?: string; label: string }) {
-    return (
-        <svg
-            viewBox="0 0 32 32"
-            className={className}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            role="img"
-            aria-label={label}
-        >
-            <path d="M5 17c3 2 5 5 7 8 4-9 9-15 16-20" />
-        </svg>
-    );
-}
-
-function StarMark({ className }: { className?: string }) {
-    return (
-        <svg
-            viewBox="0 0 24 24"
-            className={className}
-            fill="currentColor"
-            aria-hidden="true"
-        >
-            <path d="M12 2.5l2.6 6.1 6.6.5-5 4.3 1.6 6.4L12 16.4l-5.8 3.4 1.6-6.4-5-4.3 6.6-.5z" />
-        </svg>
-    );
-}
-
-function HangmanDoodle({ className }: { className?: string }) {
-    return (
-        <svg
-            viewBox="0 0 56 64"
-            className={className}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            aria-hidden="true"
-        >
-            <path d="M4 61h30M12 61V5h26v9" />
-            <circle cx="38" cy="21" r="6" />
-            <path d="M38 27v15" />
-        </svg>
-    );
-}
-
-function TeacherStamp({ className }: { className?: string }) {
-    return (
-        <svg viewBox="0 0 200 200" className={className} aria-hidden="true">
-            <defs>
-                <path
-                    id="dl-stamp-ring"
-                    d="M100,100 m-72,0 a72,72 0 1,1 144,0 a72,72 0 1,1 -144,0"
-                />
-                <filter id="dl-stamp-rough">
-                    <feTurbulence
-                        type="fractalNoise"
-                        baseFrequency="0.9"
-                        numOctaves="2"
-                        seed="4"
-                        result="noise"
-                    />
-                    <feDisplacementMap
-                        in="SourceGraphic"
-                        in2="noise"
-                        scale="3"
-                    />
-                </filter>
-            </defs>
-            <g filter="url(#dl-stamp-rough)" fill="none" stroke="var(--dl-red)">
-                <circle cx="100" cy="100" r="94" strokeWidth="5" />
-                <circle cx="100" cy="100" r="52" strokeWidth="2.5" />
-                <text
-                    fill="var(--dl-red)"
-                    stroke="none"
-                    fontSize="19"
-                    fontWeight="700"
-                    letterSpacing="3.5"
-                    className="dl-hand"
-                >
-                    <textPath href="#dl-stamp-ring">
-                        VERY GOOD ★ DULA UG TUON ★
-                    </textPath>
-                </text>
-                <path
-                    fill="var(--dl-red)"
-                    stroke="none"
-                    d="M100 66l9.4 21.9 23.7 1.8-18 15.5 5.7 23.2L100 116l-20.8 12.4 5.7-23.2-18-15.5 23.7-1.8z"
-                />
-            </g>
-        </svg>
-    );
-}
-
-const styles = `
-.dl-page {
-    --dl-paper: #fbfcf9;
-    --dl-card: #ffffff;
-    --dl-ink: #1c2b6b;
-    --dl-ink-soft: #4a5687;
-    --dl-rule: #d3e0f5;
-    --dl-red: #d93a30;
-    --dl-yellow: #ffd24a;
-    --dl-green: #2f8f5b;
-    --dl-board: #234038;
-    --dl-chalk: #f1efe4;
-    background: var(--dl-paper);
-    color: var(--dl-ink);
-    font-family: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;
-}
-.dark .dl-page {
-    --dl-paper: #1d342d;
-    --dl-card: #26443b;
-    --dl-ink: #f1efe4;
-    --dl-ink-soft: #c3cbbf;
-    --dl-rule: rgb(255 255 255 / 0.07);
-    --dl-red: #ff8a7a;
-    --dl-green: #8fd6a8;
-    --dl-board: #12211c;
-}
-.dl-hand { font-family: 'Shantell Sans', 'Comic Sans MS', ui-rounded, sans-serif; }
-
-.dl-gutter { padding-left: 2.75rem; padding-right: 1.25rem; }
-@media (min-width: 640px) { .dl-gutter { padding-left: 6rem; padding-right: 2rem; } }
-
-/* Ruled pad paper with the red margin line */
-.dl-ruled {
-    --dl-margin: 1.75rem;
-    background-color: var(--dl-paper);
-    background-image:
-        linear-gradient(to right, transparent var(--dl-margin), var(--dl-red) var(--dl-margin), var(--dl-red) calc(var(--dl-margin) + 2px), transparent calc(var(--dl-margin) + 2px)),
-        repeating-linear-gradient(to bottom, transparent 0, transparent 31px, var(--dl-rule) 31px, var(--dl-rule) 32px);
-}
-@media (min-width: 640px) { .dl-ruled { --dl-margin: 4.5rem; } }
-
-.dl-note { color: var(--dl-red); transform: rotate(-4deg); white-space: nowrap; }
-
-.dl-btn {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-height: 3.25rem; padding: 0 1.5rem; border-radius: 0.75rem;
-    background: var(--dl-ink); color: var(--dl-paper);
-    font-weight: 700; font-size: 1.125rem;
-    box-shadow: 0 3px 0 0 color-mix(in srgb, var(--dl-ink) 55%, black);
-    transition: transform 120ms ease-out, box-shadow 120ms ease-out;
-}
-.dl-btn:hover { box-shadow: 0 3px 0 0 color-mix(in srgb, var(--dl-ink) 55%, black), 0 0 0 4px var(--dl-yellow); }
-.dl-btn:active { transform: translateY(3px); box-shadow: none; }
-.dl-btn-sm { min-height: 2.75rem; padding: 0 1.1rem; font-size: 1rem; }
-
-.dl-link {
-    color: var(--dl-ink);
-    text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 5px;
-    text-decoration-color: var(--dl-yellow);
-}
-.dl-link:hover { text-decoration-color: var(--dl-red); }
-
-/* A loose sheet from the pad */
-.dl-sheet {
-    background-color: var(--dl-card);
-    box-shadow: 0 1px 2px rgb(28 43 107 / 0.08), 0 12px 28px -16px rgb(28 43 107 / 0.25);
-    transform: rotate(0.6deg);
-}
-
-/* Index cards */
-.dl-card {
-    background-color: var(--dl-card);
-    background-image: linear-gradient(to bottom, transparent 1.25rem, var(--dl-red) 1.25rem, var(--dl-red) calc(1.25rem + 1.5px), transparent calc(1.25rem + 1.5px));
-    box-shadow: 0 1px 2px rgb(28 43 107 / 0.08), 0 10px 22px -14px rgb(28 43 107 / 0.3);
-    transform: rotate(var(--dl-tilt, 0deg));
-    transition: transform 180ms ease-out;
-}
-.dl-card:hover { transform: rotate(0deg) translateY(-2px); }
-
-.dl-tile {
-    display: flex; align-items: center; justify-content: center;
-    height: 2.5rem; min-width: 2.25rem; padding: 0 0.4rem;
-    border-radius: 0.375rem; font-size: 0.875rem;
-    background: var(--dl-ink);
-}
-.dl-tile-open { background: var(--dl-paper); color: var(--dl-ink); border: 1.5px solid var(--dl-ink-soft); }
-
-.dl-circled {
-    padding: 0.1rem 0.45rem; margin-left: -0.45rem;
-    border: 2px solid var(--dl-red); border-radius: 50% 45% 55% 48%;
-    color: var(--dl-ink); font-weight: 700;
-}
-
-.dl-board {
-    padding: 2.25rem;
-    background: var(--dl-board); color: var(--dl-chalk);
-    box-shadow: inset 0 0 0 10px #8a5a35, inset 0 0 0 12px #6f4528, 0 18px 30px -18px rgb(0 0 0 / 0.5);
-}
-.dl-board tr + tr td { border-top: 1px dashed rgb(241 239 228 / 0.18); }
-.dl-board-you td { color: var(--dl-yellow); font-weight: 700; }
-
-.dl-stamp { mix-blend-mode: multiply; opacity: 0.88; transform: rotate(-14deg); }
-.dark .dl-stamp { mix-blend-mode: normal; }
-
-@media (prefers-reduced-motion: no-preference) {
-    .dl-stamp { animation: dl-stamp-in 420ms cubic-bezier(0.2, 0.9, 0.3, 1.2) 700ms both; }
-    @keyframes dl-stamp-in {
-        0% { opacity: 0; transform: rotate(-4deg) scale(1.6); }
-        70% { opacity: 0.95; transform: rotate(-15deg) scale(0.96); }
-        100% { opacity: 0.88; transform: rotate(-14deg) scale(1); }
-    }
-}
-@media (prefers-reduced-motion: reduce) {
-    .dl-card, .dl-btn { transition: none; }
-    .dl-card:hover { transform: rotate(var(--dl-tilt, 0deg)); }
-    .dl-btn:active { transform: none; }
-}
-`;

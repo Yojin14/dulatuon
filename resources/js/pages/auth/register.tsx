@@ -24,7 +24,7 @@ export default function Register() {
     };
 
     return (
-        <AuthLayout title="Create an account" description="Enter your details below to create your account">
+        <AuthLayout title="Create your account" description="Join your class and start your first course.">
             <Head title="Register" />
 
             <form onSubmit={submit} className="flex flex-col gap-6">
@@ -88,7 +88,8 @@ export default function Register() {
 
                     <Button
                         type="submit"
-                        className="mt-4 w-full bg-blue-900 text-white hover:bg-blue-800"
+                        size="lg"
+                        className="mt-2 w-full"
                         disabled={processing}
                     >
                         {processing && (

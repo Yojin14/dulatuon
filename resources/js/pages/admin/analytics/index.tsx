@@ -2,12 +2,12 @@ import {
     BarList,
     ChartCard,
     DonutChart,
-    PORTAL_GRADIENT,
     ProgressBar,
     SectionHeader,
     STATUS_COLORS,
     TrendArea,
 } from '@/components/dashboards/shared';
+import { PageHeader } from '@/components/page-header';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
@@ -83,8 +83,8 @@ function StatCard({
     const showGrowth = typeof growth === 'number';
     const up = (growth ?? 0) >= 0;
     return (
-        <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-6 dark:border-gray-800 dark:bg-gray-900">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{label}</p>
+        <div className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
+            <p className="text-sm font-bold text-muted-foreground">{label}</p>
             <p className="mt-3 text-3xl font-bold text-gray-900 sm:mt-4 sm:text-4xl dark:text-white">{value}</p>
             {showGrowth && (
                 <div className="mt-1.5 flex items-center gap-1">
@@ -109,30 +109,20 @@ export default function AdminAnalytics({ analytics, period }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Analytics & Reports" />
-            <div className="min-h-full bg-white dark:bg-gray-950">
+            <div className="min-h-full pb-10">
 
                 {/* Header */}
-                <div className="px-4 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8" style={{ background: PORTAL_GRADIENT }}>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-yellow-300/80">
-                        Admin Portal
-                    </p>
-                    <h1 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">
-                        Analytics & Reports
-                    </h1>
-                    <p className="mt-1 text-sm text-blue-200/50">
-                        Platform insights, user engagement, and performance metrics
-                    </p>
-                </div>
+                <PageHeader title="Analytics" description="Engagement, progress and performance across every course." />
 
-                <div className="space-y-8 px-4 py-6 sm:space-y-10 sm:px-6 sm:py-8 lg:px-8">
+                <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-8 space-y-8 py-8">
 
                     {/* Toolbar */}
                     <div className="flex items-center justify-between gap-4">
-                        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Overview</p>
+                        <p className="text-sm font-bold text-muted-foreground">Overview</p>
                         <select
                             value={period}
                             onChange={(e) => changePeriod(e.target.value)}
-                            className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                            className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none focus:border-violet-400 focus:ring-1 focus:ring-violet-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
                         >
                             <option value="7d">Last 7 days</option>
                             <option value="30d">Last 30 days</option>
@@ -194,8 +184,8 @@ export default function AdminAnalytics({ analytics, period }: Props) {
                                     ['Engagement Rate',        `${userStats.userEngagement}%`],
                                 ] as [string, string | number][]).map(([label, value]) => (
                                     <div key={label} className="flex items-center justify-between px-4 py-3.5 sm:px-5">
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">{label}</p>
-                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{value}</p>
+                                        <p className="text-sm text-muted-foreground">{label}</p>
+                                        <p className="text-sm font-semibold text-foreground">{value}</p>
                                     </div>
                                 ))}
                             </div>
@@ -203,7 +193,7 @@ export default function AdminAnalytics({ analytics, period }: Props) {
 
                         <div className="space-y-4">
                             <SectionHeader title="Course Performance" />
-                            <div className="rounded-xl border border-gray-100 p-4 sm:p-5 dark:border-gray-800">
+                            <div className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
                                 <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
                                     <div className="sm:w-1/2">
                                         <DonutChart
@@ -218,8 +208,8 @@ export default function AdminAnalytics({ analytics, period }: Props) {
                                     <div className="flex flex-1 flex-col justify-center gap-4">
                                         <div>
                                             <div className="mb-1.5 flex items-center justify-between">
-                                                <span className="text-xs text-gray-600 dark:text-gray-300">Avg Completion</span>
-                                                <span className="text-xs font-semibold text-gray-900 dark:text-white">
+                                                <span className="text-xs text-muted-foreground">Avg Completion</span>
+                                                <span className="text-xs font-semibold text-foreground">
                                                     {courseStats.completionRate}%
                                                 </span>
                                             </div>
@@ -227,8 +217,8 @@ export default function AdminAnalytics({ analytics, period }: Props) {
                                         </div>
                                         <div>
                                             <div className="mb-1.5 flex items-center justify-between">
-                                                <span className="text-xs text-gray-600 dark:text-gray-300">Average Rating</span>
-                                                <span className="flex items-center gap-1 text-xs font-semibold text-gray-900 dark:text-white">
+                                                <span className="text-xs text-muted-foreground">Average Rating</span>
+                                                <span className="flex items-center gap-1 text-xs font-semibold text-foreground">
                                                     <Star className="h-3 w-3 text-amber-400" />
                                                     {courseStats.averageRating ? `${courseStats.averageRating} / 5` : 'N/A'}
                                                 </span>
@@ -253,21 +243,21 @@ export default function AdminAnalytics({ analytics, period }: Props) {
                                             {index + 1}
                                         </span>
                                         <div className="min-w-0 flex-1">
-                                            <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{course.title}</p>
+                                            <p className="truncate text-sm font-medium text-foreground">{course.title}</p>
                                             <p className="text-xs text-gray-400">{course.instructor}</p>
                                         </div>
                                         <div className="hidden shrink-0 items-center gap-6 sm:flex">
                                             <div className="text-right">
-                                                <p className="text-sm font-semibold text-gray-900 dark:text-white">{course.enrolledStudents}</p>
-                                                <p className="text-[10px] uppercase tracking-wide text-gray-400">Students</p>
+                                                <p className="text-sm font-semibold text-foreground">{course.enrolledStudents}</p>
+                                                <p className="text-xs font-semibold text-muted-foreground">Students</p>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-sm font-semibold text-gray-900 dark:text-white">{course.completionRate}%</p>
-                                                <p className="text-[10px] uppercase tracking-wide text-gray-400">Progress</p>
+                                                <p className="text-sm font-semibold text-foreground">{course.completionRate}%</p>
+                                                <p className="text-xs font-semibold text-muted-foreground">Progress</p>
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <Star className="h-3.5 w-3.5 text-amber-400" />
-                                                <p className="text-sm font-semibold text-gray-900 dark:text-white">{course.rating || 'N/A'}</p>
+                                                <p className="text-sm font-semibold text-foreground">{course.rating || 'N/A'}</p>
                                             </div>
                                         </div>
                                     </div>

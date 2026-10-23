@@ -131,7 +131,7 @@ export default function QuakeTracker({ items, onFinish }: QuakeTrackerProps) {
     };
 
     const continueButton = (onClick: () => void) => (
-        <Button onClick={onClick} className="h-11 bg-violet-600 font-bold text-white hover:bg-violet-700">
+        <Button onClick={onClick} className="h-12 w-full text-base">
             Continue <ArrowRight className="h-4 w-4" />
         </Button>
     );
@@ -209,7 +209,7 @@ export default function QuakeTracker({ items, onFinish }: QuakeTrackerProps) {
                             type="button"
                             disabled={playing}
                             onClick={playAftershocks}
-                            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-base font-extrabold text-white shadow-lg transition active:scale-[0.98] disabled:opacity-60"
+                            className="pressable flex h-14 items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-amber-500 to-orange-600 text-base font-extrabold text-white [--press:var(--color-orange-800)] hover:brightness-105 disabled:opacity-60"
                         >
                             <Play className="h-5 w-5" />
                             {playing ? 'Playing…' : played ? 'Play again' : 'Play what happened next'}
@@ -249,13 +249,13 @@ export default function QuakeTracker({ items, onFinish }: QuakeTrackerProps) {
                         <StepHeading eyebrow="Map complete" title="What you found out" />
                         <ul className="flex flex-col gap-2">
                             {TAKEAWAYS.map((line) => (
-                                <li key={line} className="flex items-start gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+                                <li key={line} className="flex items-start gap-2 text-sm font-medium text-foreground/85">
                                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
                                     {line}
                                 </li>
                             ))}
                         </ul>
-                        <Button onClick={() => onFinish(answers)} className="h-11 bg-violet-600 font-bold text-white hover:bg-violet-700">
+                        <Button onClick={() => onFinish(answers)} className="h-12 w-full text-base">
                             See my score <ArrowRight className="h-4 w-4" />
                         </Button>
                     </div>
