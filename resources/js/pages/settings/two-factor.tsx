@@ -46,8 +46,8 @@ export default function TwoFactor({
             <SettingsLayout>
                 <div className="space-y-6">
                     <HeadingSmall
-                        title="Two-Factor Authentication"
-                        description="Manage your two-factor authentication settings"
+                        title="Two-factor sign-in"
+                        description="Add a code from your phone's authenticator app each time you sign in, so only you can get into your account."
                     />
                     {twoFactorEnabled ? (
                         <div className="flex flex-col items-start justify-start space-y-4">

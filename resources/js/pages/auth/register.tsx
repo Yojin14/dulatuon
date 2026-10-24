@@ -2,16 +2,19 @@ import { Head, useForm } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 
 import InputError from '@/components/input-error';
+import { GenderChoice } from '@/components/profile/gender-choice';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
+import { type Gender } from '@/lib/avatar-presets';
 
 export default function Register() {
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         email: '',
+        gender: '' as Gender | '',
         password: '',
         password_confirmation: '',
     });
@@ -24,7 +27,10 @@ export default function Register() {
     };
 
     return (
-        <AuthLayout title="Create your account" description="Join your class and start your first course.">
+        <AuthLayout
+            title="Create your account"
+            description="Join your class and start your first course."
+        >
             <Head title="Register" />
 
             <form onSubmit={submit} className="flex flex-col gap-6">
@@ -42,6 +48,16 @@ export default function Register() {
                             placeholder="Full name"
                         />
                         <InputError message={errors.name} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label>Gender</Label>
+                        <GenderChoice
+                            value={data.gender}
+                            onChange={(gender) => setData('gender', gender)}
+                            invalid={Boolean(errors.gender)}
+                        />
+                        <InputError message={errors.gender} />
                     </div>
 
                     <div className="grid gap-2">
@@ -65,7 +81,9 @@ export default function Register() {
                             type="password"
                             name="password"
                             value={data.password}
-                            onChange={(e) => setData('password', e.target.value)}
+                            onChange={(e) =>
+                                setData('password', e.target.value)
+                            }
                             autoComplete="new-password"
                             placeholder="Password"
                         />
@@ -73,13 +91,17 @@ export default function Register() {
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="password_confirmation">Confirm password</Label>
+                        <Label htmlFor="password_confirmation">
+                            Confirm password
+                        </Label>
                         <Input
                             id="password_confirmation"
                             type="password"
                             name="password_confirmation"
                             value={data.password_confirmation}
-                            onChange={(e) => setData('password_confirmation', e.target.value)}
+                            onChange={(e) =>
+                                setData('password_confirmation', e.target.value)
+                            }
                             autoComplete="new-password"
                             placeholder="Confirm password"
                         />

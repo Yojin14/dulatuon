@@ -22,7 +22,7 @@ class SyncStudentProgress extends Command
         $count = 0;
         Enrollment::query()->with('user')->chunkById(200, function ($enrollments) use (&$count): void {
             foreach ($enrollments as $enrollment) {
-                $enrollment->recalculateProgress();
+                $enrollment->recalculateProgress(announce: false);
                 $count++;
             }
         });

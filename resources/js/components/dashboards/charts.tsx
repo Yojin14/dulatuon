@@ -1,8 +1,20 @@
 import { useEffect, useState } from 'react';
 
 /** Brand palette used across dashboard charts. */
-export const CHART_COLORS = ['#7c3aed', '#0ea5e9', '#16a34a', '#f59e0b', '#e11d48'];
-export const STATUS_COLORS = ['#16a34a', '#f59e0b', '#dc2626', '#6b7280', '#7c3aed'];
+export const CHART_COLORS = [
+    '#7c3aed',
+    '#0ea5e9',
+    '#16a34a',
+    '#f59e0b',
+    '#e11d48',
+];
+export const STATUS_COLORS = [
+    '#16a34a',
+    '#f59e0b',
+    '#dc2626',
+    '#6b7280',
+    '#7c3aed',
+];
 
 /**
  * Returns false on the first paint, then true after mount — a one-shot flag for
@@ -43,7 +55,11 @@ export function TrendArea({
     const animate = useMountAnimation();
 
     if (data.length === 0) {
-        return <div className="flex h-full items-center justify-center text-xs text-gray-400">No data</div>;
+        return (
+            <div className="flex h-full items-center justify-center text-xs text-gray-400">
+                No data
+            </div>
+        );
     }
 
     const max = Math.max(1, ...data.map((d) => d.value)) * 1.15;
@@ -57,19 +73,44 @@ export function TrendArea({
         return [x, y] as const;
     });
 
-    const line = coords.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`).join(' ');
+    const line = coords
+        .map(
+            ([x, y], i) =>
+                `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`,
+        )
+        .join(' ');
     const area = `${line} L${W},${H} L0,${H} Z`;
 
-    const labelIdx = [0, Math.floor((n - 1) / 2), n - 1].filter((v, i, a) => a.indexOf(v) === i);
+    const labelIdx = [0, Math.floor((n - 1) / 2), n - 1].filter(
+        (v, i, a) => a.indexOf(v) === i,
+    );
 
     return (
         <div className="flex h-full w-full flex-col">
             <div className="relative min-h-0 flex-1">
-                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
+                <svg
+                    viewBox={`0 0 ${W} ${H}`}
+                    preserveAspectRatio="none"
+                    className="absolute inset-0 h-full w-full"
+                >
                     <defs>
-                        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={color} stopOpacity={0.32} />
-                            <stop offset="100%" stopColor={color} stopOpacity={0} />
+                        <linearGradient
+                            id={gradientId}
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                        >
+                            <stop
+                                offset="0%"
+                                stopColor={color}
+                                stopOpacity={0.32}
+                            />
+                            <stop
+                                offset="100%"
+                                stopColor={color}
+                                stopOpacity={0}
+                            />
                         </linearGradient>
                     </defs>
                     {[25, 50, 75].map((g) => (
@@ -87,7 +128,10 @@ export function TrendArea({
                     <path
                         d={area}
                         fill={`url(#${gradientId})`}
-                        style={{ opacity: animate ? 1 : 0, transition: 'opacity 0.9s ease' }}
+                        style={{
+                            opacity: animate ? 1 : 0,
+                            transition: 'opacity 0.9s ease',
+                        }}
                     />
                     <path
                         d={line}
@@ -112,15 +156,20 @@ export function TrendArea({
                             <div key={i} className="group relative flex-1">
                                 <span
                                     className="absolute left-1/2 h-2 w-2 -translate-x-1/2 translate-y-1/2 rounded-full opacity-0 ring-2 ring-white transition group-hover:opacity-100 dark:ring-gray-900"
-                                    style={{ bottom: `${pct}%`, background: color }}
+                                    style={{
+                                        bottom: `${pct}%`,
+                                        background: color,
+                                    }}
                                 />
                                 <div
-                                    className="pointer-events-none absolute left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900/95 px-2 py-1 text-center text-[10px] font-medium text-white opacity-0 shadow-sm transition group-hover:opacity-100"
+                                    className="pointer-events-none absolute left-1/2 z-10 -translate-x-1/2 rounded-md bg-gray-900/95 px-2 py-1 text-center text-[10px] font-medium whitespace-nowrap text-white opacity-0 shadow-sm transition group-hover:opacity-100"
                                     style={{ bottom: `calc(${pct}% + 10px)` }}
                                 >
                                     {d.value}
                                     {unit}
-                                    <span className="block text-[9px] font-normal text-gray-300">{d.label}</span>
+                                    <span className="block text-[9px] font-normal text-gray-300">
+                                        {d.label}
+                                    </span>
                                 </div>
                             </div>
                         );
@@ -154,7 +203,11 @@ export function BarList({
     const animate = useMountAnimation();
 
     if (items.length === 0) {
-        return <div className="flex h-full items-center justify-center text-xs text-gray-400">No data</div>;
+        return (
+            <div className="flex h-full items-center justify-center text-xs text-gray-400">
+                No data
+            </div>
+        );
     }
 
     const scale = max ?? Math.max(1, ...items.map((i) => i.value));
@@ -173,13 +226,15 @@ export function BarList({
                         <div
                             className="h-full rounded-md transition-[width] duration-700 ease-out"
                             style={{
-                                width: animate ? `${Math.min(100, (it.value / scale) * 100)}%` : '0%',
+                                width: animate
+                                    ? `${Math.min(100, (it.value / scale) * 100)}%`
+                                    : '0%',
                                 background: colors[i % colors.length],
                             }}
                         />
                     </div>
                     {showValue && (
-                        <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums text-foreground/85">
+                        <span className="w-10 shrink-0 text-right text-xs font-semibold text-foreground/85 tabular-nums">
                             {it.value}
                             {unit}
                         </span>
@@ -211,20 +266,39 @@ export function DonutChart({
     const total = data.reduce((s, d) => s + d.value, 0);
 
     if (total === 0) {
-        return <div className="flex h-full items-center justify-center text-xs text-gray-400">No data</div>;
+        return (
+            <div className="flex h-full items-center justify-center text-xs text-gray-400">
+                No data
+            </div>
+        );
     }
 
     const r = (size - thickness) / 2;
     const circ = 2 * Math.PI * r;
-    let acc = 0;
+    const dashes = data.map((d) => (d.value / total) * circ);
+    const offsets = dashes.map((_, i) =>
+        dashes.slice(0, i).reduce((sum, dash) => sum + dash, 0),
+    );
 
     return (
         <div className="flex h-full items-center justify-center gap-4 sm:gap-6">
-            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90 shrink-0">
-                <circle cx={size / 2} cy={size / 2} r={r} fill="none" className="stroke-gray-100 dark:stroke-gray-800" strokeWidth={thickness} />
+            <svg
+                width={size}
+                height={size}
+                viewBox={`0 0 ${size} ${size}`}
+                className="shrink-0 -rotate-90"
+            >
+                <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={r}
+                    fill="none"
+                    className="stroke-gray-100 dark:stroke-gray-800"
+                    strokeWidth={thickness}
+                />
                 {data.map((d, i) => {
-                    const dash = (d.value / total) * circ;
-                    const segment = (
+                    const dash = dashes[i];
+                    return (
                         <circle
                             key={i}
                             cx={size / 2}
@@ -233,24 +307,29 @@ export function DonutChart({
                             fill="none"
                             stroke={colors[i % colors.length]}
                             strokeWidth={thickness}
-                            strokeDasharray={animate ? `${dash} ${circ - dash}` : `0 ${circ}`}
-                            strokeDashoffset={-acc}
+                            strokeDasharray={
+                                animate ? `${dash} ${circ - dash}` : `0 ${circ}`
+                            }
+                            strokeDashoffset={-offsets[i]}
                             style={{ transition: 'stroke-dasharray 0.8s ease' }}
                         />
                     );
-                    acc += dash;
-                    return segment;
                 })}
             </svg>
 
             <div className="flex flex-col gap-2">
                 {data.map((d, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs">
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: colors[i % colors.length] }} />
+                        <span
+                            className="h-2.5 w-2.5 shrink-0 rounded-sm"
+                            style={{ background: colors[i % colors.length] }}
+                        />
                         <span className="text-muted-foreground">{d.name}</span>
-                        <span className="font-semibold tabular-nums text-foreground">
+                        <span className="font-semibold text-foreground tabular-nums">
                             {d.value}
-                            <span className="ml-1 font-normal text-gray-400">({Math.round((d.value / total) * 100)}%)</span>
+                            <span className="ml-1 font-normal text-gray-400">
+                                ({Math.round((d.value / total) * 100)}%)
+                            </span>
                         </span>
                     </div>
                 ))}

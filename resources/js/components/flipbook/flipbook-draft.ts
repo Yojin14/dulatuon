@@ -16,7 +16,12 @@ export interface FlipbookDraft {
 const PREFIX = 'dulatuon:flipbook-draft:';
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
-export function flipbookDraftKey(userId: number | string | undefined, courseId: string | undefined, lessonId: string | number, contentId?: number | string): string {
+export function flipbookDraftKey(
+    userId: number | string | undefined,
+    courseId: string | undefined,
+    lessonId: string | number,
+    contentId?: number | string,
+): string {
     return `${PREFIX}${userId ?? 'guest'}:${courseId ?? 'local'}:${lessonId}:${contentId ?? 'new'}`;
 }
 
@@ -27,7 +32,10 @@ export function readFlipbookDraft(key: string): FlipbookDraft | null {
             return null;
         }
         const draft = JSON.parse(raw) as FlipbookDraft;
-        if (!Array.isArray(draft.pages) || Date.now() - draft.savedAt > MAX_AGE_MS) {
+        if (
+            !Array.isArray(draft.pages) ||
+            Date.now() - draft.savedAt > MAX_AGE_MS
+        ) {
             window.localStorage.removeItem(key);
             return null;
         }
@@ -37,11 +45,22 @@ export function readFlipbookDraft(key: string): FlipbookDraft | null {
     }
 }
 
-export function writeFlipbookDraft(key: string, draft: Omit<FlipbookDraft, 'savedAt'>): boolean {
+export function writeFlipbookDraft(
+    key: string,
+    draft: Omit<FlipbookDraft, 'savedAt'>,
+): boolean {
     try {
         // Local preview images (blob: URLs) die with the tab, so they are not worth keeping.
-        const pages = draft.pages.map((page) => ({ ...page, images: page.images.filter((image) => !image.url.startsWith('blob:')) }));
-        window.localStorage.setItem(key, JSON.stringify({ ...draft, pages, savedAt: Date.now() }));
+        const pages = draft.pages.map((page) => ({
+            ...page,
+            images: page.images.filter(
+                (image) => !image.url.startsWith('blob:'),
+            ),
+        }));
+        window.localStorage.setItem(
+            key,
+            JSON.stringify({ ...draft, pages, savedAt: Date.now() }),
+        );
         return true;
     } catch {
         return false;
@@ -57,7 +76,12 @@ export function clearFlipbookDraft(key: string): void {
 }
 
 /** Debounced autosave of the current flipbook while `enabled`, reporting when each save lands. */
-export function useFlipbookAutosave(key: string, draft: Omit<FlipbookDraft, 'savedAt'>, enabled: boolean, onSaved: (savedAt: number | null) => void): void {
+export function useFlipbookAutosave(
+    key: string,
+    draft: Omit<FlipbookDraft, 'savedAt'>,
+    enabled: boolean,
+    onSaved: (savedAt: number | null) => void,
+): void {
     const serialised = JSON.stringify(draft);
 
     useEffect(() => {
@@ -65,7 +89,11 @@ export function useFlipbookAutosave(key: string, draft: Omit<FlipbookDraft, 'sav
             return;
         }
         const timer = window.setTimeout(() => {
-            onSaved(writeFlipbookDraft(key, JSON.parse(serialised)) ? Date.now() : null);
+            onSaved(
+                writeFlipbookDraft(key, JSON.parse(serialised))
+                    ? Date.now()
+                    : null,
+            );
         }, 600);
 
         return () => window.clearTimeout(timer);
@@ -78,5 +106,10 @@ export function formatDraftTime(savedAt: number): string {
 
     return sameDay
         ? date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-        : date.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        : date.toLocaleString([], {
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+          });
 }

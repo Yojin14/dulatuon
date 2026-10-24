@@ -1,4 +1,5 @@
 import { SectionHeader } from '@/components/dashboards/shared';
+import { PageHeader } from '@/components/page-header';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,6 @@ import {
 } from '@/components/ui/select';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useInitials } from '@/hooks/use-initials';
-import { PageHeader } from '@/components/page-header';
 import AppLayout from '@/layouts/app-layout';
 import { alertDialog, confirmDialog, formDialog } from '@/lib/dialog';
 import { toast } from '@/lib/toast';
@@ -124,7 +124,9 @@ export default function AdminUsersIndex() {
     const debouncedSearch = useDebounce(searchTerm);
     const didMountRef = useRef(false);
     const currentTabRef = useRef(currentTab);
-    currentTabRef.current = currentTab;
+    useEffect(() => {
+        currentTabRef.current = currentTab;
+    }, [currentTab]);
 
     const navigate = useCallback((params: Record<string, string>) => {
         router.get('/admin/users', params, {
@@ -180,7 +182,12 @@ export default function AdminUsersIndex() {
             {
                 preserveScroll: true,
                 onSuccess: () => toast(`Role changed to ${role}.`, 'success'),
-                onError: () => alertDialog({ title: 'Could not change role', description: 'Please try again.', tone: 'error' }),
+                onError: () =>
+                    alertDialog({
+                        title: 'Could not change role',
+                        description: 'Please try again.',
+                        tone: 'error',
+                    }),
             },
         );
     }, []);
@@ -189,7 +196,9 @@ export default function AdminUsersIndex() {
         const action = user.is_active ? 'Deactivate' : 'Activate';
         const confirmed = await confirmDialog({
             title: `${action} ${user.name}?`,
-            description: user.is_active ? 'They will not be able to log in until reactivated.' : 'They will be able to log in again.',
+            description: user.is_active
+                ? 'They will not be able to log in until reactivated.'
+                : 'They will be able to log in again.',
             confirmLabel: action,
             tone: user.is_active ? 'danger' : 'default',
         });
@@ -201,8 +210,17 @@ export default function AdminUsersIndex() {
             {},
             {
                 preserveScroll: true,
-                onSuccess: () => toast(`${user.name} has been ${action.toLowerCase()}d.`, 'success'),
-                onError: () => alertDialog({ title: 'Could not update status', description: 'Please try again.', tone: 'error' }),
+                onSuccess: () =>
+                    toast(
+                        `${user.name} has been ${action.toLowerCase()}d.`,
+                        'success',
+                    ),
+                onError: () =>
+                    alertDialog({
+                        title: 'Could not update status',
+                        description: 'Please try again.',
+                        tone: 'error',
+                    }),
             },
         );
     }, []);
@@ -210,7 +228,8 @@ export default function AdminUsersIndex() {
     const handleDelete = useCallback(async (user: User) => {
         const confirmed = await confirmDialog({
             title: `Delete ${user.name}?`,
-            description: "Their account and progress are removed permanently. This can't be undone.",
+            description:
+                "Their account and progress are removed permanently. This can't be undone.",
             confirmLabel: 'Delete user',
             tone: 'danger',
         });
@@ -220,7 +239,12 @@ export default function AdminUsersIndex() {
         router.delete(`/admin/users/${user.id}`, {
             preserveScroll: true,
             onSuccess: () => toast(`${user.name} has been removed.`, 'success'),
-            onError: () => alertDialog({ title: 'Could not delete user', description: 'Please try again.', tone: 'error' }),
+            onError: () =>
+                alertDialog({
+                    title: 'Could not delete user',
+                    description: 'Please try again.',
+                    tone: 'error',
+                }),
         });
     }, []);
 
@@ -229,8 +253,17 @@ export default function AdminUsersIndex() {
             title: `Message ${user.name}`,
             confirmLabel: 'Send',
             fields: [
-                { name: 'subject', label: 'Subject', placeholder: 'What is this about?' },
-                { name: 'message', label: 'Message', placeholder: 'Write your message', multiline: true },
+                {
+                    name: 'subject',
+                    label: 'Subject',
+                    placeholder: 'What is this about?',
+                },
+                {
+                    name: 'message',
+                    label: 'Message',
+                    placeholder: 'Write your message',
+                    multiline: true,
+                },
             ],
         });
         if (!values) {
@@ -242,7 +275,12 @@ export default function AdminUsersIndex() {
             {
                 preserveScroll: true,
                 onSuccess: () => toast('Message sent.', 'success'),
-                onError: () => alertDialog({ title: 'Could not send message', description: 'Please try again.', tone: 'error' }),
+                onError: () =>
+                    alertDialog({
+                        title: 'Could not send message',
+                        description: 'Please try again.',
+                        tone: 'error',
+                    }),
             },
         );
     }, []);
@@ -251,8 +289,12 @@ export default function AdminUsersIndex() {
         async (user: User) => {
             const isGranting = !user.has_class_management;
             const confirmed = await confirmDialog({
-                title: isGranting ? 'Grant class management?' : 'Revoke class management?',
-                description: isGranting ? `${user.name} will be able to manage classes.` : `${user.name} will no longer be able to manage classes.`,
+                title: isGranting
+                    ? 'Grant class management?'
+                    : 'Revoke class management?',
+                description: isGranting
+                    ? `${user.name} will be able to manage classes.`
+                    : `${user.name} will no longer be able to manage classes.`,
                 confirmLabel: isGranting ? 'Grant' : 'Revoke',
                 tone: isGranting ? 'default' : 'danger',
             });
@@ -264,8 +306,19 @@ export default function AdminUsersIndex() {
                 { permission: 'class_management', tab: currentTab },
                 {
                     preserveScroll: true,
-                    onSuccess: () => toast(isGranting ? `${user.name} can now manage classes.` : `${user.name} can no longer manage classes.`, 'success'),
-                    onError: () => alertDialog({ title: 'Could not update permission', description: 'Please try again.', tone: 'error' }),
+                    onSuccess: () =>
+                        toast(
+                            isGranting
+                                ? `${user.name} can now manage classes.`
+                                : `${user.name} can no longer manage classes.`,
+                            'success',
+                        ),
+                    onError: () =>
+                        alertDialog({
+                            title: 'Could not update permission',
+                            description: 'Please try again.',
+                            tone: 'error',
+                        }),
                 },
             );
         },
@@ -286,8 +339,14 @@ export default function AdminUsersIndex() {
             {},
             {
                 preserveScroll: true,
-                onFinish: () => toast(`${user.name}'s email is verified.`, 'success'),
-                onError: () => alertDialog({ title: 'Could not verify email', description: 'Please try again.', tone: 'error' }),
+                onFinish: () =>
+                    toast(`${user.name}'s email is verified.`, 'success'),
+                onError: () =>
+                    alertDialog({
+                        title: 'Could not verify email',
+                        description: 'Please try again.',
+                        tone: 'error',
+                    }),
             },
         );
     }, []);
@@ -300,7 +359,7 @@ export default function AdminUsersIndex() {
             student:
                 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
         };
-        return map[role] ?? 'bg-gray-100 text-gray-800';
+        return map[role] ?? 'bg-muted text-foreground';
     }, []);
 
     const columns = useMemo<DataTableColumn<User>[]>(() => {
@@ -362,7 +421,7 @@ export default function AdminUsersIndex() {
                     className={
                         u.is_active
                             ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                            : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                            : 'bg-muted text-muted-foreground dark:text-muted-foreground'
                     }
                 >
                     {u.is_active ? 'Active' : 'Inactive'}
@@ -396,7 +455,7 @@ export default function AdminUsersIndex() {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuLabel className="text-xs text-gray-500">
+                        <DropdownMenuLabel className="text-xs text-muted-foreground">
                             Change Role
                         </DropdownMenuLabel>
                         {['admin', 'teacher', 'student']
@@ -414,7 +473,7 @@ export default function AdminUsersIndex() {
                         {u.role === 'teacher' && (
                             <>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuLabel className="text-xs text-gray-500">
+                                <DropdownMenuLabel className="text-xs text-muted-foreground">
                                     Privileges
                                 </DropdownMenuLabel>
                                 <DropdownMenuItem
@@ -443,7 +502,7 @@ export default function AdminUsersIndex() {
                             disabled={!!u.email_verified_at}
                         >
                             <MailCheck
-                                className={`mr-2 h-4 w-4 ${u.email_verified_at ? 'text-green-500' : 'text-gray-400'}`}
+                                className={`mr-2 h-4 w-4 ${u.email_verified_at ? 'text-green-500' : 'text-muted-foreground'}`}
                             />
                             {u.email_verified_at
                                 ? 'Email Verified'
@@ -498,7 +557,7 @@ export default function AdminUsersIndex() {
 
     const emptyState = useMemo(
         () => (
-            <div className="flex flex-col items-center gap-2 text-gray-400">
+            <div className="flex flex-col items-center gap-2 text-muted-foreground">
                 <Users className="h-10 w-10" />
                 <p>No users found</p>
             </div>
@@ -531,18 +590,21 @@ export default function AdminUsersIndex() {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="User Management" />
             <div className="min-h-full pb-10">
-                <PageHeader title="Users" description="Accounts, roles and access for everyone on Dulatuon." />
+                <PageHeader
+                    title="Users"
+                    description="Accounts, roles and access for everyone on Dulatuon."
+                />
 
-                <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-8 space-y-8 py-8">
+                <div className="mx-auto w-full max-w-[1600px] space-y-8 px-5 py-8 sm:px-8">
                     <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                         <div className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
                             <p className="text-sm font-bold text-muted-foreground">
                                 Total Users
                             </p>
-                            <p className="mt-3 text-3xl font-bold text-gray-900 sm:mt-4 sm:text-4xl dark:text-white">
+                            <p className="mt-3 text-3xl font-bold text-foreground sm:mt-4 sm:text-4xl dark:text-white">
                                 {stats.total_users}
                             </p>
-                            <p className="mt-1 text-xs text-gray-400">
+                            <p className="mt-1 text-xs text-muted-foreground">
                                 {stats.active_users} active
                             </p>
                         </div>
@@ -551,10 +613,10 @@ export default function AdminUsersIndex() {
                             <p className="text-sm font-bold text-muted-foreground">
                                 Admins
                             </p>
-                            <p className="mt-3 text-3xl font-bold text-gray-900 sm:mt-4 sm:text-4xl dark:text-white">
+                            <p className="mt-3 text-3xl font-bold text-foreground sm:mt-4 sm:text-4xl dark:text-white">
                                 {stats.admins}
                             </p>
-                            <p className="mt-1 text-xs text-gray-400">
+                            <p className="mt-1 text-xs text-muted-foreground">
                                 Platform managers
                             </p>
                         </div>
@@ -563,10 +625,10 @@ export default function AdminUsersIndex() {
                             <p className="text-sm font-bold text-muted-foreground">
                                 Teachers
                             </p>
-                            <p className="mt-3 text-3xl font-bold text-gray-900 sm:mt-4 sm:text-4xl dark:text-white">
+                            <p className="mt-3 text-3xl font-bold text-foreground sm:mt-4 sm:text-4xl dark:text-white">
                                 {stats.teachers}
                             </p>
-                            <p className="mt-1 text-xs text-gray-400">
+                            <p className="mt-1 text-xs text-muted-foreground">
                                 Active instructors
                             </p>
                         </div>
@@ -575,10 +637,10 @@ export default function AdminUsersIndex() {
                             <p className="text-sm font-bold text-muted-foreground">
                                 Students
                             </p>
-                            <p className="mt-3 text-3xl font-bold text-gray-900 sm:mt-4 sm:text-4xl dark:text-white">
+                            <p className="mt-3 text-3xl font-bold text-foreground sm:mt-4 sm:text-4xl dark:text-white">
                                 {stats.students}
                             </p>
-                            <p className="mt-1 text-xs text-gray-400">
+                            <p className="mt-1 text-xs text-muted-foreground">
                                 Enrolled learners
                             </p>
                         </div>
@@ -586,7 +648,7 @@ export default function AdminUsersIndex() {
 
                     <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
                         <div className="relative max-w-sm flex-1">
-                            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 placeholder="Search by name or email…"
                                 className="pl-10"

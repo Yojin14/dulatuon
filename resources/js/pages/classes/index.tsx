@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -7,7 +8,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { PageHeader } from '@/components/page-header';
 import AppLayout from '@/layouts/app-layout';
 import { apiFetch } from '@/lib/api-fetch';
 import { type BreadcrumbItem, type SharedData } from '@/types';
@@ -47,7 +47,8 @@ interface APIStudent {
         subject_code?: string | null;
         subject_title?: string | null;
         room_code?: string | null;
-        day?: string | null;
+        day?: string | string[] | null;
+        subject_id?: number | string | null;
         time_slot?: string | null;
         time_slot_end?: string | null;
     }>;
@@ -70,12 +71,22 @@ interface Class {
     subjects_count: number;
 }
 
-interface PageProps extends SharedData {}
+type PageProps = SharedData;
+
+type Schedule = NonNullable<APIStudent['schedules']>[number];
 
 export default function ClassesIndex() {
     const { auth, apiServerUrl } = usePage<PageProps>().props;
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [fetching, setLoading] = useState(true);
+    const [fetchError, setError] = useState<string | null>(null);
+    // Missing configuration is known up front, so it's derived rather than stored.
+    const configError = !auth.user?.sso_token
+        ? 'No SSO token found. Please log in with AIMS.'
+        : !apiServerUrl
+          ? 'API server URL is not configured.'
+          : null;
+    const loading = !configError && fetching;
+    const error = configError ?? fetchError;
     const [allClasses, setAllClasses] = useState<Class[]>([]);
     const [allStudentsData, setAllStudentsData] = useState<APIStudent[]>([]); // Store all students data
     const [filters, setFilters] = useState({
@@ -86,27 +97,15 @@ export default function ClassesIndex() {
 
     // Fetch classes from API
     const fetchClasses = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        setAllClasses([]);
-
         const ssoToken = auth.user?.sso_token;
-        if (!ssoToken) {
-            setError('No SSO token found. Please log in with AIMS.');
-            setLoading(false);
-            return;
-        }
-
-        if (!apiServerUrl) {
-            setError('API server URL is not configured.');
-            setLoading(false);
+        if (!ssoToken || !apiServerUrl) {
             return;
         }
 
         try {
             // Use the same students endpoint and transform data into classes
             const apiUrl = `${apiServerUrl}/api/hive/get-students`;
-            const responseData = await apiFetch(apiUrl, ssoToken);
+            const responseData = await apiFetch(apiUrl, String(ssoToken));
 
             // Extract students array from response
             let studentsArray: APIStudent[] = [];
@@ -145,7 +144,7 @@ export default function ClassesIndex() {
                 const sectionId = student.section_id;
 
                 // Handle schedules - can be array or object
-                let schedulesArray: any[] = [];
+                let schedulesArray: Schedule[] = [];
 
                 if (student.schedules) {
                     if (Array.isArray(student.schedules)) {
@@ -159,7 +158,7 @@ export default function ClassesIndex() {
 
                 // If student has schedules, create a class for each subject
                 if (schedulesArray.length > 0) {
-                    schedulesArray.forEach((schedule: any) => {
+                    schedulesArray.forEach((schedule) => {
                         const subjectCode = schedule?.subject_code || null;
                         const subjectTitle = schedule?.subject_title || null;
                         const roomCode = schedule?.room_code || null;
@@ -244,8 +243,11 @@ export default function ClassesIndex() {
 
     // Fetch classes on mount
     useEffect(() => {
-        fetchClasses();
-    }, [fetchClasses]);
+        if (!configError) {
+            // Start the request after this effect; state is only set once the response arrives.
+            void Promise.resolve().then(fetchClasses);
+        }
+    }, [configError, fetchClasses]);
 
     // Filter classes
     const filteredClasses = useMemo(() => {
@@ -332,7 +334,10 @@ export default function ClassesIndex() {
     };
 
     const retryFetch = () => {
-        fetchClasses();
+        setLoading(true);
+        setError(null);
+        setAllClasses([]);
+        void fetchClasses();
     };
 
     return (
@@ -340,7 +345,10 @@ export default function ClassesIndex() {
             <Head title="Classes" />
             <div className="min-h-full pb-10">
                 {/* Header */}
-                <PageHeader title="Classes" description="Pick a class to manage students, attendance, assignments and more." />
+                <PageHeader
+                    title="Classes"
+                    description="Pick a class to manage students, attendance, assignments and more."
+                />
 
                 <div className="mx-auto w-full max-w-[1600px] space-y-8 px-5 py-8 sm:px-8">
                     {/* Filters */}
@@ -451,9 +459,9 @@ export default function ClassesIndex() {
 
                     {/* Loading State */}
                     {loading && (
-                        <div className="flex flex-col items-center justify-center rounded-xl border border-gray-100 py-12 dark:border-gray-800">
-                            <Loader2 className="h-7 w-7 animate-spin text-gray-300 dark:text-gray-600" />
-                            <span className="mt-3 text-sm text-gray-400">
+                        <div className="flex flex-col items-center justify-center rounded-xl border border-border py-12">
+                            <Loader2 className="h-7 w-7 animate-spin text-muted-foreground/60 dark:text-muted-foreground" />
+                            <span className="mt-3 text-sm text-muted-foreground">
                                 Loading classes...
                             </span>
                         </div>
@@ -482,14 +490,14 @@ export default function ClassesIndex() {
                             {filteredClasses.map((classItem) => (
                                 <div
                                     key={`${classItem.section_id}-${classItem.section_name}-${classItem.subject_code || classItem.subject_title || 'no-subject'}`}
-                                    className="flex flex-col rounded-xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900"
+                                    className="flex flex-col rounded-xl border border-border bg-card p-5"
                                 >
                                     <div className="mb-4 flex items-start justify-between gap-2">
                                         <div className="min-w-0 flex-1">
                                             <p className="text-sm font-semibold text-foreground">
                                                 {classItem.subject_title}
                                             </p>
-                                            <p className="text-xs text-gray-400">
+                                            <p className="text-xs text-muted-foreground">
                                                 {classItem.coursedesc || 'N/A'}
                                             </p>
                                         </div>
@@ -503,13 +511,13 @@ export default function ClassesIndex() {
                                     </div>
                                     <div className="mb-4 space-y-1.5">
                                         {classItem.section_name && (
-                                            <div className="flex items-center gap-2 text-xs text-gray-400">
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                                 <Users className="h-3.5 w-3.5" />
                                                 {classItem.section_name}
                                             </div>
                                         )}
                                         {classItem.semesterdesc && (
-                                            <div className="flex items-center gap-2 text-xs text-gray-400">
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                                 <Calendar className="h-3.5 w-3.5" />
                                                 {classItem.semesterdesc}
                                                 {classItem.sydesc
@@ -519,7 +527,7 @@ export default function ClassesIndex() {
                                         )}
                                         {classItem.day &&
                                             classItem.time_slot && (
-                                                <div className="flex items-center gap-2 text-xs text-gray-400">
+                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                                     <Clock className="h-3.5 w-3.5" />
                                                     {classItem.day} •{' '}
                                                     {classItem.time_slot}
@@ -530,7 +538,7 @@ export default function ClassesIndex() {
                                             )}
                                     </div>
                                     <Button
-                                        className="mt-auto w-full bg-violet-900 hover:bg-violet-800"
+                                        className="mt-auto w-full"
                                         onClick={() => {
                                             if (allStudentsData.length > 0) {
                                                 sessionStorage.setItem(
@@ -552,13 +560,13 @@ export default function ClassesIndex() {
                             ))}
                         </div>
                     ) : !loading && !error && allClasses.length === 0 ? (
-                        <div className="flex flex-col items-center gap-3 rounded-xl border border-gray-100 py-12 text-center dark:border-gray-800">
-                            <BookOpen className="h-8 w-8 text-gray-200 dark:text-gray-700" />
+                        <div className="flex flex-col items-center gap-3 rounded-xl border border-border py-12 text-center">
+                            <BookOpen className="h-8 w-8 text-muted-foreground/40" />
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">
                                     No classes found
                                 </p>
-                                <p className="mt-0.5 text-xs text-gray-400">
+                                <p className="mt-0.5 text-xs text-muted-foreground">
                                     You don't have any assigned classes yet.
                                 </p>
                             </div>
@@ -575,13 +583,13 @@ export default function ClassesIndex() {
                       !error &&
                       allClasses.length > 0 &&
                       filteredClasses.length === 0 ? (
-                        <div className="flex flex-col items-center gap-3 rounded-xl border border-gray-100 py-12 text-center dark:border-gray-800">
-                            <BookOpen className="h-8 w-8 text-gray-200 dark:text-gray-700" />
+                        <div className="flex flex-col items-center gap-3 rounded-xl border border-border py-12 text-center">
+                            <BookOpen className="h-8 w-8 text-muted-foreground/40" />
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">
                                     No matching classes
                                 </p>
-                                <p className="mt-0.5 text-xs text-gray-400">
+                                <p className="mt-0.5 text-xs text-muted-foreground">
                                     No classes match the selected filters.
                                 </p>
                             </div>

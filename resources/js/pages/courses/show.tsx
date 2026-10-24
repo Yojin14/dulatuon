@@ -1,404 +1,172 @@
+import { EmptyState } from '@/components/game/empty-state';
+import { LowPolyBlock } from '@/components/game/low-poly-scene';
+import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import { WorldChip } from '@/components/world/world-scope';
 import AppLayout from '@/layouts/app-layout';
+import { worldFor } from '@/lib/worlds';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Head, router, usePage } from '@inertiajs/react';
-import {
-    ArrowLeft,
-    BookOpen,
-    Clock,
-    Edit,
-    Play,
-    Star,
-    Users,
-} from 'lucide-react';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { ArrowRight, Clock, GraduationCap, Layers, Pencil, Users } from 'lucide-react';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Dashboard',
-        href: '/dashboard',
-    },
-    {
-        title: 'Courses',
-        href: '/courses',
-    },
-    {
-        title: 'Course Details',
-        href: '#',
-    },
-];
+interface CourseDetails {
+    id: number;
+    title: string;
+    course_code: string;
+    description: string | null;
+    short_description: string | null;
+    level: string;
+    status: 'draft' | 'published' | 'archived' | string;
+    thumbnail: string | null;
+    thumbnail_focus: string | null;
+    max_students: number | null;
+    teachers: { id: number; name: string }[];
+    modules: { id: number; title: string }[];
+    modules_count: number;
+    enrollments_count: number;
+    updated_at: string | null;
+}
 
-// TODO: Replace with real data from API
-const course = null;
+const STATUS: Record<string, { label: string; variant: 'success' | 'warning' | 'secondary' }> = {
+    published: { label: 'Published', variant: 'success' },
+    draft: { label: 'Draft', variant: 'warning' },
+    archived: { label: 'Archived', variant: 'secondary' },
+};
 
-export default function CourseShow() {
-    const { auth, courseId } = usePage<SharedData & { courseId: number }>()
-        .props;
-    const user = auth.user;
+/** Course overview for teachers and admins: what's in it, who teaches it, and where to go next. */
+export default function CourseShow({ course }: { course: CourseDetails }) {
+    const { auth } = usePage<SharedData>().props;
+    const canEdit = auth.user.role === 'admin' || auth.user.role === 'teacher';
+    const world = worldFor({ title: course.title, course_code: course.course_code });
+    const status = STATUS[course.status] ?? { label: course.status, variant: 'secondary' as const };
 
-    const canEditCourse = user.role === 'admin' || user.role === 'teacher';
-    const canEnrollCourse = user.role === 'student';
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: 'Dashboard', href: '/dashboard' },
+        { title: 'Courses', href: '/courses' },
+        { title: course.title, href: `/courses/${course.id}` },
+    ];
 
-    const handleBack = () => {
-        router.visit('/courses');
-    };
-
-    const handleEdit = () => {
-        router.visit(`/courses/${courseId}/edit`);
-    };
-
-    const handleEnroll = () => {
-        if (confirm('Are you sure you want to enroll in this course?')) {
-            alert(
-                'Successfully enrolled in the course! (This is a demo - no actual enrollment occurred)',
-            );
-        }
-    };
-
-    const handleStartLesson = (moduleId: number) => {
-        alert(`Starting lesson for module ${moduleId} (This is a demo)`);
-    };
-
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'active':
-                return 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700';
-            case 'draft':
-                return 'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700';
-            case 'archived':
-                return 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-700';
-            default:
-                return 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-700';
-        }
-    };
-
-    if (!course) {
-        return (
-            <AppLayout breadcrumbs={breadcrumbs}>
-                <Head title="Course Not Found" />
-                <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-8 flex flex-1 flex-col gap-6 py-8">
-                    <div className="flex h-64 items-center justify-center">
-                        <div className="text-center">
-                            <BookOpen className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                            <h3 className="mb-2 text-lg font-semibold">
-                                Course Not Found
-                            </h3>
-                            <p className="mb-4 text-muted-foreground">
-                                The course you're looking for doesn't exist.
-                            </p>
-                            <Button
-                                onClick={handleBack}
-                                className="bg-green-700 hover:bg-green-800"
-                            >
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back to Courses
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            </AppLayout>
-        );
-    }
+    const facts = [
+        { icon: Layers, label: 'Modules', value: course.modules_count },
+        { icon: Users, label: 'Students', value: course.max_students ? `${course.enrollments_count} / ${course.max_students}` : course.enrollments_count },
+        { icon: GraduationCap, label: 'Level', value: course.level },
+        { icon: Clock, label: 'Updated', value: course.updated_at ?? '' },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`${course.title} - Course Details`} />
-            <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-8 flex flex-1 flex-col gap-6 py-8">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleBack}
-                        >
-                            <ArrowLeft className="mr-2 h-4 w-4" />
-                            Back to Courses
-                        </Button>
-                        <div>
-                            <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                                {course.title}
-                            </h1>
-                            <p className="mt-1 text-muted-foreground">
-                                by {(course as any).teachers?.[0]?.name ?? 'No instructor'}
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <Badge className={getStatusColor(course.status)}>
-                            {course.status}
-                        </Badge>
-                        {canEditCourse && (
-                            <Button
-                                onClick={handleEdit}
-                                className="bg-green-700 hover:bg-green-800"
-                            >
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit Course
+            <Head title={course.title} />
+            <div className="min-h-full pb-10">
+                <PageHeader
+                    title={course.title}
+                    description={course.short_description || `Course code ${course.course_code}`}
+                    actions={
+                        <>
+                            <Button asChild variant="outline">
+                                <Link href={`/my-course/${course.id}`}>
+                                    Open course <ArrowRight />
+                                </Link>
                             </Button>
-                        )}
-                        {canEnrollCourse && (
-                            <Button
-                                onClick={handleEnroll}
-                                className="bg-green-700 hover:bg-green-800"
-                            >
-                                Enroll Now
-                            </Button>
-                        )}
-                    </div>
-                </div>
+                            {canEdit && (
+                                <Button asChild>
+                                    <Link href={`/courses/${course.id}/edit`}>
+                                        <Pencil /> Edit details
+                                    </Link>
+                                </Button>
+                            )}
+                        </>
+                    }
+                />
 
-                <div className="grid gap-6 lg:grid-cols-3">
-                    {/* Main Content */}
-                    <div className="space-y-6 lg:col-span-2">
-                        {/* Course Overview */}
-                        <Card className="border-2 transition-all duration-300 hover:border-green-600 hover:shadow-lg dark:hover:border-green-400">
-                            <CardHeader>
-                                <CardTitle className="text-foreground">
-                                    Course Overview
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <p className="text-muted-foreground">
-                                    {course.description}
-                                </p>
-
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <h4 className="font-medium">
-                                            Learning Objectives
-                                        </h4>
-                                        <ul className="space-y-1 text-sm text-muted-foreground">
-                                            {course.learningObjectives?.map(
-                                                (objective, index) => (
-                                                    <li
-                                                        key={index}
-                                                        className="flex items-start space-x-2"
-                                                    >
-                                                        <Star className="mt-0.5 h-4 w-4 flex-shrink-0 text-yellow-500" />
-                                                        <span>{objective}</span>
-                                                    </li>
-                                                ),
-                                            )}
-                                        </ul>
+                <div className="mx-auto grid w-full max-w-[1600px] gap-6 px-5 py-8 sm:px-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+                    <div className="flex min-w-0 flex-col gap-6">
+                        {/* Cover */}
+                        <section className="relative overflow-hidden rounded-3xl border shadow-panel">
+                            <div className="relative aspect-[16/6] w-full" style={{ background: world.accentSoft }}>
+                                {course.thumbnail ? (
+                                    <img
+                                        src={course.thumbnail}
+                                        alt=""
+                                        className="h-full w-full object-cover"
+                                        style={{ objectPosition: course.thumbnail_focus ?? 'center' }}
+                                    />
+                                ) : (
+                                    <div className="grid h-full place-items-center bg-world-sky">
+                                        <LowPolyBlock biome={world.biome} className="w-40 drop-shadow-[0_18px_18px_rgba(85,48,28,0.25)] sm:w-52" />
                                     </div>
-
-                                    <div className="space-y-2">
-                                        <h4 className="font-medium">
-                                            Prerequisites
-                                        </h4>
-                                        <ul className="space-y-1 text-sm text-muted-foreground">
-                                            {course.prerequisites?.map(
-                                                (prerequisite, index) => (
-                                                    <li
-                                                        key={index}
-                                                        className="flex items-start space-x-2"
-                                                    >
-                                                        <BookOpen className="mt-0.5 h-4 w-4 flex-shrink-0 text-violet-500" />
-                                                        <span>
-                                                            {prerequisite}
-                                                        </span>
-                                                    </li>
-                                                ),
-                                            )}
-                                        </ul>
-                                    </div>
+                                )}
+                                <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                                    <WorldChip world={world} />
+                                    <Badge variant={status.variant}>{status.label}</Badge>
                                 </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Course Modules */}
-                        <Card className="border-2 transition-all duration-300 hover:border-green-600 hover:shadow-lg dark:hover:border-green-400">
-                            <CardHeader>
-                                <CardTitle className="text-foreground">
-                                    Course Modules
-                                </CardTitle>
-                                <CardDescription>
-                                    Complete all modules to finish the course
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    {course.modules?.map((module) => (
-                                        <div
-                                            key={module.id}
-                                            className="flex items-center justify-between rounded-lg border p-4"
-                                        >
-                                            <div className="flex-1 space-y-2">
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30">
-                                                        <BookOpen className="h-5 w-5 text-green-700 dark:text-green-400" />
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="font-semibold text-foreground">
-                                                            {module.title}
-                                                        </h3>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            {module.description}
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="ml-13 space-y-2">
-                                                    <div className="flex items-center justify-between text-sm">
-                                                        <span>Progress</span>
-                                                        <span>
-                                                            {module.progress}%
-                                                        </span>
-                                                    </div>
-                                                    <Progress
-                                                        value={module.progress}
-                                                        className="w-full"
-                                                    />
-
-                                                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                                                        <span>
-                                                            {module.lessons}{' '}
-                                                            lessons
-                                                        </span>
-                                                        <span>
-                                                            {module.duration}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="ml-4">
-                                                <Button
-                                                    className={
-                                                        module.progress > 0
-                                                            ? 'bg-green-700 hover:bg-green-800'
-                                                            : 'border-green-700 text-green-700 hover:bg-green-50 dark:border-green-400 dark:text-green-400 dark:hover:bg-green-900/20'
-                                                    }
-                                                    variant={
-                                                        module.progress > 0
-                                                            ? 'default'
-                                                            : 'outline'
-                                                    }
-                                                    onClick={() =>
-                                                        handleStartLesson(
-                                                            module.id,
-                                                        )
-                                                    }
-                                                >
-                                                    <Play className="mr-2 h-4 w-4" />
-                                                    {module.progress > 0
-                                                        ? 'Continue'
-                                                        : 'Start'}
-                                                </Button>
-                                            </div>
+                            </div>
+                            <dl className="grid grid-cols-2 divide-x divide-y bg-card sm:grid-cols-4 sm:divide-y-0">
+                                {facts.map((fact) => (
+                                    <div key={fact.label} className="flex items-center gap-3 px-5 py-4">
+                                        <fact.icon className="size-5 shrink-0 text-primary" aria-hidden />
+                                        <div className="min-w-0">
+                                            <dt className="text-xs font-semibold text-muted-foreground">{fact.label}</dt>
+                                            <dd className="truncate font-display font-extrabold">{fact.value}</dd>
                                         </div>
+                                    </div>
+                                ))}
+                            </dl>
+                        </section>
+
+                        <section className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
+                            <h2 className="text-lg font-bold tracking-[-0.01em]">About this course</h2>
+                            <p className="mt-2 leading-relaxed whitespace-pre-line text-muted-foreground">
+                                {course.description || 'No description yet. Add one from Edit details so students know what they will learn.'}
+                            </p>
+                        </section>
+
+                        <section className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
+                            <h2 className="text-lg font-bold tracking-[-0.01em]">Modules</h2>
+                            {course.modules.length === 0 ? (
+                                <EmptyState className="mt-4" title="No modules yet" description="Open the course and switch to edit mode to add modules and lessons." />
+                            ) : (
+                                <ol className="mt-4 flex flex-col gap-2">
+                                    {course.modules.map((module, i) => (
+                                        <li key={module.id} className="flex items-center gap-3 rounded-2xl bg-muted/50 px-4 py-3">
+                                            <span className="grid size-8 shrink-0 place-items-center bg-primary font-display text-sm font-extrabold text-primary-foreground [clip-path:polygon(50%_0,93%_25%,93%_75%,50%_100%,7%_75%,7%_25%)]">
+                                                {i + 1}
+                                            </span>
+                                            <span className="min-w-0 truncate font-semibold">{module.title}</span>
+                                        </li>
                                     ))}
-                                </div>
-                            </CardContent>
-                        </Card>
+                                </ol>
+                            )}
+                        </section>
                     </div>
 
-                    {/* Sidebar */}
-                    <div className="space-y-6">
-                        {/* Course Stats */}
-                        <Card className="border-2 transition-all duration-300 hover:border-green-600 hover:shadow-lg dark:hover:border-green-400">
-                            <CardHeader>
-                                <CardTitle className="text-foreground">
-                                    Course Statistics
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-2">
-                                        <Users className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-sm">
-                                            Students
-                                        </span>
-                                    </div>
-                                    <span className="font-medium text-green-700 dark:text-green-400">
-                                        {course.enrolledStudents}
-                                    </span>
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-2">
-                                        <BookOpen className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-sm">Lessons</span>
-                                    </div>
-                                    <span className="font-medium text-green-700 dark:text-green-400">
-                                        {course.totalLessons}
-                                    </span>
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-2">
-                                        <Clock className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-sm">
-                                            Duration
-                                        </span>
-                                    </div>
-                                    <span className="font-medium text-green-700 dark:text-green-400">
-                                        {course.duration}
-                                    </span>
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-2">
-                                        <Star className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-sm">Rating</span>
-                                    </div>
-                                    <span className="font-medium text-green-700 dark:text-green-400">
-                                        {course.rating}/5
-                                    </span>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Course Info */}
-                        <Card className="border-2 transition-all duration-300 hover:border-green-600 hover:shadow-lg dark:hover:border-green-400">
-                            <CardHeader>
-                                <CardTitle className="text-foreground">
-                                    Course Information
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">
-                                        Category
-                                    </span>
-                                    <Badge variant="outline">
-                                        {course.category}
-                                    </Badge>
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">
-                                        Created
-                                    </span>
-                                    <span className="text-sm">
-                                        {new Date(
-                                            course.createdAt,
-                                        ).toLocaleDateString()}
-                                    </span>
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">
-                                        Last Updated
-                                    </span>
-                                    <span className="text-sm">
-                                        {new Date(
-                                            course.updatedAt,
-                                        ).toLocaleDateString()}
-                                    </span>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                    <aside className="flex flex-col gap-6">
+                        <section className="rounded-3xl border bg-card p-5 shadow-panel">
+                            <h2 className="text-lg font-bold tracking-[-0.01em]">Teachers</h2>
+                            {course.teachers.length === 0 ? (
+                                <p className="mt-2 text-sm text-muted-foreground">No teacher assigned yet.</p>
+                            ) : (
+                                <ul className="mt-3 flex flex-col gap-2">
+                                    {course.teachers.map((teacher) => (
+                                        <li key={teacher.id} className="flex items-center gap-3">
+                                            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-violet-100 text-xs font-extrabold text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
+                                                {teacher.name
+                                                    .split(/\s+/)
+                                                    .slice(0, 2)
+                                                    .map((part) => part[0]?.toUpperCase())
+                                                    .join('')}
+                                            </span>
+                                            <span className="truncate font-semibold">{teacher.name}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </section>
+                        <section className="rounded-3xl border bg-card p-5 shadow-panel">
+                            <h2 className="text-lg font-bold tracking-[-0.01em]">Course code</h2>
+                            <p className="mt-1 font-mono text-sm tracking-wide uppercase">{course.course_code}</p>
+                        </section>
+                    </aside>
                 </div>
             </div>
         </AppLayout>

@@ -1,6 +1,12 @@
 import { CoverGallery } from '@/components/cover/cover-gallery';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { GripVertical, Image as ImageIcon, Upload, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 
@@ -31,7 +37,12 @@ export function CourseThumbnailField({
     const inputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const imgRef = useRef<HTMLImageElement>(null);
-    const dragRef = useRef<{ startX: number; startY: number; fx: number; fy: number } | null>(null);
+    const dragRef = useRef<{
+        startX: number;
+        startY: number;
+        fx: number;
+        fy: number;
+    } | null>(null);
     const focusPosRef = useRef({ x: initialFocusX, y: initialFocusY });
 
     const [isDragging, setIsDragging] = useState(false);
@@ -39,12 +50,16 @@ export function CourseThumbnailField({
     const [presetId, setPresetId] = useState<string | null>(null);
     const [focusX, setFocusX] = useState(initialFocusX);
     const [focusY, setFocusY] = useState(initialFocusY);
-    focusPosRef.current = { x: focusX, y: focusY };
 
     function handleDragStart(e: React.MouseEvent) {
         e.preventDefault();
         const { x, y } = focusPosRef.current;
-        dragRef.current = { startX: e.clientX, startY: e.clientY, fx: x, fy: y };
+        dragRef.current = {
+            startX: e.clientX,
+            startY: e.clientY,
+            fx: x,
+            fy: y,
+        };
         setIsDragging(true);
     }
 
@@ -66,8 +81,14 @@ export function CourseThumbnailField({
         const overflowY = Math.max(1, nh * scale - ch);
         const dx = e.clientX - dragRef.current.startX;
         const dy = e.clientY - dragRef.current.startY;
-        const newX = Math.max(0, Math.min(100, dragRef.current.fx - (dx / overflowX) * 100));
-        const newY = Math.max(0, Math.min(100, dragRef.current.fy - (dy / overflowY) * 100));
+        const newX = Math.max(
+            0,
+            Math.min(100, dragRef.current.fx - (dx / overflowX) * 100),
+        );
+        const newY = Math.max(
+            0,
+            Math.min(100, dragRef.current.fy - (dy / overflowY) * 100),
+        );
         setFocusX(newX);
         setFocusY(newY);
         focusPosRef.current = { x: newX, y: newY };
@@ -98,7 +119,8 @@ export function CourseThumbnailField({
                     Course cover
                 </CardTitle>
                 <CardDescription>
-                    Shown on the course card. Pick a ready-made Dulatuon cover or upload your own (1280×720px works best).
+                    Shown on the course card. Pick a ready-made Dulatuon cover
+                    or upload your own (1280×720px works best).
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -118,7 +140,7 @@ export function CourseThumbnailField({
                 <div
                     hidden={!preview || showGallery}
                     ref={containerRef}
-                    className={`relative w-full select-none overflow-hidden rounded-xl bg-gray-100 ring-1 ring-gray-200 dark:bg-gray-800 dark:ring-gray-700 ${preview ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+                    className={`relative w-full overflow-hidden rounded-xl bg-gray-100 ring-1 ring-gray-200 select-none dark:bg-gray-800 dark:ring-gray-700 ${preview ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
                     style={{ aspectRatio: '16 / 7' }}
                     onMouseDown={preview ? handleDragStart : undefined}
                     onMouseMove={preview ? handleDragMove : undefined}
@@ -133,9 +155,11 @@ export function CourseThumbnailField({
                                 alt=""
                                 draggable={false}
                                 className="pointer-events-none h-full w-full object-cover"
-                                style={{ objectPosition: `${focusX}% ${focusY}%` }}
+                                style={{
+                                    objectPosition: `${focusX}% ${focusY}%`,
+                                }}
                             />
-                            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center bg-linear-to-t from-black/50 to-transparent pb-2 pt-8">
+                            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center bg-linear-to-t from-black/50 to-transparent pt-8 pb-2">
                                 <span className="flex items-center gap-1.5 text-[11px] font-medium text-white/90">
                                     <GripVertical className="h-3 w-3" />
                                     Drag to reposition
@@ -149,8 +173,12 @@ export function CourseThumbnailField({
                             className="flex h-full w-full flex-col items-center justify-center gap-2 text-gray-400 transition-colors hover:bg-gray-200/60 hover:text-gray-600 dark:hover:bg-gray-700/50"
                         >
                             <Upload className="h-8 w-8" />
-                            <span className="text-sm font-medium">Click to upload photo</span>
-                            <span className="text-xs">JPG, PNG, WebP · Max 4 MB</span>
+                            <span className="text-sm font-medium">
+                                Click to upload photo
+                            </span>
+                            <span className="text-xs">
+                                JPG, PNG, WebP · Max 4 MB
+                            </span>
                         </button>
                     )}
                 </div>
@@ -178,9 +206,16 @@ export function CourseThumbnailField({
                     />
                     {preview ? (
                         <>
-                            <Button type="button" variant="outline" size="sm" onClick={() => setShowGallery((open) => !open)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowGallery((open) => !open)}
+                            >
                                 <ImageIcon className="h-4 w-4" />
-                                {showGallery ? 'Keep current cover' : 'Change cover'}
+                                {showGallery
+                                    ? 'Keep current cover'
+                                    : 'Change cover'}
                             </Button>
                             <Button
                                 type="button"

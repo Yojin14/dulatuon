@@ -12,6 +12,7 @@ import { type ReactNode } from 'react';
 const ROMAN: Record<1 | 2 | 3, string> = { 1: 'I', 2: 'II', 3: 'III' };
 
 const EMBLEM_SIZES = {
+    xs: { box: 'size-5', text: 'text-[8px]', icon: 'size-3' },
     sm: { box: 'size-8', text: 'text-[11px]', icon: 'size-3.5' },
     md: { box: 'size-11', text: 'text-sm', icon: 'size-5' },
     lg: { box: 'size-16', text: 'text-lg', icon: 'size-7' },

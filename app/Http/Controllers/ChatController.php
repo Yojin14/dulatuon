@@ -153,7 +153,7 @@ class ChatController extends Controller
     private function fetchMessages(ChatRoom $room): Collection
     {
         return $room->messages()
-            ->with('user:id,name')
+            ->with('user:id,name,avatar')
             ->latest()
             ->take(60)
             ->get()
@@ -166,13 +166,14 @@ class ChatController extends Controller
     private function fetchReaders(ChatRoom $room, int $excludeUserId): Collection
     {
         return $room->participants()
-            ->with('user:id,name')
+            ->with('user:id,name,avatar')
             ->where('user_id', '!=', $excludeUserId)
             ->whereNotNull('last_read_at')
             ->get()
             ->map(fn ($p) => [
                 'user_id' => $p->user_id,
                 'name' => $p->user->name,
+                'avatar' => $p->user->avatar,
                 'last_read_at' => $p->last_read_at->toIso8601String(),
             ]);
     }
@@ -186,6 +187,7 @@ class ChatController extends Controller
             'user' => [
                 'id' => $message->user->id,
                 'name' => $message->user->name,
+                'avatar' => $message->user->avatar,
             ],
         ];
     }

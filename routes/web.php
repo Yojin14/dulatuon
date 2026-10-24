@@ -72,6 +72,7 @@ Route::middleware(['auth', 'verified', 'throttle:global'])->group(function () {
     Route::post('my-course/{courseId}/thumbnail', [App\Http\Controllers\ClassController::class, 'uploadThumbnail'])->name('my-course.thumbnail');
     Route::patch('my-course/{courseId}/thumbnail-focus', [App\Http\Controllers\ClassController::class, 'updateThumbnailFocus'])->name('my-course.thumbnail-focus');
     Route::get('my-course/{courseId}/leaderboard', App\Http\Controllers\CourseLeaderboardController::class)->name('my-course.leaderboard');
+    Route::get('my-course/{courseId}/games/{gameId}/insights', App\Http\Controllers\GameInsightsController::class)->name('my-course.game-insights');
 
     // ── Curriculum API (teacher + admin) ──────────────────────────────────────
     Route::middleware(['role:teacher,admin'])->prefix('curriculum')->name('curriculum.')->group(function () {

@@ -1,4 +1,6 @@
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { RankAvatar } from '@/components/game/rank-avatar';
+import { PageHeader } from '@/components/page-header';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -10,7 +12,6 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { PageHeader } from '@/components/page-header';
 import AppLayout from '@/layouts/app-layout';
 import { alertDialog, confirmDialog } from '@/lib/dialog';
 import { type BreadcrumbItem, type SharedData } from '@/types';
@@ -34,7 +35,14 @@ import {
     Video,
     X,
 } from 'lucide-react';
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    Fragment,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,6 +56,9 @@ interface DbStudent {
     name: string;
     email: string;
     progress_percentage: number;
+    /** Overall XP across all their courses (rank frame). */
+    xp?: number;
+    avatar?: string | null;
     enrollment_status: string;
     enrollment_id: number;
 }
@@ -56,6 +67,7 @@ interface DbInstructor {
     id: number;
     name: string;
     email: string;
+    avatar?: string | null;
 }
 
 interface DbCourse {
@@ -187,11 +199,11 @@ function OverviewTab({
                         {avg}%
                     </span>
                 </div>
-                <p className="mb-3 text-xs text-gray-400">
+                <p className="mb-3 text-xs text-muted-foreground">
                     Average across all {students.length} enrolled students
                 </p>
                 <Bar value={avg} />
-                <div className="mt-3 flex flex-wrap gap-5 text-xs text-gray-500">
+                <div className="mt-3 flex flex-wrap gap-5 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                         <span className="h-2 w-2 rounded-full bg-emerald-500" />
                         {done} completed
@@ -201,7 +213,7 @@ function OverviewTab({
                         {inProg} in progress
                     </span>
                     <span className="flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-gray-300" />
+                        <span className="h-2 w-2 rounded-full bg-muted-foreground/40" />
                         {notStarted} not started
                     </span>
                 </div>
@@ -209,18 +221,18 @@ function OverviewTab({
 
             {course.modules.length > 0 && (
                 <div className="rounded-3xl border bg-card shadow-panel">
-                    <div className="border-b border-gray-100 px-5 py-3.5 dark:border-gray-800">
+                    <div className="border-b border-border px-5 py-3.5">
                         <p className="text-sm font-semibold text-foreground">
                             Modules ({course.modules.length})
                         </p>
                     </div>
-                    <div className="divide-y divide-gray-50 dark:divide-gray-800">
+                    <div className="divide-y divide-border">
                         {course.modules.map((m, i) => (
                             <div
                                 key={m.id}
                                 className={`flex items-center gap-4 px-5 py-3.5 ${moduleId === m.id ? 'bg-violet-50/60 dark:bg-violet-900/10' : ''}`}
                             >
-                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-xs font-bold text-gray-500 dark:bg-gray-800">
+                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-bold text-muted-foreground">
                                     {i + 1}
                                 </span>
                                 <p className="flex-1 text-sm text-foreground">
@@ -285,15 +297,15 @@ function StudentsTab({
                     onChange={(e) => setSearch(e.target.value)}
                     className="h-9 max-w-xs text-sm"
                 />
-                <span className="shrink-0 text-xs text-gray-400">
+                <span className="shrink-0 text-xs text-muted-foreground">
                     {filtered.length} student{filtered.length !== 1 ? 's' : ''}
                 </span>
             </div>
 
             {filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <Users className="mb-3 h-10 w-10 text-gray-200" />
-                    <p className="text-sm font-medium text-gray-500">
+                    <Users className="mb-3 h-10 w-10 text-muted-foreground/40" />
+                    <p className="text-sm font-medium text-muted-foreground">
                         {search
                             ? 'No students match your search'
                             : 'No students enrolled'}
@@ -301,10 +313,10 @@ function StudentsTab({
                 </div>
             ) : (
                 <>
-                    <div className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white sm:block dark:border-gray-800 dark:bg-gray-900">
+                    <div className="hidden overflow-hidden rounded-xl border border-border bg-card sm:block">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
+                                <tr className="border-b border-border bg-muted/50">
                                     <th className="px-5 py-3 text-left text-xs font-bold text-muted-foreground">
                                         Student
                                     </th>
@@ -316,7 +328,7 @@ function StudentsTab({
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                            <tbody className="divide-y divide-border">
                                 {filtered.map((s) => (
                                     <tr
                                         key={s.id}
@@ -324,16 +336,17 @@ function StudentsTab({
                                     >
                                         <td className="px-5 py-3.5">
                                             <div className="flex items-center gap-3">
-                                                <Avatar className="h-8 w-8 shrink-0">
-                                                    <AvatarFallback className="bg-violet-600 text-xs font-bold text-white">
-                                                        {initials(s.name)}
-                                                    </AvatarFallback>
-                                                </Avatar>
+                                                <RankAvatar
+                                                    name={s.name}
+                                                    src={s.avatar}
+                                                    xp={s.xp ?? 0}
+                                                    size="sm"
+                                                />
                                                 <div>
                                                     <p className="font-semibold text-foreground">
                                                         {s.name}
                                                     </p>
-                                                    <p className="text-xs text-gray-400">
+                                                    <p className="text-xs text-muted-foreground">
                                                         {s.email}
                                                     </p>
                                                 </div>
@@ -357,7 +370,7 @@ function StudentsTab({
                                                     s.enrollment_status ===
                                                     'active'
                                                         ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20'
-                                                        : 'bg-gray-50 text-gray-500 ring-gray-400/20'
+                                                        : 'bg-muted/50 text-muted-foreground ring-border'
                                                 }`}
                                             >
                                                 {s.enrollment_status
@@ -381,11 +394,11 @@ function StudentsTab({
                                 className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6"
                             >
                                 <div className="flex items-center gap-3">
-                                    <Avatar className="h-9 w-9 shrink-0">
-                                        <AvatarFallback className="bg-violet-600 text-sm font-bold text-white">
-                                            {initials(s.name)}
-                                        </AvatarFallback>
-                                    </Avatar>
+                                    <RankAvatar
+                                        name={s.name}
+                                        src={s.avatar}
+                                        xp={s.xp ?? 0}
+                                    />
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center justify-between">
                                             <p className="truncate text-sm font-semibold text-foreground">
@@ -395,7 +408,7 @@ function StudentsTab({
                                                 {s.progress_percentage}%
                                             </span>
                                         </div>
-                                        <p className="text-xs text-gray-400">
+                                        <p className="text-xs text-muted-foreground">
                                             {s.email}
                                         </p>
                                         <Bar value={s.progress_percentage} />
@@ -416,16 +429,21 @@ function PeopleTab({ course }: { course: DbCourse }) {
     return (
         <div className="space-y-4">
             <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <GraduationCap className="h-4 w-4 text-gray-400" /> Instructors
+                <GraduationCap className="h-4 w-4 text-muted-foreground" />{' '}
+                Instructors
             </p>
             {course.teachers && course.teachers.length > 0 ? (
                 <div className="space-y-2">
                     {course.teachers.map((teacher) => (
                         <div
                             key={teacher.id}
-                            className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-5 py-4 dark:border-gray-800 dark:bg-gray-900"
+                            className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4"
                         >
                             <Avatar className="h-10 w-10">
+                                <AvatarImage
+                                    src={teacher.avatar ?? undefined}
+                                    alt=""
+                                />
                                 <AvatarFallback className="bg-violet-700 text-sm font-bold text-white">
                                     {initials(teacher.name)}
                                 </AvatarFallback>
@@ -434,7 +452,7 @@ function PeopleTab({ course }: { course: DbCourse }) {
                                 <p className="text-sm font-semibold text-foreground">
                                     {teacher.name}
                                 </p>
-                                <p className="text-xs text-gray-400">
+                                <p className="text-xs text-muted-foreground">
                                     {teacher.email}
                                 </p>
                             </div>
@@ -445,7 +463,7 @@ function PeopleTab({ course }: { course: DbCourse }) {
                     ))}
                 </div>
             ) : (
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                     No instructors assigned.
                 </p>
             )}
@@ -483,11 +501,12 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
     const [posting, setPosting] = useState(false);
     const [comments, setComments] = useState<Record<number, string>>({});
 
-    // Reseed when switching to a different course
-    useEffect(() => {
+    // Reseed when switching to a different course (adjusted during render, not in an effect).
+    const [seededCourseId, setSeededCourseId] = useState(course.id);
+    if (seededCourseId !== course.id) {
+        setSeededCourseId(course.id);
         setItems(course.announcements ?? []);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [course.id]);
+    }
 
     const refetch = useCallback(() => {
         axios
@@ -515,13 +534,19 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
         if (!newMsg.trim() || posting) return;
         setPosting(true);
         axios
-            .post(`/courses/${course.id}/announcements`, { body: newMsg.trim() })
+            .post(`/courses/${course.id}/announcements`, {
+                body: newMsg.trim(),
+            })
             .then((r) => {
                 setItems((prev) => [r.data, ...prev]);
                 setNewMsg('');
             })
             .catch(() =>
-                alertDialog({ title: 'Could not post', description: 'Check your connection and try again.', tone: 'error' }),
+                alertDialog({
+                    title: 'Could not post',
+                    description: 'Check your connection and try again.',
+                    tone: 'error',
+                }),
             )
             .finally(() => setPosting(false));
     }
@@ -535,14 +560,21 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
                 setItems((prev) =>
                     prev.map((a) =>
                         a.id === id
-                            ? { ...a, comments: [...a.comments, r.data.comment] }
+                            ? {
+                                  ...a,
+                                  comments: [...a.comments, r.data.comment],
+                              }
                             : a,
                     ),
                 );
                 setComments((p) => ({ ...p, [id]: '' }));
             })
             .catch(() =>
-                alertDialog({ title: 'Could not comment', description: 'Check your connection and try again.', tone: 'error' }),
+                alertDialog({
+                    title: 'Could not comment',
+                    description: 'Check your connection and try again.',
+                    tone: 'error',
+                }),
             );
     }
 
@@ -556,9 +588,7 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
         if (confirmed) {
             axios
                 .delete(`/announcements/${id}`)
-                .then(() =>
-                    setItems((prev) => prev.filter((a) => a.id !== id)),
-                )
+                .then(() => setItems((prev) => prev.filter((a) => a.id !== id)))
                 .catch(() => {});
         }
     }
@@ -611,8 +641,8 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
 
             {items.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <MessageSquare className="mb-3 h-8 w-8 text-gray-200" />
-                    <p className="text-sm text-gray-400">
+                    <MessageSquare className="mb-3 h-8 w-8 text-muted-foreground/40" />
+                    <p className="text-sm text-muted-foreground">
                         No announcements yet. Post one above.
                     </p>
                 </div>
@@ -635,7 +665,7 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
                                         <p className="text-sm font-semibold text-foreground">
                                             {authorName}
                                         </p>
-                                        <p className="text-xs text-gray-400">
+                                        <p className="text-xs text-muted-foreground">
                                             {relativeTime(a.created_at)}
                                         </p>
                                     </div>
@@ -646,16 +676,17 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
                                 <button
                                     onClick={() => removeAnnouncement(a.id)}
                                     title="Delete announcement"
-                                    className="shrink-0 rounded-md p-1.5 text-gray-300 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
+                                    className="shrink-0 rounded-md p-1.5 text-muted-foreground/60 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
                                 >
                                     <X className="h-4 w-4" />
                                 </button>
                             </div>
 
                             {a.comments.length > 0 && (
-                                <div className="space-y-3 border-t border-gray-100 bg-gray-50/60 px-5 py-4 dark:border-gray-800 dark:bg-gray-800/20">
+                                <div className="space-y-3 border-t border-border bg-muted/30 px-5 py-4">
                                     {a.comments.map((c) => {
-                                        const cName = c.author?.name ?? 'Unknown';
+                                        const cName =
+                                            c.author?.name ?? 'Unknown';
                                         const canDelete =
                                             c.author?.id === me.id ||
                                             me.role !== 'student';
@@ -665,7 +696,7 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
                                                 className="group flex items-start gap-3"
                                             >
                                                 <Avatar className="h-7 w-7 shrink-0">
-                                                    <AvatarFallback className="bg-gray-200 text-[10px] font-bold text-gray-600">
+                                                    <AvatarFallback className="bg-muted text-[10px] font-bold text-muted-foreground">
                                                         {initials(cName)}
                                                     </AvatarFallback>
                                                 </Avatar>
@@ -674,13 +705,13 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
                                                         <p className="text-xs font-semibold text-foreground">
                                                             {cName}
                                                         </p>
-                                                        <p className="text-[10px] text-gray-400">
+                                                        <p className="text-[10px] text-muted-foreground">
                                                             {relativeTime(
                                                                 c.created_at,
                                                             )}
                                                         </p>
                                                     </div>
-                                                    <p className="mt-0.5 text-xs leading-relaxed whitespace-pre-wrap text-gray-500">
+                                                    <p className="mt-0.5 text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground">
                                                         {c.body}
                                                     </p>
                                                 </div>
@@ -689,7 +720,7 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
                                                         onClick={() =>
                                                             removeComment(c.id)
                                                         }
-                                                        className="shrink-0 p-1 text-gray-300 opacity-0 transition hover:text-red-500 group-hover:opacity-100"
+                                                        className="shrink-0 p-1 text-muted-foreground/60 opacity-0 transition group-hover:opacity-100 hover:text-red-500"
                                                     >
                                                         <X className="h-3 w-3" />
                                                     </button>
@@ -700,7 +731,7 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
                                 </div>
                             )}
 
-                            <div className="flex items-center gap-3 border-t border-gray-100 px-5 py-3 dark:border-gray-800">
+                            <div className="flex items-center gap-3 border-t border-border px-5 py-3">
                                 <Avatar className="h-7 w-7 shrink-0">
                                     <AvatarFallback className="bg-violet-700 text-[10px] font-bold text-white">
                                         {initials(me.name)}
@@ -726,7 +757,7 @@ function AnnouncementsTab({ course }: { course: DbCourse }) {
                                 <button
                                     onClick={() => comment(a.id)}
                                     disabled={!comments[a.id]?.trim()}
-                                    className="shrink-0 p-1.5 text-violet-600 transition-colors hover:text-violet-700 disabled:text-gray-300"
+                                    className="shrink-0 p-1.5 text-violet-600 transition-colors hover:text-violet-700 disabled:text-muted-foreground/60"
                                 >
                                     <Send className="h-3.5 w-3.5" />
                                 </button>
@@ -755,18 +786,22 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
     const toggleRow = (id: number) =>
         setOpenRows((prev) => {
             const next = new Set(prev);
-            next.has(id) ? next.delete(id) : next.add(id);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
             return next;
         });
 
     if (assignments.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-                <ClipboardList className="mb-3 h-10 w-10 text-gray-200" />
-                <p className="text-sm font-medium text-gray-500">
+                <ClipboardList className="mb-3 h-10 w-10 text-muted-foreground/40" />
+                <p className="text-sm font-medium text-muted-foreground">
                     No assignments in this course
                 </p>
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-xs text-muted-foreground">
                     Assignments you add to lessons will appear here.
                 </p>
             </div>
@@ -775,7 +810,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
 
     return (
         <div className="space-y-3">
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-muted-foreground">
                 {assignments.length} assignment
                 {assignments.length !== 1 ? 's' : ''} ·{' '}
                 {assignments.reduce((s, a) => s + a.submissions.length, 0)}{' '}
@@ -795,7 +830,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                         {/* Assignment header row */}
                         <button
                             onClick={() => setExpanded(isOpen ? null : a.id)}
-                            className="flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-gray-50/60 dark:hover:bg-gray-800/40"
+                            className="flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-muted/40"
                         >
                             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30">
                                 <PenLine className="h-4 w-4" />
@@ -804,7 +839,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                 <p className="truncate font-semibold text-foreground">
                                     {a.title}
                                 </p>
-                                <p className="truncate text-xs text-gray-400">
+                                <p className="truncate text-xs text-muted-foreground">
                                     {a.sessionTitle && (
                                         <span className="mr-2">
                                             {a.sessionTitle}
@@ -821,13 +856,13 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                     className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                                         a.submissions.length > 0
                                             ? 'bg-emerald-100 text-emerald-700'
-                                            : 'bg-gray-100 text-gray-500'
+                                            : 'bg-muted text-muted-foreground'
                                     }`}
                                 >
                                     {a.submissions.length} submitted
                                 </span>
                                 <span
-                                    className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                                    className={`text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
                                 >
                                     ▾
                                 </span>
@@ -837,16 +872,16 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                         {/* Submission list */}
                         {isOpen &&
                             (a.submissions.length === 0 ? (
-                                <div className="border-t border-gray-100 px-5 py-8 text-center dark:border-gray-800">
-                                    <FileText className="mx-auto mb-2 h-8 w-8 text-gray-200" />
-                                    <p className="text-sm text-gray-400">
+                                <div className="border-t border-border px-5 py-8 text-center">
+                                    <FileText className="mx-auto mb-2 h-8 w-8 text-muted-foreground/40" />
+                                    <p className="text-sm text-muted-foreground">
                                         No submissions yet for this assignment.
                                     </p>
                                 </div>
                             ) : (
-                                <table className="w-full border-t border-gray-100 text-sm dark:border-gray-800">
+                                <table className="w-full border-t border-border text-sm">
                                     <thead>
-                                        <tr className="bg-gray-50 dark:bg-gray-800/50">
+                                        <tr className="bg-muted/50">
                                             <th className="px-5 py-2.5 text-left text-xs font-bold text-muted-foreground">
                                                 Student
                                             </th>
@@ -864,7 +899,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                             </th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                                    <tbody className="divide-y divide-border">
                                         {a.submissions.map((s) => {
                                             const isText =
                                                 s.submissionType === 'text';
@@ -873,7 +908,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                             const rowOpen = openRows.has(s.id);
                                             return (
                                                 <Fragment key={s.id}>
-                                                    <tr className="transition-colors hover:bg-gray-50/60 dark:hover:bg-gray-800/30">
+                                                    <tr className="transition-colors hover:bg-muted/40">
                                                         <td className="px-5 py-3.5">
                                                             <div className="flex items-center gap-2.5">
                                                                 <Avatar className="h-7 w-7 shrink-0">
@@ -906,7 +941,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                                                                 .name
                                                                         }
                                                                     </p>
-                                                                    <p className="truncate text-xs text-gray-400">
+                                                                    <p className="truncate text-xs text-muted-foreground">
                                                                         {
                                                                             s
                                                                                 .student
@@ -935,7 +970,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                                                 {!isText &&
                                                                     !isVideo &&
                                                                     s.fileSize && (
-                                                                        <span className="shrink-0 text-xs text-gray-400">
+                                                                        <span className="shrink-0 text-xs text-muted-foreground">
                                                                             (
                                                                             {fmtBytes(
                                                                                 s.fileSize,
@@ -945,7 +980,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                                                     )}
                                                             </div>
                                                         </td>
-                                                        <td className="hidden px-5 py-3.5 text-xs text-gray-400 md:table-cell">
+                                                        <td className="hidden px-5 py-3.5 text-xs text-muted-foreground md:table-cell">
                                                             {s.submittedAt}
                                                         </td>
                                                         <td className="px-5 py-3.5 text-center">
@@ -975,7 +1010,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                                                             s.id,
                                                                         )
                                                                     }
-                                                                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition hover:border-violet-300 hover:text-violet-600 dark:border-gray-700 dark:text-gray-300"
+                                                                    className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-violet-300 hover:text-violet-600 dark:text-muted-foreground/60"
                                                                 >
                                                                     <Eye className="h-3.5 w-3.5" />
                                                                     {rowOpen
@@ -990,7 +1025,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                                                     }
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
-                                                                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition hover:border-violet-300 hover:text-violet-600 dark:border-gray-700 dark:text-gray-300"
+                                                                    className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-violet-300 hover:text-violet-600 dark:text-muted-foreground/60"
                                                                 >
                                                                     <ExternalLink className="h-3.5 w-3.5" />
                                                                     Open
@@ -1003,7 +1038,7 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                                                     }
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
-                                                                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition hover:border-violet-300 hover:text-violet-600 dark:border-gray-700 dark:text-gray-300"
+                                                                    className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-violet-300 hover:text-violet-600 dark:text-muted-foreground/60"
                                                                 >
                                                                     <Download className="h-3.5 w-3.5" />
                                                                     Download
@@ -1012,13 +1047,13 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                                         </td>
                                                     </tr>
                                                     {isText && rowOpen && (
-                                                        <tr className="bg-gray-50/40 dark:bg-gray-800/20">
+                                                        <tr className="bg-muted/30">
                                                             <td
                                                                 colSpan={5}
                                                                 className="px-5 py-4"
                                                             >
                                                                 <div
-                                                                    className="rte-render rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-900"
+                                                                    className="rte-render rounded-lg border border-border bg-card px-4 py-3"
                                                                     dangerouslySetInnerHTML={{
                                                                         __html:
                                                                             s.textContent ??
@@ -1092,10 +1127,11 @@ export default function ClassManagementIndex({
     // Subscribe to a class channel for each course the teacher manages
     useEffect(() => {
         if (!window.Echo) return;
+        const subscribed = subscribedCourseIds.current;
 
         courses.forEach((c) => {
-            if (subscribedCourseIds.current.has(c.id)) return;
-            subscribedCourseIds.current.add(c.id);
+            if (subscribed.has(c.id)) return;
+            subscribed.add(c.id);
 
             window.Echo.private(`class.${c.id}`).listen(
                 '.SubmissionReceived',
@@ -1106,10 +1142,10 @@ export default function ClassManagementIndex({
         });
 
         return () => {
-            subscribedCourseIds.current.forEach((id) => {
+            subscribed.forEach((id) => {
                 window.Echo.leave(`class.${id}`);
             });
-            subscribedCourseIds.current.clear();
+            subscribed.clear();
         };
     }, [courses]);
 
@@ -1151,7 +1187,7 @@ export default function ClassManagementIndex({
                     description="Students, modules, submissions and announcements for your class."
                 />
 
-                <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-8 space-y-6 py-8">
+                <div className="mx-auto w-full max-w-[1600px] space-y-6 px-5 py-8 sm:px-8">
                     {/* ── Two-level filter ── */}
                     <div className="flex flex-wrap items-end gap-3">
                         {/* Course filter */}
@@ -1164,7 +1200,7 @@ export default function ClassManagementIndex({
                                 value={selectedCourseId}
                                 onValueChange={handleCourseChange}
                             >
-                                <SelectTrigger className="h-11 min-w-[260px] rounded-lg border-2 border-gray-300 bg-white text-sm font-semibold shadow-sm transition-colors hover:border-violet-400 focus:border-violet-500 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-violet-500 [&>svg]:h-4 [&>svg]:w-4 [&>svg]:opacity-100">
+                                <SelectTrigger className="h-11 min-w-[260px] rounded-lg border-2 border-border bg-card text-sm font-semibold shadow-sm transition-colors hover:border-violet-400 focus:border-violet-500 dark:hover:border-violet-500 [&>svg]:h-4 [&>svg]:w-4 [&>svg]:opacity-100">
                                     <div className="flex items-center gap-2">
                                         <BookOpen className="h-4 w-4 shrink-0 text-violet-500" />
                                         <SelectValue placeholder="Select a course…" />
@@ -1184,7 +1220,7 @@ export default function ClassManagementIndex({
                                                 <span className="font-medium">
                                                     {c.title}
                                                 </span>
-                                                <span className="ml-1.5 font-mono text-xs text-gray-400">
+                                                <span className="ml-1.5 font-mono text-xs text-muted-foreground">
                                                     {c.course_code}
                                                 </span>
                                             </SelectItem>
@@ -1195,7 +1231,7 @@ export default function ClassManagementIndex({
                         </div>
 
                         {/* Chevron separator */}
-                        <div className="pb-2.5 text-2xl leading-none font-light text-gray-300 dark:text-gray-600">
+                        <div className="pb-2.5 text-2xl leading-none font-light text-muted-foreground/60 dark:text-muted-foreground">
                             ›
                         </div>
 
@@ -1211,7 +1247,7 @@ export default function ClassManagementIndex({
                                     !course || course.modules.length === 0
                                 }
                             >
-                                <SelectTrigger className="h-11 min-w-[220px] rounded-lg border-2 border-gray-300 bg-white text-sm font-semibold shadow-sm transition-colors hover:border-violet-400 focus:border-violet-500 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-violet-500 [&>svg]:h-4 [&>svg]:w-4 [&>svg]:opacity-100">
+                                <SelectTrigger className="h-11 min-w-[220px] rounded-lg border-2 border-border bg-card text-sm font-semibold shadow-sm transition-colors hover:border-violet-400 focus:border-violet-500 disabled:opacity-60 dark:hover:border-violet-500 [&>svg]:h-4 [&>svg]:w-4 [&>svg]:opacity-100">
                                     <SelectValue placeholder="All modules" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -1233,7 +1269,7 @@ export default function ClassManagementIndex({
                         {moduleId !== null && (
                             <button
                                 onClick={() => setSelectedModuleId('all')}
-                                className="mb-1 flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800"
+                                className="mb-1 flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground/85"
                             >
                                 <X className="h-3 w-3" /> Clear module
                             </button>
@@ -1241,19 +1277,19 @@ export default function ClassManagementIndex({
                     </div>
 
                     {courses.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white py-20 text-center dark:border-gray-800 dark:bg-gray-900">
-                            <BookOpen className="mb-4 h-12 w-12 text-gray-200" />
-                            <p className="text-base font-semibold text-gray-500">
+                        <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-20 text-center">
+                            <BookOpen className="mb-4 h-12 w-12 text-muted-foreground/40" />
+                            <p className="text-base font-semibold text-muted-foreground">
                                 No courses assigned
                             </p>
-                            <p className="mt-1 text-sm text-gray-400">
+                            <p className="mt-1 text-sm text-muted-foreground">
                                 You have no courses assigned to manage.
                             </p>
                         </div>
                     ) : !course ? (
-                        <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white py-20 text-center dark:border-gray-800 dark:bg-gray-900">
-                            <BookOpen className="mb-4 h-12 w-12 text-gray-200" />
-                            <p className="text-base font-semibold text-gray-500">
+                        <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-20 text-center">
+                            <BookOpen className="mb-4 h-12 w-12 text-muted-foreground/40" />
+                            <p className="text-base font-semibold text-muted-foreground">
                                 Select a course to begin
                             </p>
                         </div>
@@ -1299,7 +1335,7 @@ export default function ClassManagementIndex({
                                         <p className="font-display text-3xl font-extrabold tracking-[-0.03em] text-foreground tabular-nums">
                                             {value}
                                         </p>
-                                        <p className="mt-0.5 text-xs text-gray-400">
+                                        <p className="mt-0.5 text-xs text-muted-foreground">
                                             {sub}
                                         </p>
                                     </div>
@@ -1308,15 +1344,18 @@ export default function ClassManagementIndex({
 
                             {/* ── Tabs ── */}
                             <div className="overflow-hidden rounded-3xl border bg-card shadow-panel">
-                                <Tabs value={activeTab} onValueChange={handleTabChange}>
-                                    <div className="border-b border-gray-200 px-4 dark:border-gray-800">
-                                        <TabsList className="-mb-px flex h-auto gap-0 overflow-x-auto rounded-none bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                <Tabs
+                                    value={activeTab}
+                                    onValueChange={handleTabChange}
+                                >
+                                    <div className="border-b border-border px-4">
+                                        <TabsList className="-mb-px flex h-auto [scrollbar-width:none] gap-0 overflow-x-auto rounded-none bg-transparent p-0 [&::-webkit-scrollbar]:hidden">
                                             {TABS.map(
                                                 ({ value, label, Icon }) => (
                                                     <TabsTrigger
                                                         key={value}
                                                         value={value}
-                                                        className="flex shrink-0 items-center gap-2 rounded-none border-b-2 border-transparent px-4 py-3.5 text-sm font-medium text-gray-500 transition-none hover:text-gray-700 data-[state=active]:border-violet-600 data-[state=active]:bg-transparent data-[state=active]:text-violet-600 data-[state=active]:shadow-none dark:text-gray-400 dark:hover:text-gray-200"
+                                                        className="flex shrink-0 items-center gap-2 rounded-none border-b-2 border-transparent px-4 py-3.5 text-sm font-medium text-muted-foreground transition-none hover:text-foreground/85 data-[state=active]:border-violet-600 data-[state=active]:bg-transparent data-[state=active]:text-violet-600 data-[state=active]:shadow-none dark:text-muted-foreground"
                                                     >
                                                         <Icon className="h-4 w-4" />
                                                         {label}

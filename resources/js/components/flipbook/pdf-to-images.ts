@@ -9,10 +9,12 @@ export class PdfImportCancelled extends Error {}
 
 async function openPdf(file: File) {
     const pdfjs = await import('pdfjs-dist');
-    const { default: workerUrl } = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
+    const { default: workerUrl } =
+        await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
     pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
-    return pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+    return pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) })
+        .promise;
 }
 
 function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
@@ -24,7 +26,14 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
                     return;
                 }
                 // Older Safari can't encode WebP; fall back to JPEG.
-                canvas.toBlob((jpeg) => (jpeg ? resolve(jpeg) : reject(new Error('Could not render a PDF page.'))), 'image/jpeg', 0.85);
+                canvas.toBlob(
+                    (jpeg) =>
+                        jpeg
+                            ? resolve(jpeg)
+                            : reject(new Error('Could not render a PDF page.')),
+                    'image/jpeg',
+                    0.85,
+                );
             },
             'image/webp',
             0.82,
@@ -45,7 +54,11 @@ export async function renderPdfPages(
     }: {
         maxPages: number;
         signal?: AbortSignal;
-        onPage: (image: File, pageNumber: number, total: number) => Promise<void>;
+        onPage: (
+            image: File,
+            pageNumber: number,
+            total: number,
+        ) => Promise<void>;
     },
 ): Promise<number> {
     const pdf = await openPdf(file);
@@ -65,7 +78,9 @@ export async function renderPdfPages(
             }
             const page = await pdf.getPage(n);
             const unscaled = page.getViewport({ scale: 1 });
-            const viewport = page.getViewport({ scale: Math.min(TARGET_WIDTH / unscaled.width, 3) });
+            const viewport = page.getViewport({
+                scale: Math.min(TARGET_WIDTH / unscaled.width, 3),
+            });
             canvas.width = Math.floor(viewport.width);
             canvas.height = Math.floor(viewport.height);
             context.fillStyle = '#ffffff';
@@ -75,7 +90,13 @@ export async function renderPdfPages(
 
             const blob = await canvasToBlob(canvas);
             const extension = blob.type === 'image/webp' ? 'webp' : 'jpg';
-            await onPage(new File([blob], `${baseName}-page-${n}.${extension}`, { type: blob.type }), n, total);
+            await onPage(
+                new File([blob], `${baseName}-page-${n}.${extension}`, {
+                    type: blob.type,
+                }),
+                n,
+                total,
+            );
         }
     } finally {
         canvas.width = 0;

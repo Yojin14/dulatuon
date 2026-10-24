@@ -210,13 +210,13 @@ export default function CreateCourse() {
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     {/* Mode toggle */}
-                                    <div className="flex rounded-lg border border-gray-200 p-1 gap-1 dark:border-gray-700">
+                                    <div className="flex rounded-lg border border-border p-1 gap-1">
                                         <button type="button" onClick={() => { setVideoMode('url'); setData('intro_video_file', null); setFilePreview(null); }}
-                                            className={`flex flex-1 items-center justify-center gap-2 rounded-md py-1.5 text-sm font-medium transition-all ${videoMode === 'url' ? 'bg-white shadow text-gray-900 dark:bg-gray-800 dark:text-white' : 'text-gray-400 hover:text-gray-600'}`}>
+                                            className={`flex flex-1 items-center justify-center gap-2 rounded-md py-1.5 text-sm font-medium transition-all ${videoMode === 'url' ? 'bg-card shadow text-foreground dark:text-white' : 'text-muted-foreground hover:text-muted-foreground'}`}>
                                             <Youtube className="h-4 w-4" /> YouTube / URL
                                         </button>
                                         <button type="button" onClick={() => { setVideoMode('upload'); setData('intro_video', ''); }}
-                                            className={`flex flex-1 items-center justify-center gap-2 rounded-md py-1.5 text-sm font-medium transition-all ${videoMode === 'upload' ? 'bg-white shadow text-gray-900 dark:bg-gray-800 dark:text-white' : 'text-gray-400 hover:text-gray-600'}`}>
+                                            className={`flex flex-1 items-center justify-center gap-2 rounded-md py-1.5 text-sm font-medium transition-all ${videoMode === 'upload' ? 'bg-card shadow text-foreground dark:text-white' : 'text-muted-foreground hover:text-muted-foreground'}`}>
                                             <Upload className="h-4 w-4" /> Upload File
                                         </button>
                                     </div>
@@ -237,12 +237,12 @@ export default function CreateCourse() {
                                             <Label>Upload Video File</Label>
                                             <input ref={fileInputRef} type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime" className="hidden" onChange={handleFileChange} />
                                             <button type="button" onClick={() => fileInputRef.current?.click()}
-                                                className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 py-8 text-center transition hover:border-violet-400 hover:bg-violet-50 dark:border-gray-700 dark:bg-gray-800/40">
-                                                <Upload className="h-7 w-7 text-gray-400" />
+                                                className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/50 py-8 text-center transition hover:border-violet-400 hover:bg-violet-50">
+                                                <Upload className="h-7 w-7 text-muted-foreground" />
                                                 <span className="text-sm font-medium text-muted-foreground">
                                                     {data.intro_video_file ? data.intro_video_file.name : 'Click to choose a video file'}
                                                 </span>
-                                                <span className="text-xs text-gray-400">MP4, WebM, OGG, MOV · max 500 MB</span>
+                                                <span className="text-xs text-muted-foreground">MP4, WebM, OGG, MOV · max 500 MB</span>
                                             </button>
                                             {errors.intro_video_file && <p className="text-sm text-red-600">{errors.intro_video_file}</p>}
                                         </div>
@@ -268,9 +268,9 @@ export default function CreateCourse() {
                                         </div>
                                     )}
                                     {videoMode === 'url' && !data.intro_video && (
-                                        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 py-10 text-center dark:border-gray-700 dark:bg-gray-800/40">
-                                            <PlayCircle className="h-8 w-8 text-gray-300" />
-                                            <p className="text-xs text-gray-400">No intro video — paste a link above to preview.</p>
+                                        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/50 py-10 text-center">
+                                            <PlayCircle className="h-8 w-8 text-muted-foreground/60" />
+                                            <p className="text-xs text-muted-foreground">No intro video — paste a link above to preview.</p>
                                         </div>
                                     )}
                                 </CardContent>
@@ -405,7 +405,7 @@ export default function CreateCourse() {
                                                 </SelectItem>
                                                 <SelectItem value="archived">
                                                     <span className="flex items-center gap-2">
-                                                        <span className="h-2 w-2 rounded-full bg-gray-400 inline-block" />
+                                                        <span className="h-2 w-2 rounded-full bg-muted-foreground/40 inline-block" />
                                                         Archived
                                                     </span>
                                                 </SelectItem>

@@ -12,7 +12,11 @@ export function AppContent({
 }: AppContentProps) {
     if (variant === 'sidebar') {
         return (
-            <SidebarInset className="h-svh overflow-hidden" {...props}>
+            <SidebarInset
+                // On desktop the inset frame has an 8px margin top and bottom, so it is 1rem shorter than the screen.
+                className="h-svh overflow-hidden md:h-[calc(100svh-1rem)]"
+                {...props}
+            >
                 {children}
             </SidebarInset>
         );

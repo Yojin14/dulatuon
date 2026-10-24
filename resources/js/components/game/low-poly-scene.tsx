@@ -1,10 +1,22 @@
 import { cn } from '@/lib/utils';
 import type { Biome } from '@/lib/worlds';
 
-const SIDES: Record<'earth' | 'ocean' | 'space', { left: string[]; right: string[] }> = {
-    earth: { left: ['#a0703f', '#7b4a2a', '#55301c'], right: ['#8a5d32', '#663c22', '#452616'] },
-    ocean: { left: ['#e7cf9c', '#c9a46a', '#8a6a3c'], right: ['#d4b880', '#ab8752', '#6f532c'] },
-    space: { left: ['#6d5bb0', '#4c3d8a', '#2e2466'], right: ['#5a4a9c', '#3d3078', '#241c55'] },
+const SIDES: Record<
+    'earth' | 'ocean' | 'space',
+    { left: string[]; right: string[] }
+> = {
+    earth: {
+        left: ['#a0703f', '#7b4a2a', '#55301c'],
+        right: ['#8a5d32', '#663c22', '#452616'],
+    },
+    ocean: {
+        left: ['#e7cf9c', '#c9a46a', '#8a6a3c'],
+        right: ['#d4b880', '#ab8752', '#6f532c'],
+    },
+    space: {
+        left: ['#6d5bb0', '#4c3d8a', '#2e2466'],
+        right: ['#5a4a9c', '#3d3078', '#241c55'],
+    },
 };
 
 const TOPS: Record<Biome, [string, string, string]> = {
@@ -18,7 +30,12 @@ const TOPS: Record<Biome, [string, string, string]> = {
 };
 
 function Block({ biome }: { biome: Biome }) {
-    const sides = biome === 'ocean' ? SIDES.ocean : biome === 'space' ? SIDES.space : SIDES.earth;
+    const sides =
+        biome === 'ocean'
+            ? SIDES.ocean
+            : biome === 'space'
+              ? SIDES.space
+              : SIDES.earth;
     const [top, light, shade] = TOPS[biome];
 
     return (
@@ -57,7 +74,10 @@ function Town() {
             <path d="M170 40 180 45v30l-10-5Z" fill="#e2e8f0" />
             <path d="M180 45 188 41v30l-8 4Z" fill="#cbd5e1" />
             <path d="M170 40 178 36 188 41 180 45Z" fill="#f1f5f9" />
-            <path d="M172 48h2v3h-2zM176 50h2v3h-2zM172 56h2v3h-2zM176 58h2v3h-2zM172 64h2v3h-2zM176 66h2v3h-2z" fill="#7dd3fc" />
+            <path
+                d="M172 48h2v3h-2zM176 50h2v3h-2zM172 56h2v3h-2zM176 58h2v3h-2zM172 64h2v3h-2zM176 66h2v3h-2z"
+                fill="#7dd3fc"
+            />
             <Tree x={88} y={64} />
             <Tree x={62} y={76} s={0.8} />
             <circle cx="112" cy="48" r="8" fill="#38a352" />
@@ -74,9 +94,21 @@ function BiomeProps({ biome }: { biome: Biome }) {
                 <>
                     <path d="M80 92 120 20 160 92 120 112Z" fill="#57534e" />
                     <path d="M120 20 160 92 120 112Z" fill="#44403c" />
-                    <path d="M108 42 120 20 132 42 124 50 120 44 116 50Z" fill="#f97316" />
-                    <path d="M116 50 120 44 124 50 121 70 118 62Z" fill="#ef4444" />
-                    <circle cx="112" cy="10" r="6" fill="#d6d3d1" opacity=".8" />
+                    <path
+                        d="M108 42 120 20 132 42 124 50 120 44 116 50Z"
+                        fill="#f97316"
+                    />
+                    <path
+                        d="M116 50 120 44 124 50 121 70 118 62Z"
+                        fill="#ef4444"
+                    />
+                    <circle
+                        cx="112"
+                        cy="10"
+                        r="6"
+                        fill="#d6d3d1"
+                        opacity=".8"
+                    />
                     <circle cx="124" cy="4" r="8" fill="#e7e5e4" opacity=".7" />
                     <Tree x={62} y={84} s={0.8} />
                     <Tree x={178} y={84} s={0.8} />
@@ -85,10 +117,24 @@ function BiomeProps({ biome }: { biome: Biome }) {
         case 'weather':
             return (
                 <>
-                    <path d="M70 34 84 18 104 22 116 10 140 20 150 8 172 22 166 38 76 42Z" fill="#64748b" />
+                    <path
+                        d="M70 34 84 18 104 22 116 10 140 20 150 8 172 22 166 38 76 42Z"
+                        fill="#64748b"
+                    />
                     <path d="M76 42 166 38 160 46 82 48Z" fill="#475569" />
-                    <path d="M128 46 120 62 128 62 118 82" fill="none" stroke="#facc15" strokeWidth="3" strokeLinejoin="round" />
-                    <path d="M92 52 88 64M104 52 100 64M148 52 144 64M160 50 156 62" stroke="#7dd3fc" strokeWidth="2" strokeLinecap="round" />
+                    <path
+                        d="M128 46 120 62 128 62 118 82"
+                        fill="none"
+                        stroke="#facc15"
+                        strokeWidth="3"
+                        strokeLinejoin="round"
+                    />
+                    <path
+                        d="M92 52 88 64M104 52 100 64M148 52 144 64M160 50 156 62"
+                        stroke="#7dd3fc"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                    />
                     <Tree x={78} y={90} />
                     <Tree x={170} y={88} s={0.9} />
                 </>
@@ -96,8 +142,21 @@ function BiomeProps({ biome }: { biome: Biome }) {
         case 'ocean':
             return (
                 <>
-                    <path d="M60 70 80 64 100 72 120 64 140 72 160 64 180 72" fill="none" stroke="#a5f3fc" strokeWidth="2.5" strokeLinecap="round" />
-                    <path d="M80 92 100 86 120 94 140 86 160 94" fill="none" stroke="#a5f3fc" strokeWidth="2.5" strokeLinecap="round" opacity=".7" />
+                    <path
+                        d="M60 70 80 64 100 72 120 64 140 72 160 64 180 72"
+                        fill="none"
+                        stroke="#a5f3fc"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                    />
+                    <path
+                        d="M80 92 100 86 120 94 140 86 160 94"
+                        fill="none"
+                        stroke="#a5f3fc"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        opacity=".7"
+                    />
                     <path d="M108 72 140 72 134 82 114 82Z" fill="#f8fafc" />
                     <path d="M122 72V48l14 18Z" fill="#fef3c7" />
                     <path d="M122 48v24" stroke="#78350f" strokeWidth="2" />
@@ -110,7 +169,13 @@ function BiomeProps({ biome }: { biome: Biome }) {
                     <circle cx="146" cy="88" r="5" fill="#7b8392" />
                     <circle cx="122" cy="70" r="4" fill="#7b8392" />
                     <circle cx="150" cy="30" r="20" fill="#f59e0b" />
-                    <path d="M120 38c20 6 40 4 62-6" fill="none" stroke="#fde68a" strokeWidth="4" strokeLinecap="round" />
+                    <path
+                        d="M120 38c20 6 40 4 62-6"
+                        fill="none"
+                        stroke="#fde68a"
+                        strokeWidth="4"
+                        strokeLinecap="round"
+                    />
                     <circle cx="70" cy="24" r="2" fill="#fff" />
                     <circle cx="96" cy="12" r="1.6" fill="#fff" />
                     <circle cx="190" cy="56" r="1.8" fill="#fff" />
@@ -127,7 +192,13 @@ function BiomeProps({ biome }: { biome: Biome }) {
                     <Tree x={120} y={96} s={0.9} />
                     <circle cx="122" cy="62" r="9" fill="#38a352" />
                     <circle cx="128" cy="56" r="7" fill="#4ade80" />
-                    <rect x="120.5" y="68" width="3" height="9" fill="#7c4a21" />
+                    <rect
+                        x="120.5"
+                        y="68"
+                        width="3"
+                        height="9"
+                        fill="#7c4a21"
+                    />
                     <circle cx="100" cy="98" r="3" fill="#f472b6" />
                     <circle cx="146" cy="96" r="3" fill="#facc15" />
                 </>
@@ -163,23 +234,55 @@ export function LowPolyBlock({
     biome?: Biome;
 }) {
     return (
-        <svg viewBox="0 0 240 180" className={cn('h-auto w-full', className)} aria-hidden>
+        <svg
+            viewBox="0 0 240 180"
+            className={cn('h-auto w-full', className)}
+            aria-hidden
+        >
             <LowPolyBlockArt variant={variant} biome={biome} />
         </svg>
     );
 }
 
 /** The block's shapes in its 240×180 coordinate space, for composing into larger SVG scenes. */
-export function LowPolyBlockArt({ variant = 'town', biome = 'earth' }: { variant?: 'town' | 'quake' | 'empty'; biome?: Biome }) {
+export function LowPolyBlockArt({
+    variant = 'town',
+    biome = 'earth',
+}: {
+    variant?: 'town' | 'quake' | 'empty';
+    biome?: Biome;
+}) {
     return (
         <>
             <Block biome={biome} />
             {variant === 'quake' && biome === 'earth' && (
                 <>
-                    <path d="M58 97 82 108l-6 14 16 8-5 18" fill="none" stroke="#fde68a" strokeWidth="2.5" strokeLinejoin="round" />
+                    <path
+                        d="M58 97 82 108l-6 14 16 8-5 18"
+                        fill="none"
+                        stroke="#fde68a"
+                        strokeWidth="2.5"
+                        strokeLinejoin="round"
+                    />
                     <circle cx="96" cy="140" r="5" fill="#fde68a" />
-                    <circle cx="96" cy="140" r="12" fill="none" stroke="#fde68a" strokeWidth="2" opacity=".6" />
-                    <circle cx="96" cy="140" r="20" fill="none" stroke="#fde68a" strokeWidth="1.5" opacity=".3" />
+                    <circle
+                        cx="96"
+                        cy="140"
+                        r="12"
+                        fill="none"
+                        stroke="#fde68a"
+                        strokeWidth="2"
+                        opacity=".6"
+                    />
+                    <circle
+                        cx="96"
+                        cy="140"
+                        r="20"
+                        fill="none"
+                        stroke="#fde68a"
+                        strokeWidth="1.5"
+                        opacity=".3"
+                    />
                 </>
             )}
             {variant !== 'empty' && <BiomeProps biome={biome} />}
@@ -190,7 +293,11 @@ export function LowPolyBlockArt({ variant = 'town', biome = 'earth' }: { variant
 /** Low-poly clouds for sky surfaces. */
 export function LowPolyClouds({ className }: { className?: string }) {
     return (
-        <svg viewBox="0 0 400 80" className={cn('pointer-events-none h-auto w-full', className)} aria-hidden>
+        <svg
+            viewBox="0 0 400 80"
+            className={cn('pointer-events-none h-auto w-full', className)}
+            aria-hidden
+        >
             <g fill="#fff" opacity=".85">
                 <path d="M30 50 46 34 66 38 78 28 98 40 92 54Z" />
                 <path d="M300 30 318 18 338 22 352 12 372 24 366 38 310 40Z" />

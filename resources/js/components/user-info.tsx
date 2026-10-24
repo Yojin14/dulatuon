@@ -1,3 +1,4 @@
+import { RankAvatar } from '@/components/game/rank-avatar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useInitials } from '@/hooks/use-initials';
 import { type User } from '@/types';
@@ -30,16 +31,26 @@ export function UserInfo({
 
     return (
         <>
-            <Avatar className="size-9 overflow-hidden rounded-xl ring-2 ring-violet-200 dark:ring-violet-500/30">
-                <AvatarImage src={user.avatar} alt={displayName} />
-                <AvatarFallback className="rounded-xl bg-linear-to-br from-violet-500 to-violet-700 font-display text-sm font-semibold text-white">
-                    {getInitials(displayName)}
-                </AvatarFallback>
-            </Avatar>
+            {user.role === 'student' && typeof user.xp === 'number' ? (
+                // Students wear their rank: the frame's metal and corner emblem show Bronze → Diamond.
+                <RankAvatar name={displayName} src={user.avatar} xp={user.xp} />
+            ) : (
+                <Avatar className="size-9 overflow-hidden rounded-xl ring-2 ring-violet-200 dark:ring-violet-500/30">
+                    <AvatarImage
+                        src={user.avatar ?? undefined}
+                        alt={displayName}
+                    />
+                    <AvatarFallback className="rounded-xl bg-linear-to-br from-violet-500 to-violet-700 font-display text-sm font-semibold text-white">
+                        {getInitials(displayName)}
+                    </AvatarFallback>
+                </Avatar>
+            )}
             <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-bold">{formattedName}</span>
                 {!showEmail && user.role && (
-                    <span className="truncate text-[11px] font-extrabold tracking-wider text-primary uppercase">{user.role}</span>
+                    <span className="truncate text-[11px] font-extrabold tracking-wider text-primary uppercase">
+                        {user.role}
+                    </span>
                 )}
                 {showEmail && (
                     <span className="truncate text-xs text-muted-foreground">

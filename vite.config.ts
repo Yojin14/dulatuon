@@ -41,6 +41,10 @@ export default defineConfig({
                         if (/components[\\/]flipbook[\\/]flipbook-(types|draft)\.ts$/.test(id)) {
                             return 'flipbook-core';
                         }
+                        // Course player modules shared by the page and its lazy edit panel.
+                        if (/components[\\/]course-player[\\/](types|helpers|viewers|sidebar|announcements)\.tsx?$/.test(id)) {
+                            return 'course-player';
+                        }
                         // Same for the games page and its lazy 3D labs.
                         if (/lib[\\/]game-audio\.ts$/.test(id)) {
                             return 'game-audio';

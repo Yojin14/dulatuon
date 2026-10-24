@@ -38,8 +38,10 @@ class CourseLeaderboardController extends Controller
         $students = User::whereIn('id', Enrollment::select('user_id')->where('course_id', $course->id)->whereIn('status', ['active', 'completed']))
             ->where('role', 'student')
             ->orderBy('name')
-            ->get(['id', 'name']);
+            ->get(['id', 'name', 'avatar']);
         $names = $students->pluck('name', 'id');
+        $avatars = $students->pluck('avatar', 'id');
+        $totalXp = StudentProgress::storedXp($students->pluck('id')->all());
 
         $ranked = collect(StudentProgress::forClass($course, $students))
             ->sortBy([['xp', 'desc'], ['game_points', 'desc'], fn ($a, $b) => strcmp($names[$a['user_id']], $names[$b['user_id']])])
@@ -52,7 +54,7 @@ class CourseLeaderboardController extends Controller
             $key = $row['xp'].'|'.$row['game_points'];
             $rank = $previous !== null && $previous['key'] === $key ? $previous['rank'] : $index + 1;
             $previous = ['key' => $key, 'rank' => $rank];
-            $rows[] = $this->present($row, $rank, $names[$row['user_id']], ! $isStudent, $user->id);
+            $rows[] = $this->present($row, $rank, $names[$row['user_id']], ! $isStudent, $user->id) + ['total_xp' => $totalXp[$row['user_id']] ?? 0, 'avatar' => $avatars[$row['user_id']] ?? null];
         }
 
         if ($isStudent) {

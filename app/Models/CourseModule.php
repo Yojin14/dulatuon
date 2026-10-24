@@ -5,9 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
 
 class CourseModule extends Model
 {
+    /** Explore shows each course's module count, so a module change refreshes its cache. */
+    protected static function booted(): void
+    {
+        $forget = fn () => Cache::forget('explore:courses');
+
+        static::saved($forget);
+        static::deleted($forget);
+    }
+
     protected $fillable = [
         'course_id',
         'title',

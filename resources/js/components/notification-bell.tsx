@@ -9,15 +9,18 @@ import { type AppNotification, type SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import {
+    Award,
     Bell,
     BookOpen,
     Check,
     CheckCheck,
+    Megaphone,
     MessageCircle,
     Shield,
     ShieldCheck,
     ShieldOff,
     Trash2,
+    Trophy,
     type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -30,6 +33,11 @@ const TYPE_CONFIG: Record<string, { icon: LucideIcon; tint: string }> = {
     permission_granted: { icon: ShieldCheck, tint: 'bg-violet-500' },
     permission_revoked: { icon: ShieldOff, tint: 'bg-slate-500' },
     course_assigned: { icon: BookOpen, tint: 'bg-emerald-500' },
+    new_content: { icon: BookOpen, tint: 'bg-violet-500' },
+    rank_up: { icon: Trophy, tint: 'bg-amber-500' },
+    certificate: { icon: Award, tint: 'bg-emerald-500' },
+    announcement: { icon: Megaphone, tint: 'bg-amber-500' },
+    announcement_comment: { icon: MessageCircle, tint: 'bg-amber-500' },
 };
 
 function typeConfig(type: string) {
@@ -189,7 +197,9 @@ export function NotificationBell() {
                     aria-label="Notifications"
                     className="relative flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
                 >
-                    <Bell className={`h-5 w-5 ${count > 0 ? 'animate-bell-ring' : ''}`} />
+                    <Bell
+                        className={`h-5 w-5 ${count > 0 ? 'animate-bell-ring' : ''}`}
+                    />
                     {count > 0 && (
                         <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center">
                             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />

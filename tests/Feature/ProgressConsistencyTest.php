@@ -153,4 +153,31 @@ class ProgressConsistencyTest extends TestCase
 
         $this->assertEquals(33.33, Enrollment::where('user_id', $this->student->id)->value('progress_percentage'));
     }
+
+    public function test_the_avatar_rank_xp_shared_on_every_page_matches_the_dashboard(): void
+    {
+        $this->attempt($this->games[0], 5);
+        $this->attempt($this->games[1], 5);
+        // Completing through the app keeps the stored progress (and so the shared XP) current.
+        $this->actingAs($this->student)
+            ->postJson("/my-progress/{$this->course->id}/contents/{$this->content->id}/complete")
+            ->assertOk();
+
+        $this->actingAs($this->student)->get('/dashboard')->assertInertia(fn (Assert $page) => $page
+            ->where('xp', 130)
+            ->where('auth.user.xp', 130));
+    }
+
+    public function test_teachers_get_no_rank_xp_and_leaderboard_rows_carry_each_students_total(): void
+    {
+        $this->readMaterial();
+        Enrollment::where('user_id', $this->student->id)->firstOrFail()->recalculateProgress();
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->get('/dashboard')->assertInertia(fn (Assert $page) => $page->where('auth.user.xp', null));
+
+        $this->actingAs($admin)->getJson("/my-course/{$this->course->id}/leaderboard")
+            ->assertOk()
+            ->assertJsonPath('rows.0.total_xp', 10);
+    }
 }

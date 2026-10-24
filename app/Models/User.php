@@ -38,6 +38,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'approved_at',
         'approved_by',
         'avatar',
+        'gender',
         'phone',
         'firstname',
         'lastname',

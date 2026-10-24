@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#7c3aed">
+    <title>Offline · Dulatuon</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <style>
+        :root { color-scheme: light dark; --bg: #f5f9ff; --card: #ffffff; --text: #0f172a; --muted: #475569; --primary: #7c3aed; }
+        @media (prefers-color-scheme: dark) { :root { --bg: #14112a; --card: #1e1a38; --text: #f1f5f9; --muted: #a5b4cf; } }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100svh; display: grid; place-items: center; padding: 24px 16px; background: var(--bg); color: var(--text); font: 400 16px/1.55 'Figtree', ui-sans-serif, system-ui, sans-serif; }
+        main { width: 100%; max-width: 420px; text-align: center; background: var(--card); border-radius: 28px; padding: 32px 24px; box-shadow: 0 24px 60px -30px rgba(46, 16, 101, .45); }
+        img { width: 88px; height: 88px; }
+        h1 { margin: 16px 0 6px; font-size: 26px; line-height: 1.15; letter-spacing: -.02em; }
+        p { margin: 0; color: var(--muted); }
+        button { margin-top: 22px; min-height: 48px; padding: 0 22px; border: 0; border-radius: 14px; background: var(--primary); color: #fff; font: inherit; font-weight: 700; cursor: pointer; box-shadow: 0 3px 0 0 #5b21b6; }
+    </style>
+</head>
+<body>
+    <main>
+        <img src="/favicon.svg" alt="">
+        <h1>You're offline</h1>
+        <p>This page hasn't been saved on your phone yet. Lessons you already opened still work. Go back, or try again when you have signal.</p>
+        <button type="button" onclick="location.reload()">Try again</button>
+    </main>
+</body>
+</html>

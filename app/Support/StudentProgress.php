@@ -74,6 +74,33 @@ class StudentProgress
     }
 
     /**
+     * Total XP for each student from the progress stored on their enrollments (kept current by
+     * {@see \App\Models\Enrollment::recalculateProgress()}). One query, cheap enough for every page.
+     *
+     * @param  array<int, int>  $userIds
+     * @return array<int, int> XP keyed by user id (0 for students with no enrollments)
+     */
+    public static function storedXp(array $userIds): array
+    {
+        $xp = array_fill_keys($userIds, 0);
+        if ($userIds === []) {
+            return $xp;
+        }
+
+        $rows = \App\Models\Enrollment::query()
+            ->whereIn('user_id', $userIds)
+            ->whereIn('status', ['active', 'completed'])
+            ->get(['user_id', 'completed_lessons', 'progress_percentage']);
+
+        foreach ($rows as $row) {
+            $xp[$row->user_id] += (int) $row->completed_lessons * self::XP_PER_ITEM
+                + ((float) $row->progress_percentage >= 100 ? self::XP_PER_COURSE_CLEAR : 0);
+        }
+
+        return $xp;
+    }
+
+    /**
      * Total XP across course summaries: 10 per finished item plus 100 per cleared course.
      *
      * @param  iterable<array{items_completed: int, complete: bool}>  $courseSummaries

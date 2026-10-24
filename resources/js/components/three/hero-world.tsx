@@ -1,24 +1,7 @@
 import { LowPolyBlock } from '@/components/game/low-poly-scene';
+import { canUseWebGL, isLowPowerDevice } from '@/lib/device';
 import { cn } from '@/lib/utils';
 import { useEffect, useRef, useState } from 'react';
-
-/** Very weak devices (2 cores or under 2 GB RAM) keep the static block. */
-function isLowPowerDevice(): boolean {
-    const cores = navigator.hardwareConcurrency ?? 4;
-    const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 4;
-
-    return cores <= 2 || memory < 2;
-}
-
-function canUseWebGL(): boolean {
-    try {
-        const canvas = document.createElement('canvas');
-
-        return Boolean(canvas.getContext('webgl2') ?? canvas.getContext('webgl'));
-    } catch {
-        return false;
-    }
-}
 
 /**
  * Live 3D diorama for hero spots, on phones too. three.js is loaded only on the

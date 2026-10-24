@@ -1,13 +1,14 @@
 import { EmptyState } from '@/components/game/empty-state';
+import { RankAvatar } from '@/components/game/rank-avatar';
 import { ProgressTrack, RankLadder, XpBar } from '@/components/game/xp-bar';
 import { Button } from '@/components/ui/button';
 import { WorldEmblem } from '@/components/world/world-scope';
 import AppLayout from '@/layouts/app-layout';
-import { computeLevel } from '@/lib/gamification';
+import { XP_PER_ITEM, computeLevel } from '@/lib/gamification';
 import { worldFor } from '@/lib/worlds';
-import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
-import { Award, ChevronRight, Compass, Medal } from 'lucide-react';
+import { type BreadcrumbItem, type SharedData } from '@/types';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { Award, Check, ChevronRight, Compass } from 'lucide-react';
 import { useMemo } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -56,6 +57,7 @@ export default function MyProgress({
     const inProgress = modules.filter((m) => !isCleared(m));
 
     const player = useMemo(() => computeLevel(xp), [xp]);
+    const { auth } = usePage<SharedData>().props;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -63,17 +65,26 @@ export default function MyProgress({
 
             {/* Trophy room: game-night mode for the moments that are earned */}
             <header className="bg-game-night text-white">
-                <div className="mx-auto grid max-w-[1600px] gap-8 px-5 py-9 sm:px-8 lg:grid-cols-12 lg:items-end">
-                    <div className="lg:col-span-5">
-                        <h1 className="font-display text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-extrabold tracking-[-0.035em]">
-                            Your progress
-                        </h1>
-                        <p className="mt-2 text-white/70">
-                            {earned.length}{' '}
-                            {earned.length === 1 ? 'module' : 'modules'} cleared
-                            {certificates.length > 0 &&
-                                ` · ${certificates.length} ${certificates.length === 1 ? 'certificate' : 'certificates'}`}
-                        </p>
+                <div className="mx-auto grid max-w-[1600px] gap-8 px-5 py-9 sm:px-8 lg:grid-cols-12 lg:items-center">
+                    <div className="flex items-center gap-5 lg:col-span-5">
+                        <RankAvatar
+                            name={auth.user.name}
+                            src={auth.user.avatar}
+                            xp={xp}
+                            size="lg"
+                        />
+                        <div className="min-w-0">
+                            <h1 className="font-display text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-extrabold tracking-[-0.035em]">
+                                My Progress
+                            </h1>
+                            <p className="mt-2 text-white/70">
+                                {player.title} · {earned.length}{' '}
+                                {earned.length === 1 ? 'module' : 'modules'}{' '}
+                                cleared
+                                {certificates.length > 0 &&
+                                    ` · ${certificates.length} ${certificates.length === 1 ? 'certificate' : 'certificates'}`}
+                            </p>
+                        </div>
                     </div>
 
                     {/* `dark` so the rank colours and track use their on-dark variants here */}
@@ -205,6 +216,13 @@ export default function MyProgress({
                                                     left
                                                     {m.total_games > 0 &&
                                                         ` · ${m.games_cleared} of ${m.total_games} ${m.total_games === 1 ? 'lab' : 'labs'} cleared`}
+                                                    <span className="font-bold text-primary">
+                                                        {' '}
+                                                        · +
+                                                        {remaining *
+                                                            XP_PER_ITEM}{' '}
+                                                        XP to earn
+                                                    </span>
                                                 </p>
                                             </div>
                                             <ChevronRight
@@ -227,29 +245,37 @@ export default function MyProgress({
                         >
                             Cleared
                         </h2>
-                        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                        <ul className="mt-4 divide-y rounded-3xl border bg-card shadow-panel">
                             {earned.map((m) => (
                                 <li key={m.module_id}>
                                     <Link
                                         href={`/my-course/${m.course_id}`}
-                                        className="flex items-center gap-4 rounded-3xl border bg-card p-4 shadow-panel transition-colors hover:border-primary/40 focus-visible:border-primary focus-visible:outline-none"
+                                        className="group flex items-center gap-3 px-5 py-4 transition-colors first:rounded-t-3xl last:rounded-b-3xl hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
                                     >
-                                        <span className="grid size-12 shrink-0 place-items-center bg-linear-to-b from-amber-300 to-amber-500 text-amber-950 shadow-[0_3px_0_0_var(--color-amber-700)] [clip-path:polygon(50%_0,93%_25%,93%_75%,50%_100%,7%_75%,7%_25%)]">
-                                            <Medal className="size-5" />
+                                        <span className="grid size-10 shrink-0 place-items-center bg-linear-to-b from-emerald-400 to-emerald-600 text-white shadow-[0_3px_0_0_var(--color-emerald-800)] [clip-path:polygon(50%_0,93%_25%,93%_75%,50%_100%,7%_75%,7%_25%)]">
+                                            <Check
+                                                className="size-5"
+                                                strokeWidth={3}
+                                            />
                                         </span>
-                                        <div className="min-w-0">
+                                        <div className="min-w-0 flex-1">
                                             <p className="truncate font-bold">
                                                 {m.module_title}
                                             </p>
                                             <p className="truncate text-sm text-muted-foreground">
-                                                {m.course_title}
-                                            </p>
-                                            <p className="mt-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                                                Cleared {m.completed_at} ·{' '}
-                                                {m.contents_completed}/
-                                                {m.total_contents} items
+                                                {m.course_title} · Cleared{' '}
+                                                {m.completed_at}
                                             </p>
                                         </div>
+                                        <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-extrabold text-primary tabular-nums">
+                                            +
+                                            {m.contents_completed * XP_PER_ITEM}{' '}
+                                            XP
+                                        </span>
+                                        <ChevronRight
+                                            aria-hidden
+                                            className="hidden size-5 text-muted-foreground transition-transform group-hover:translate-x-0.5 sm:block"
+                                        />
                                     </Link>
                                 </li>
                             ))}

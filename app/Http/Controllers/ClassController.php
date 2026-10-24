@@ -126,9 +126,9 @@ class ClassController extends Controller
 
         // Load courses with teachers, modules, and active enrollments
         $courses = Course::with([
-            'teachers:id,name,email',
+            'teachers:id,name,email,avatar',
             'modules',
-            'enrollments' => fn ($q) => $q->where('status', 'active')->with('user:id,name,email'),
+            'enrollments' => fn ($q) => $q->where('status', 'active')->with('user:id,name,email,avatar'),
             'announcements.author:id,name',
             'announcements.comments.author:id,name',
         ])
@@ -139,6 +139,8 @@ class ClassController extends Controller
                 // Same rules as My Progress; the stored progress_percentage column is never updated.
                 $liveProgress = collect(StudentProgress::forClass($course, $course->enrollments->pluck('user')->filter()))
                     ->pluck('progress', 'user_id');
+                // Overall XP across all their courses, for the rank frame on each student's avatar.
+                $rankXp = StudentProgress::storedXp($course->enrollments->pluck('user_id')->all());
 
                 return [
                     'id' => $course->id,
@@ -150,6 +152,7 @@ class ClassController extends Controller
                         'id' => $t->id,
                         'name' => $t->name,
                         'email' => $t->email,
+                        'avatar' => $t->avatar,
                     ])->values(),
                     'modules' => $course->modules->map(fn ($m) => [
                         'id' => $m->id,
@@ -159,7 +162,9 @@ class ClassController extends Controller
                         'id' => $e->user->id,
                         'name' => $e->user->name,
                         'email' => $e->user->email,
+                        'avatar' => $e->user->avatar,
                         'progress_percentage' => $liveProgress[$e->user_id] ?? 0,
+                        'xp' => $rankXp[$e->user_id] ?? 0,
                         'enrollment_status' => $e->status,
                         'enrollment_id' => $e->id,
                     ])->values(),

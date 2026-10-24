@@ -18,7 +18,7 @@ export default function AppearanceToggleTab({
     return (
         <div
             className={cn(
-                'inline-flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800',
+                'inline-flex gap-1 rounded-lg bg-muted p-1',
                 className,
             )}
             {...props}
@@ -30,8 +30,8 @@ export default function AppearanceToggleTab({
                     className={cn(
                         'flex items-center rounded-md px-3.5 py-1.5 transition-colors',
                         appearance === value
-                            ? 'bg-white shadow-xs dark:bg-gray-700 dark:text-gray-100'
-                            : 'text-gray-500 hover:bg-gray-200/60 hover:text-violet-900 dark:text-gray-400 dark:hover:bg-gray-700/60',
+                            ? 'bg-card shadow-xs'
+                            : 'text-muted-foreground hover:bg-muted hover:text-violet-900 dark:text-muted-foreground',
                     )}
                 >
                     <Icon className="-ml-1 h-4 w-4" />

@@ -31,8 +31,14 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Courses', href: '/courses' },
 ];
 
+/** List rows also carry counts from `withCount`. */
+type CourseRow = Course & {
+    modules_count?: number;
+    enrollments_count?: number;
+};
+
 interface PaginatedCourses {
-    data: Course[];
+    data: CourseRow[];
     current_page: number;
     last_page: number;
     per_page: number;
@@ -57,7 +63,7 @@ const statusColors: Record<string, string> = {
         'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400',
     draft: 'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400',
     archived:
-        'bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-900/30 dark:text-gray-400',
+        'bg-muted text-muted-foreground border-border dark:text-muted-foreground',
 };
 
 function AdminView({ courses }: { courses: PaginatedCourses }) {
@@ -83,20 +89,17 @@ function AdminView({ courses }: { courses: PaginatedCourses }) {
             <PageHeader
                 title="Courses"
                 description="Create and manage every course, and assign a teacher to each."
-            />
-            <div className="mx-auto w-full max-w-[1600px] space-y-8 px-5 py-8 sm:px-8">
-                <div className="flex justify-end">
-                    <Button
-                        asChild
-                        className="bg-violet-900 hover:bg-violet-800"
-                    >
+                actions={
+                    <Button asChild>
                         <Link href="/courses/create">
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Course
+                            <Plus />
+                            Add course
                         </Link>
                     </Button>
-                </div>
-                <div className="overflow-x-auto rounded-xl border border-border">
+                }
+            />
+            <div className="mx-auto w-full max-w-[1600px] space-y-8 px-5 py-8 sm:px-8">
+                <div className="overflow-x-auto rounded-3xl border bg-card shadow-panel">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -137,7 +140,12 @@ function AdminView({ courses }: { courses: PaginatedCourses }) {
                                         <TableCell>
                                             <div>
                                                 <p className="flex flex-wrap items-center gap-2 font-bold">
-                                                    {course.title}
+                                                    <Link
+                                                        href={`/courses/${course.id}`}
+                                                        className="hover:text-primary hover:underline"
+                                                    >
+                                                        {course.title}
+                                                    </Link>
                                                     <WorldChip
                                                         world={worldFor(course)}
                                                     />
@@ -220,7 +228,7 @@ function AdminView({ courses }: { courses: PaginatedCourses }) {
                     </Table>
                 </div>
                 {courses.last_page > 1 && (
-                    <div className="flex items-center justify-between text-sm text-gray-400">
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
                         <span>
                             Showing{' '}
                             {(courses.current_page - 1) * courses.per_page + 1}–
@@ -284,13 +292,13 @@ function TeacherView({ courses }: { courses: PaginatedCourses }) {
             />
             <div className="mx-auto w-full max-w-[1600px] space-y-8 px-5 py-8 sm:px-8">
                 {courses.data.length === 0 ? (
-                    <div className="flex flex-col items-center gap-3 rounded-xl border border-gray-100 py-12 text-center dark:border-gray-800">
-                        <BookOpen className="h-8 w-8 text-gray-200 dark:text-gray-700" />
+                    <div className="flex flex-col items-center gap-3 rounded-xl border border-border py-12 text-center">
+                        <BookOpen className="h-8 w-8 text-muted-foreground/40" />
                         <div>
                             <p className="text-sm font-medium text-muted-foreground">
                                 No courses assigned
                             </p>
-                            <p className="mt-0.5 text-xs text-gray-400">
+                            <p className="mt-0.5 text-xs text-muted-foreground">
                                 You have not been assigned to any courses yet.
                             </p>
                         </div>
@@ -301,7 +309,7 @@ function TeacherView({ courses }: { courses: PaginatedCourses }) {
                             {courses.data.map((course) => (
                                 <div
                                     key={course.id}
-                                    className="flex flex-col rounded-xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900"
+                                    className="flex flex-col rounded-xl border border-border bg-card p-5"
                                 >
                                     <div className="mb-3 flex items-start gap-3">
                                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-50 dark:bg-violet-900/20">
@@ -317,14 +325,14 @@ function TeacherView({ courses }: { courses: PaginatedCourses }) {
                                                     {course.title}
                                                 </span>
                                             </p>
-                                            <p className="font-mono text-xs text-gray-400">
+                                            <p className="font-mono text-xs text-muted-foreground">
                                                 {course.course_code}
                                             </p>
                                         </div>
                                     </div>
                                     {(course.short_description ??
                                         course.description) && (
-                                        <p className="mb-3 line-clamp-2 text-xs text-gray-400">
+                                        <p className="mb-3 line-clamp-2 text-xs text-muted-foreground">
                                             {course.short_description ??
                                                 course.description}
                                         </p>
@@ -347,23 +355,20 @@ function TeacherView({ courses }: { courses: PaginatedCourses }) {
                                             {course.status}
                                         </Badge>
                                     </div>
-                                    <div className="mb-4 flex items-center justify-between text-xs text-gray-400">
+                                    <div className="mb-4 flex items-center justify-between text-xs text-muted-foreground">
                                         <span className="flex items-center gap-1">
                                             <Layers className="h-3.5 w-3.5" />
-                                            {(course as any).modules_count ??
-                                                0}{' '}
-                                            modules
+                                            {course.modules_count ?? 0} modules
                                         </span>
                                         <span className="flex items-center gap-1">
                                             <Users className="h-3.5 w-3.5" />
-                                            {(course as any)
-                                                .enrollments_count ?? 0}{' '}
+                                            {course.enrollments_count ?? 0}{' '}
                                             enrolled
                                         </span>
                                     </div>
                                     <Button
                                         asChild
-                                        className="mt-auto w-full bg-violet-900 text-sm text-white hover:bg-violet-800"
+                                        className="mt-auto w-full text-sm"
                                     >
                                         <Link href={`/my-course/${course.id}`}>
                                             Manage Course{' '}
@@ -374,7 +379,7 @@ function TeacherView({ courses }: { courses: PaginatedCourses }) {
                             ))}
                         </div>
                         {courses.last_page > 1 && (
-                            <div className="flex items-center justify-between text-sm text-gray-400">
+                            <div className="flex items-center justify-between text-sm text-muted-foreground">
                                 <span>
                                     Showing{' '}
                                     {(courses.current_page - 1) *
@@ -452,9 +457,9 @@ function StudentView({ courses }: { courses: PaginatedCourses }) {
             />
             <div className="mx-auto w-full max-w-[1600px] space-y-8 px-5 py-8 sm:px-8">
                 {courses.data.length === 0 ? (
-                    <div className="flex flex-col items-center gap-3 rounded-xl border border-gray-100 py-12 text-center dark:border-gray-800">
-                        <BookOpen className="h-8 w-8 text-gray-200 dark:text-gray-700" />
-                        <p className="text-sm text-gray-400">
+                    <div className="flex flex-col items-center gap-3 rounded-xl border border-border py-12 text-center">
+                        <BookOpen className="h-8 w-8 text-muted-foreground/40" />
+                        <p className="text-sm text-muted-foreground">
                             No courses available. Check back later.
                         </p>
                     </div>
@@ -463,7 +468,7 @@ function StudentView({ courses }: { courses: PaginatedCourses }) {
                         {courses.data.map((course) => (
                             <div
                                 key={course.id}
-                                className="flex flex-col rounded-xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900"
+                                className="flex flex-col rounded-xl border border-border bg-card p-5"
                             >
                                 <div className="mb-3 flex items-start gap-3">
                                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-50 dark:bg-violet-900/20">
@@ -479,14 +484,14 @@ function StudentView({ courses }: { courses: PaginatedCourses }) {
                                                 {course.title}
                                             </span>
                                         </p>
-                                        <p className="text-xs text-gray-400">
+                                        <p className="text-xs text-muted-foreground">
                                             {course.teachers?.[0]?.name ??
                                                 'No instructor assigned'}
                                         </p>
                                     </div>
                                 </div>
                                 {course.description && (
-                                    <p className="mb-3 line-clamp-2 text-xs text-gray-400">
+                                    <p className="mb-3 line-clamp-2 text-xs text-muted-foreground">
                                         {course.short_description ??
                                             course.description}
                                     </p>
@@ -498,7 +503,7 @@ function StudentView({ courses }: { courses: PaginatedCourses }) {
                                     >
                                         {course.level}
                                     </Badge>
-                                    <span className="font-mono text-xs text-gray-400">
+                                    <span className="font-mono text-xs text-muted-foreground">
                                         {course.course_code}
                                     </span>
                                 </div>

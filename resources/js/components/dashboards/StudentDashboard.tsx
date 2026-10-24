@@ -1,6 +1,8 @@
 import { EmptyState } from '@/components/game/empty-state';
 import { LowPolyBlock, LowPolyClouds } from '@/components/game/low-poly-scene';
 import { ProgressTrack, RankLadder, XpBar } from '@/components/game/xp-bar';
+import { StudentWelcome } from '@/components/onboarding/student-welcome';
+import { InstallCard } from '@/components/pwa/install-card';
 import { Button } from '@/components/ui/button';
 import { WorldEmblem } from '@/components/world/world-scope';
 import { computeLevel } from '@/lib/gamification';
@@ -76,6 +78,12 @@ export default function StudentDashboard({
 
     return (
         <div className="min-h-full">
+            <StudentWelcome
+                userId={auth.user.id}
+                continueCourse={
+                    current ? { id: current.id, title: current.title } : null
+                }
+            />
             {/* Base camp: the student's corner of the world */}
             <header className="relative isolate overflow-hidden bg-world-sky text-slate-900">
                 <LowPolyClouds className="absolute inset-x-0 top-0 -z-10 opacity-80" />
@@ -251,6 +259,7 @@ export default function StudentDashboard({
                 </div>
 
                 <aside className="space-y-10 lg:col-span-4">
+                    <InstallCard />
                     <section aria-labelledby="due-title">
                         <h2
                             id="due-title"
