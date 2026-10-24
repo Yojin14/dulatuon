@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Course;
+use App\Models\CourseModule;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -42,6 +43,19 @@ class OptimizationTest extends TestCase
             'status' => 'published',
         ]);
 
+        $this->assertNull(Cache::get('explore:courses'));
+    }
+
+    public function test_adding_or_removing_a_module_invalidates_the_explore_cache(): void
+    {
+        $course = Course::factory()->create();
+
+        Cache::put('explore:courses', ['stale'], now()->addMinutes(10));
+        $module = CourseModule::create(['course_id' => $course->id, 'title' => 'Module 1', 'sort_order' => 0]);
+        $this->assertNull(Cache::get('explore:courses'));
+
+        Cache::put('explore:courses', ['stale'], now()->addMinutes(10));
+        $module->delete();
         $this->assertNull(Cache::get('explore:courses'));
     }
 

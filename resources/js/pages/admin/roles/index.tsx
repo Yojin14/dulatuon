@@ -1,4 +1,5 @@
 import { SectionHeader } from '@/components/dashboards/shared';
+import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -20,7 +21,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { PageHeader } from '@/components/page-header';
+import { useDebounce } from '@/hooks/use-debounce';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
@@ -34,7 +35,6 @@ import {
     Trash2,
     Users,
 } from 'lucide-react';
-import { useDebounce } from '@/hooks/use-debounce';
 import { useMemo, useState } from 'react';
 
 interface Role {
@@ -84,7 +84,9 @@ function CreateRoleModal({
 
     const toggle = (perm: string) =>
         setPermissions((prev) =>
-            prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev, perm],
+            prev.includes(perm)
+                ? prev.filter((p) => p !== perm)
+                : [...prev, perm],
         );
 
     const reset = () => {
@@ -104,7 +106,10 @@ function CreateRoleModal({
             '/admin/roles',
             { name, description, permissions },
             {
-                onSuccess: () => { reset(); onClose(); },
+                onSuccess: () => {
+                    reset();
+                    onClose();
+                },
                 onError: (e) => setErrors(e as Record<string, string>),
                 onFinish: () => setProcessing(false),
             },
@@ -112,14 +117,23 @@ function CreateRoleModal({
     };
 
     return (
-        <Dialog open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
+        <Dialog
+            open={open}
+            onOpenChange={(v) => {
+                if (!v) {
+                    reset();
+                    onClose();
+                }
+            }}
+        >
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle className="text-foreground">
                         Create New Role
                     </DialogTitle>
                     <DialogDescription>
-                        Define the role name, description, and assign permissions.
+                        Define the role name, description, and assign
+                        permissions.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -133,7 +147,9 @@ function CreateRoleModal({
                             placeholder="e.g. Content Manager"
                         />
                         {errors.name && (
-                            <p className="text-sm text-red-500">{errors.name}</p>
+                            <p className="text-sm text-red-500">
+                                {errors.name}
+                            </p>
                         )}
                     </div>
 
@@ -151,30 +167,38 @@ function CreateRoleModal({
                     <div className="space-y-2">
                         <Label>Permissions</Label>
                         <div className="grid grid-cols-2 gap-2">
-                            {Object.entries(allPermissions).map(([key, label]) => (
-                                <label
-                                    key={key}
-                                    className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 p-2 hover:border-violet-400 dark:border-gray-700"
-                                >
-                                    <Checkbox
-                                        checked={permissions.includes(key)}
-                                        onCheckedChange={() => toggle(key)}
-                                    />
-                                    <span className="text-sm">{label}</span>
-                                </label>
-                            ))}
+                            {Object.entries(allPermissions).map(
+                                ([key, label]) => (
+                                    <label
+                                        key={key}
+                                        className="flex cursor-pointer items-center gap-2 rounded-md border border-border p-2 hover:border-violet-400"
+                                    >
+                                        <Checkbox
+                                            checked={permissions.includes(key)}
+                                            onCheckedChange={() => toggle(key)}
+                                        />
+                                        <span className="text-sm">{label}</span>
+                                    </label>
+                                ),
+                            )}
                         </div>
                     </div>
                 </div>
 
                 <DialogFooter className="pt-2">
-                    <Button variant="outline" onClick={() => { reset(); onClose(); }} disabled={processing}>
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            reset();
+                            onClose();
+                        }}
+                        disabled={processing}
+                    >
                         Cancel
                     </Button>
                     <Button
                         onClick={submit}
                         disabled={processing || !name.trim()}
-                        className="bg-violet-900 hover:bg-violet-800"
                     >
                         {processing ? 'Creating...' : 'Create Role'}
                     </Button>
@@ -220,7 +244,9 @@ function EditRoleModal({
                     <DialogTitle className="text-foreground">
                         Edit Role
                     </DialogTitle>
-                    <DialogDescription>Update role name and description.</DialogDescription>
+                    <DialogDescription>
+                        Update role name and description.
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4">
@@ -232,7 +258,9 @@ function EditRoleModal({
                             onChange={(e) => setName(e.target.value)}
                         />
                         {errors.name && (
-                            <p className="text-sm text-red-500">{errors.name}</p>
+                            <p className="text-sm text-red-500">
+                                {errors.name}
+                            </p>
                         )}
                     </div>
                     <div className="space-y-1">
@@ -247,13 +275,16 @@ function EditRoleModal({
                 </div>
 
                 <DialogFooter className="pt-2">
-                    <Button variant="outline" onClick={onClose} disabled={processing}>
+                    <Button
+                        variant="outline"
+                        onClick={onClose}
+                        disabled={processing}
+                    >
                         Cancel
                     </Button>
                     <Button
                         onClick={submit}
                         disabled={processing || !name.trim()}
-                        className="bg-violet-900 hover:bg-violet-800"
                     >
                         {processing ? 'Saving...' : 'Save Changes'}
                     </Button>
@@ -274,14 +305,18 @@ function PermissionsModal({
     onClose: () => void;
     allPermissions: Record<string, string>;
 }) {
-    const [permissions, setPermissions] = useState<string[]>(role?.permissions ?? []);
+    const [permissions, setPermissions] = useState<string[]>(
+        role?.permissions ?? [],
+    );
     const [processing, setProcessing] = useState(false);
 
     if (!role) return null;
 
     const toggle = (perm: string) =>
         setPermissions((prev) =>
-            prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev, perm],
+            prev.includes(perm)
+                ? prev.filter((p) => p !== perm)
+                : [...prev, perm],
         );
 
     const submit = () => {
@@ -313,7 +348,9 @@ function PermissionsModal({
                         <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => setPermissions(Object.keys(allPermissions))}
+                            onClick={() =>
+                                setPermissions(Object.keys(allPermissions))
+                            }
                         >
                             Select All
                         </Button>
@@ -324,8 +361,9 @@ function PermissionsModal({
                         >
                             Clear All
                         </Button>
-                        <span className="ml-auto text-sm text-gray-500">
-                            {permissions.length} / {Object.keys(allPermissions).length} selected
+                        <span className="ml-auto text-sm text-muted-foreground">
+                            {permissions.length} /{' '}
+                            {Object.keys(allPermissions).length} selected
                         </span>
                     </div>
 
@@ -333,7 +371,7 @@ function PermissionsModal({
                         {Object.entries(allPermissions).map(([key, label]) => (
                             <label
                                 key={key}
-                                className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 p-2 hover:border-violet-400 dark:border-gray-700"
+                                className="flex cursor-pointer items-center gap-2 rounded-md border border-border p-2 hover:border-violet-400"
                             >
                                 <Checkbox
                                     checked={permissions.includes(key)}
@@ -346,14 +384,14 @@ function PermissionsModal({
                 </div>
 
                 <DialogFooter className="pt-2">
-                    <Button variant="outline" onClick={onClose} disabled={processing}>
+                    <Button
+                        variant="outline"
+                        onClick={onClose}
+                        disabled={processing}
+                    >
                         Cancel
                     </Button>
-                    <Button
-                        onClick={submit}
-                        disabled={processing}
-                        className="bg-violet-900 hover:bg-violet-800"
-                    >
+                    <Button onClick={submit} disabled={processing}>
                         {processing ? 'Saving...' : 'Save Permissions'}
                     </Button>
                 </DialogFooter>
@@ -387,22 +425,33 @@ function DeleteRoleModal({
         <Dialog open onOpenChange={(v) => !v && onClose()}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-red-600">Delete Role</DialogTitle>
+                    <DialogTitle className="text-red-600">
+                        Delete Role
+                    </DialogTitle>
                     <DialogDescription>
                         Are you sure you want to delete the{' '}
                         <span className="font-semibold">{role.name}</span> role?
                         {role.usersCount > 0 && (
                             <span className="mt-1 block text-amber-600">
-                                {role.usersCount} user(s) with this role will be reassigned to Student.
+                                {role.usersCount} user(s) with this role will be
+                                reassigned to Student.
                             </span>
                         )}
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter className="pt-2">
-                    <Button variant="outline" onClick={onClose} disabled={processing}>
+                    <Button
+                        variant="outline"
+                        onClick={onClose}
+                        disabled={processing}
+                    >
                         Cancel
                     </Button>
-                    <Button onClick={submit} disabled={processing} variant="destructive">
+                    <Button
+                        onClick={submit}
+                        disabled={processing}
+                        variant="destructive"
+                    >
                         {processing ? 'Deleting...' : 'Delete Role'}
                     </Button>
                 </DialogFooter>
@@ -413,7 +462,11 @@ function DeleteRoleModal({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function AdminRolesIndex({ roles, stats, allPermissions }: Props) {
+export default function AdminRolesIndex({
+    roles,
+    stats,
+    allPermissions,
+}: Props) {
     const [search, setSearch] = useState('');
     const [showCreate, setShowCreate] = useState(false);
     const [editRole, setEditRole] = useState<Role | null>(null);
@@ -422,14 +475,18 @@ export default function AdminRolesIndex({ roles, stats, allPermissions }: Props)
     const debouncedSearch = useDebounce(search);
 
     const { props } = usePage<{ flash?: { success?: string } }>();
-    const flash = (props as any).flash;
+    const flash = props.flash;
 
     const filtered = useMemo(
         () =>
             roles.filter(
                 (r) =>
-                    r.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                    r.description.toLowerCase().includes(debouncedSearch.toLowerCase()),
+                    r.name
+                        .toLowerCase()
+                        .includes(debouncedSearch.toLowerCase()) ||
+                    r.description
+                        .toLowerCase()
+                        .includes(debouncedSearch.toLowerCase()),
             ),
         [roles, debouncedSearch],
     );
@@ -444,7 +501,10 @@ export default function AdminRolesIndex({ roles, stats, allPermissions }: Props)
                 allPermissions={allPermissions}
             />
             {editRole && (
-                <EditRoleModal role={editRole} onClose={() => setEditRole(null)} />
+                <EditRoleModal
+                    role={editRole}
+                    onClose={() => setEditRole(null)}
+                />
             )}
             {permRole && (
                 <PermissionsModal
@@ -454,170 +514,219 @@ export default function AdminRolesIndex({ roles, stats, allPermissions }: Props)
                 />
             )}
             {deleteRole && (
-                <DeleteRoleModal role={deleteRole} onClose={() => setDeleteRole(null)} />
+                <DeleteRoleModal
+                    role={deleteRole}
+                    onClose={() => setDeleteRole(null)}
+                />
             )}
 
             <div className="min-h-full pb-10">
-
                 {/* Header */}
-                <PageHeader title="Roles" description="Who can do what across the platform." />
+                <PageHeader
+                    title="Roles"
+                    description="Who can do what across the platform."
+                />
 
-                <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-8 space-y-8 py-8">
+                <div className="mx-auto w-full max-w-[1600px] space-y-8 px-5 py-8 sm:px-8">
+                    {/* Flash message */}
+                    {flash?.success && (
+                        <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
+                            {flash.success}
+                        </div>
+                    )}
 
-                {/* Flash message */}
-                {flash?.success && (
-                    <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
-                        {flash.success}
+                    {/* Toolbar */}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="relative w-full sm:max-w-sm">
+                            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                placeholder="Search roles..."
+                                className="pl-10"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                        </div>
+                        <Button
+                            onClick={() => setShowCreate(true)}
+                            className="sm:shrink-0"
+                        >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Role
+                        </Button>
                     </div>
-                )}
 
-                {/* Toolbar */}
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="relative w-full sm:max-w-sm">
-                        <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                        <Input
-                            placeholder="Search roles..."
-                            className="pl-10"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
-                    </div>
-                    <Button
-                        onClick={() => setShowCreate(true)}
-                        className="bg-violet-900 hover:bg-violet-800 sm:shrink-0"
-                    >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Role
-                    </Button>
-                </div>
-
-                {/* Roles Grid */}
-                <div className="space-y-4">
-                    <SectionHeader title="Roles" />
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {filtered.map((role) => (
-                            <div
-                                key={role.id}
-                                className="group rounded-xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900"
-                            >
-                                <div className="flex items-start justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-50 dark:bg-violet-900/20">
-                                            <Shield className="h-4 w-4 text-violet-700 dark:text-violet-400" />
+                    {/* Roles Grid */}
+                    <div className="space-y-4">
+                        <SectionHeader title="Roles" />
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            {filtered.map((role) => (
+                                <div
+                                    key={role.id}
+                                    className="group rounded-xl border border-border bg-card p-5"
+                                >
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-50 dark:bg-violet-900/20">
+                                                <Shield className="h-4 w-4 text-violet-700 dark:text-violet-400" />
+                                            </div>
+                                            <div>
+                                                <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                                                    {role.name}
+                                                    {role.isSystem && (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="border-violet-300 text-xs text-violet-700 dark:border-violet-700 dark:text-violet-400"
+                                                        >
+                                                            System
+                                                        </Badge>
+                                                    )}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {role.description}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                                                {role.name}
-                                                {role.isSystem && (
-                                                    <Badge
-                                                        variant="outline"
-                                                        className="border-violet-300 text-xs text-violet-700 dark:border-violet-700 dark:text-violet-400"
-                                                    >
-                                                        System
-                                                    </Badge>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 w-7 p-0"
+                                                >
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem
+                                                    onClick={() =>
+                                                        setEditRole(role)
+                                                    }
+                                                >
+                                                    <Edit className="mr-2 h-4 w-4" />
+                                                    Edit Role
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={() =>
+                                                        setPermRole(role)
+                                                    }
+                                                >
+                                                    <Settings className="mr-2 h-4 w-4" />
+                                                    Edit Permissions
+                                                </DropdownMenuItem>
+                                                {!role.isSystem && (
+                                                    <>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            className="text-red-600 focus:text-red-600"
+                                                            onClick={() =>
+                                                                setDeleteRole(
+                                                                    role,
+                                                                )
+                                                            }
+                                                        >
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            Delete Role
+                                                        </DropdownMenuItem>
+                                                    </>
                                                 )}
-                                            </p>
-                                            <p className="text-xs text-gray-400">{role.description}</p>
-                                        </div>
-                                    </div>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                                                <MoreHorizontal className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => setEditRole(role)}>
-                                                <Edit className="mr-2 h-4 w-4" />
-                                                Edit Role
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => setPermRole(role)}>
-                                                <Settings className="mr-2 h-4 w-4" />
-                                                Edit Permissions
-                                            </DropdownMenuItem>
-                                            {!role.isSystem && (
-                                                <>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem
-                                                        className="text-red-600 focus:text-red-600"
-                                                        onClick={() => setDeleteRole(role)}
-                                                    >
-                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                        Delete Role
-                                                    </DropdownMenuItem>
-                                                </>
-                                            )}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-
-                                <div className="mt-4 space-y-3">
-                                    <div className="flex items-center justify-between text-xs text-gray-400">
-                                        <span className="flex items-center gap-1">
-                                            <Users className="h-3.5 w-3.5" />
-                                            {role.usersCount.toLocaleString()} users
-                                        </span>
-                                        <span>Created {new Date(role.createdAt).toLocaleDateString()}</span>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </div>
 
-                                    <div>
-                                        <div className="mb-1.5 flex items-center justify-between">
-                                            <p className="text-xs font-medium text-foreground/85">
-                                                Permissions ({role.permissions.length})
-                                            </p>
-                                            <button
-                                                className="text-xs text-violet-600 hover:underline dark:text-violet-400"
-                                                onClick={() => setPermRole(role)}
-                                            >
-                                                Edit
-                                            </button>
+                                    <div className="mt-4 space-y-3">
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                            <span className="flex items-center gap-1">
+                                                <Users className="h-3.5 w-3.5" />
+                                                {role.usersCount.toLocaleString()}{' '}
+                                                users
+                                            </span>
+                                            <span>
+                                                Created{' '}
+                                                {new Date(
+                                                    role.createdAt,
+                                                ).toLocaleDateString()}
+                                            </span>
                                         </div>
-                                        <div className="flex flex-wrap gap-1">
-                                            {role.permissions.length === 0 ? (
-                                                <span className="text-xs text-gray-400">No permissions</span>
-                                            ) : (
-                                                role.permissions.map((p) => (
-                                                    <Badge
-                                                        key={p}
-                                                        className="border-violet-200 bg-violet-50 text-xs text-violet-700 dark:border-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
-                                                    >
-                                                        {allPermissions[p] ?? p}
-                                                    </Badge>
-                                                ))
-                                            )}
+
+                                        <div>
+                                            <div className="mb-1.5 flex items-center justify-between">
+                                                <p className="text-xs font-medium text-foreground/85">
+                                                    Permissions (
+                                                    {role.permissions.length})
+                                                </p>
+                                                <button
+                                                    className="text-xs text-violet-600 hover:underline dark:text-violet-400"
+                                                    onClick={() =>
+                                                        setPermRole(role)
+                                                    }
+                                                >
+                                                    Edit
+                                                </button>
+                                            </div>
+                                            <div className="flex flex-wrap gap-1">
+                                                {role.permissions.length ===
+                                                0 ? (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        No permissions
+                                                    </span>
+                                                ) : (
+                                                    role.permissions.map(
+                                                        (p) => (
+                                                            <Badge
+                                                                key={p}
+                                                                className="border-violet-200 bg-violet-50 text-xs text-violet-700 dark:border-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
+                                                            >
+                                                                {allPermissions[
+                                                                    p
+                                                                ] ?? p}
+                                                            </Badge>
+                                                        ),
+                                                    )
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
 
-                        {filtered.length === 0 && (
-                            <div className="col-span-3 rounded-xl border border-gray-100 py-12 text-center text-sm text-gray-400 dark:border-gray-800">
-                                No roles found matching your search.
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Role Statistics */}
-                <div className="space-y-4">
-                    <SectionHeader title="Statistics" />
-                    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-                        <div className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
-                            <p className="text-sm font-bold text-muted-foreground">Total Roles</p>
-                            <p className="mt-3 text-3xl font-bold text-gray-900 sm:mt-4 sm:text-4xl dark:text-white">{stats.total_roles}</p>
-                        </div>
-                        <div className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
-                            <p className="text-sm font-bold text-muted-foreground">Total Users</p>
-                            <p className="mt-3 text-3xl font-bold text-gray-900 sm:mt-4 sm:text-4xl dark:text-white">{stats.total_users.toLocaleString()}</p>
-                        </div>
-                        <div className="col-span-2 rounded-xl border border-gray-100 bg-white p-4 sm:p-6 lg:col-span-1 dark:border-gray-800 dark:bg-gray-900">
-                            <p className="text-sm font-bold text-muted-foreground">Permissions</p>
-                            <p className="mt-3 text-3xl font-bold text-gray-900 sm:mt-4 sm:text-4xl dark:text-white">{stats.total_permissions}</p>
+                            {filtered.length === 0 && (
+                                <div className="col-span-3 rounded-xl border border-border py-12 text-center text-sm text-muted-foreground">
+                                    No roles found matching your search.
+                                </div>
+                            )}
                         </div>
                     </div>
-                </div>
 
+                    {/* Role Statistics */}
+                    <div className="space-y-4">
+                        <SectionHeader title="Statistics" />
+                        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+                            <div className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
+                                <p className="text-sm font-bold text-muted-foreground">
+                                    Total Roles
+                                </p>
+                                <p className="mt-3 text-3xl font-bold text-foreground sm:mt-4 sm:text-4xl dark:text-white">
+                                    {stats.total_roles}
+                                </p>
+                            </div>
+                            <div className="rounded-3xl border bg-card p-5 shadow-panel sm:p-6">
+                                <p className="text-sm font-bold text-muted-foreground">
+                                    Total Users
+                                </p>
+                                <p className="mt-3 text-3xl font-bold text-foreground sm:mt-4 sm:text-4xl dark:text-white">
+                                    {stats.total_users.toLocaleString()}
+                                </p>
+                            </div>
+                            <div className="col-span-2 rounded-xl border border-border bg-card p-4 sm:p-6 lg:col-span-1">
+                                <p className="text-sm font-bold text-muted-foreground">
+                                    Permissions
+                                </p>
+                                <p className="mt-3 text-3xl font-bold text-foreground sm:mt-4 sm:text-4xl dark:text-white">
+                                    {stats.total_permissions}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </AppLayout>

@@ -13,6 +13,7 @@ use App\Models\CourseSession;
 use App\Models\Question;
 use App\Models\QuestionOption;
 use App\Models\Quiz;
+use App\Support\CourseNews;
 use App\Support\SimulationGames;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -290,6 +291,8 @@ class CurriculumController extends Controller
             'config' => ['items' => $this->gameItems($data)],
             'sort_order' => (int) $session->games()->max('sort_order') + 1,
         ]);
+
+        CourseNews::itemAdded($courseId, $game->title);
 
         return response()->json(self::formatGame($game), 201);
     }
@@ -807,6 +810,8 @@ class CurriculumController extends Controller
             'pages' => $pages,
         ]);
 
+        CourseNews::itemAdded($courseId, $item->title);
+
         return response()->json([
             'id' => 'content-'.$item->id,
             'dbId' => $item->id,
@@ -965,6 +970,8 @@ class CurriculumController extends Controller
             ];
         }
 
+        CourseNews::itemAdded($courseId, $quiz->title);
+
         return response()->json([
             'id' => 'quiz-'.$quiz->id,
             'dbId' => $quiz->id,
@@ -1071,6 +1078,8 @@ class CurriculumController extends Controller
             'due_date' => $data['dueDate'] ?? null,
             'status' => 'draft',
         ]);
+
+        CourseNews::itemAdded($courseId, $assignment->title);
 
         return response()->json([
             'id' => 'assignment-'.$assignment->id,

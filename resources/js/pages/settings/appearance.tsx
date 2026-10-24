@@ -2,7 +2,13 @@ import { Head } from '@inertiajs/react';
 
 import AppearanceTabs from '@/components/appearance-tabs';
 import HeadingSmall from '@/components/heading-small';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { TEXT_SCALE_OPTIONS, useTextScale } from '@/hooks/use-text-scale';
 import { type BreadcrumbItem } from '@/types';
 
@@ -27,18 +33,22 @@ export default function Appearance() {
             <SettingsLayout>
                 <div className="space-y-6">
                     <HeadingSmall
-                        title="Appearance settings"
-                        description="Update your account's appearance settings"
+                        title="Appearance"
+                        description="Choose light or dark mode and how large text appears. Saved on this device."
                     />
                     <AppearanceTabs />
 
                     <div className="space-y-2">
-                        <p className="text-sm font-medium">Text Scale</p>
-                        <p className="text-muted-foreground text-xs">
-                            Adjust the size of text across the entire application.
+                        <p className="text-sm font-bold">Text size</p>
+                        <p className="text-sm text-muted-foreground">
+                            Make every page easier to read, including lessons
+                            and flipbooks.
                         </p>
-                        <Select value={textScale} onValueChange={updateTextScale}>
-                            <SelectTrigger className="w-48">
+                        <Select
+                            value={textScale}
+                            onValueChange={updateTextScale}
+                        >
+                            <SelectTrigger className="w-56">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>

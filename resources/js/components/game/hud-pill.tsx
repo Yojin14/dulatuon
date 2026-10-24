@@ -14,7 +14,11 @@ const tones = {
 export type HudPillTone = keyof typeof tones;
 
 /** Pill label in the style of the 3D scene's floating sprite labels. */
-export function HudPill({ tone = 'dark', className, ...props }: ComponentProps<'span'> & { tone?: HudPillTone }) {
+export function HudPill({
+    tone = 'dark',
+    className,
+    ...props
+}: ComponentProps<'span'> & { tone?: HudPillTone }) {
     return (
         <span
             className={cn(

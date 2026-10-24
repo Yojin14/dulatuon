@@ -6,6 +6,8 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
 @custom-variant dark (&:is(.dark *));
+/* Phones held sideways: wide but very short. */
+@custom-variant land (@media (orientation: landscape) and (max-height: 500px) and (max-width: 1023px));
 
 /* Text scale — applied via data-text-scale on <html>. All rem-based Tailwind
    sizes scale automatically since they derive from the root font-size. */
@@ -340,3 +342,16 @@ html[data-text-scale='extra-large'] { font-size: 125%;   }  /* 20px */
 @media (prefers-reduced-motion: reduce) {
     .flipbook-leaf[data-turn] { animation-duration: 1ms; }
 }
+
+/* Course focus mode (set on <body> by the course player): only the course and its lesson remain. */
+body[data-course-focus] [data-slot="sidebar"],
+body[data-course-focus] [data-app-topbar] { display: none; }
+/* On a sideways phone the course page has its own compact header, so the app bar goes. */
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 1023px) {
+    body[data-course-page] [data-app-topbar] { display: none; }
+    body[data-course-page] [data-slot="sidebar-inset"] { height: 100svh !important; margin: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+}
+body[data-course-focus] [data-slot="sidebar-inset"] { margin: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+
+/* Collapsed sidebar: centre each icon in the strip. */
+[data-collapsible="icon"] [data-sidebar="menu-item"] { display: flex; justify-content: center; }

@@ -1,5 +1,6 @@
 import { EmptyState } from '@/components/game/empty-state';
 import { HudPill } from '@/components/game/hud-pill';
+import { RankAvatar } from '@/components/game/rank-avatar';
 import { ProgressTrack } from '@/components/game/xp-bar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -28,6 +29,9 @@ export interface LeaderboardRow {
     modules_cleared?: number;
     modules_total?: number;
     game_points?: number;
+    /** Overall XP across all their courses, for the rank frame on their avatar. */
+    total_xp?: number;
+    avatar?: string | null;
     last_active?: string | null;
 }
 
@@ -202,7 +206,11 @@ function TeacherTable({ rows }: { rows: LeaderboardRow[] }) {
                                 </td>
                                 <td className="py-2.5">
                                     <div className="flex items-center gap-2.5">
-                                        <Avatar name={row.name} />
+                                        <RankAvatar
+                                            name={row.name}
+                                            src={row.avatar}
+                                            xp={row.total_xp ?? 0}
+                                        />
                                         <div className="min-w-0">
                                             <p className="truncate font-bold">
                                                 {row.name}
@@ -265,7 +273,11 @@ function StudentRow({ row }: { row: LeaderboardRow }) {
             )}
         >
             <RankHex rank={row.rank} />
-            <Avatar name={row.name} me={row.is_me} />
+            <RankAvatar
+                name={row.name}
+                src={row.avatar}
+                xp={row.total_xp ?? 0}
+            />
             <div className="min-w-0 flex-1">
                 <p className="truncate font-bold">
                     {row.is_me ? `${row.name} (you)` : row.name}

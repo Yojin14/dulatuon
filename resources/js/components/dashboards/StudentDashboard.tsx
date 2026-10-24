@@ -1,14 +1,11 @@
-import { AchievementBadge } from '@/components/game/achievement-badge';
 import { EmptyState } from '@/components/game/empty-state';
 import { LowPolyBlock, LowPolyClouds } from '@/components/game/low-poly-scene';
-import { ProgressTrack, XpBar } from '@/components/game/xp-bar';
+import { ProgressTrack, RankLadder, XpBar } from '@/components/game/xp-bar';
+import { StudentWelcome } from '@/components/onboarding/student-welcome';
+import { InstallCard } from '@/components/pwa/install-card';
 import { Button } from '@/components/ui/button';
 import { WorldEmblem } from '@/components/world/world-scope';
-import {
-    computeAchievements,
-    computeLevel,
-    computeXp,
-} from '@/lib/gamification';
+import { computeLevel } from '@/lib/gamification';
 import { cn } from '@/lib/utils';
 import { worldFor } from '@/lib/worlds';
 import { type SharedData } from '@/types';
@@ -30,6 +27,8 @@ interface CourseRow {
     completed: number;
     total: number;
     progress: number;
+    /** Every module cleared (materials read and games passed). */
+    cleared: boolean;
     status: string;
 }
 
@@ -50,12 +49,12 @@ export interface StudentDashboardProps {
     };
     courses: CourseRow[];
     dueSoon: DueRow[];
+    /** Total XP, worked out on the server with the same rules as My Progress. */
+    xp?: number;
 }
 
 function pickContinueCourse(courses: CourseRow[]): CourseRow | null {
-    const unfinished = courses.filter(
-        (c) => c.total === 0 || c.completed < c.total,
-    );
+    const unfinished = courses.filter((c) => !c.cleared);
     if (unfinished.length === 0) {
         return courses[0] ?? null;
     }
@@ -67,19 +66,24 @@ export default function StudentDashboard({
     stats,
     courses,
     dueSoon,
+    xp = 0,
 }: StudentDashboardProps) {
     const { auth } = usePage<SharedData>().props;
     const firstName = auth.user.firstname || auth.user.name.split(' ')[0];
     const greeting = greetingFor(new Date().getHours());
 
-    const player = computeLevel(computeXp(courses));
-    const achievements = computeAchievements(courses);
-    const earnedCount = achievements.filter((a) => a.earned).length;
+    const player = computeLevel(xp);
     const current = pickContinueCourse(courses);
     const currentWorld = worldFor(current);
 
     return (
         <div className="min-h-full">
+            <StudentWelcome
+                userId={auth.user.id}
+                continueCourse={
+                    current ? { id: current.id, title: current.title } : null
+                }
+            />
             {/* Base camp: the student's corner of the world */}
             <header className="relative isolate overflow-hidden bg-world-sky text-slate-900">
                 <LowPolyClouds className="absolute inset-x-0 top-0 -z-10 opacity-80" />
@@ -96,7 +100,7 @@ export default function StudentDashboard({
                                 ? 'nothing due'
                                 : `${stats.pendingWork} due soon`}
                         </p>
-                        <div className="mt-5 max-w-sm rounded-2xl bg-white/80 p-3.5 ring-1 ring-black/5 backdrop-blur-sm">
+                        <div className="mt-5 max-w-sm rounded-2xl bg-white/80 p-3.5 ring-1 ring-black/5 backdrop-blur-sm dark:bg-card/85 dark:ring-white/10">
                             <XpBar player={player} />
                         </div>
                     </div>
@@ -210,9 +214,7 @@ export default function StudentDashboard({
                             </div>
                             <ul className="mt-4 divide-y rounded-3xl border bg-card shadow-panel">
                                 {courses.map((course) => {
-                                    const cleared =
-                                        course.total > 0 &&
-                                        course.completed >= course.total;
+                                    const cleared = course.cleared;
 
                                     return (
                                         <li key={course.id}>
@@ -257,6 +259,7 @@ export default function StudentDashboard({
                 </div>
 
                 <aside className="space-y-10 lg:col-span-4">
+                    <InstallCard />
                     <section aria-labelledby="due-title">
                         <h2
                             id="due-title"
@@ -313,26 +316,20 @@ export default function StudentDashboard({
                         )}
                     </section>
 
-                    <section aria-labelledby="badges-title">
-                        <div className="flex items-baseline justify-between gap-4">
-                            <h2
-                                id="badges-title"
-                                className="text-xl font-bold tracking-[-0.02em]"
-                            >
-                                Badges
-                            </h2>
-                            <span className="text-sm font-bold text-muted-foreground tabular-nums">
-                                {earnedCount} of {achievements.length}
-                            </span>
-                        </div>
-                        <div className="mt-4 grid grid-cols-3 gap-x-3 gap-y-5 rounded-3xl border bg-card p-5 shadow-panel">
-                            {achievements.map((achievement) => (
-                                <AchievementBadge
-                                    key={achievement.id}
-                                    achievement={achievement}
-                                    size="sm"
-                                />
-                            ))}
+                    <section aria-labelledby="rank-title">
+                        <h2
+                            id="rank-title"
+                            className="text-xl font-bold tracking-[-0.02em]"
+                        >
+                            Road to Diamond
+                        </h2>
+                        <div className="mt-4 rounded-3xl bg-game-night p-5 text-white shadow-panel">
+                            <RankLadder player={player} compact />
+                            <p className="mt-3 border-t border-white/10 pt-3 text-sm text-white/70">
+                                {player.nextRankName
+                                    ? `${player.xpToNext} XP to ${player.nextRankName}. Every lesson and lab you finish counts.`
+                                    : 'You reached Diamond, the top rank.'}
+                            </p>
                         </div>
                         <Link
                             href="/my-progress"

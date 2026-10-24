@@ -122,10 +122,27 @@ class CourseController extends Controller
 
     public function show(Course $course): Response
     {
-        $course->load('teachers:id,name', 'subjects');
+        $course->load('teachers:id,name', 'modules:id,course_id,title,sort_order')
+            ->loadCount(['modules', 'enrollments']);
 
         return Inertia::render('courses/show', [
-            'course' => $course,
+            'course' => [
+                'id' => $course->id,
+                'title' => $course->title,
+                'course_code' => $course->course_code,
+                'description' => $course->description,
+                'short_description' => $course->short_description,
+                'level' => $course->level,
+                'status' => $course->status,
+                'thumbnail' => $course->thumbnail,
+                'thumbnail_focus' => $course->thumbnail_focus,
+                'max_students' => $course->max_students,
+                'teachers' => $course->teachers->map(fn ($t) => ['id' => $t->id, 'name' => $t->name])->values(),
+                'modules' => $course->modules->sortBy('sort_order')->map(fn ($m) => ['id' => $m->id, 'title' => $m->title])->values(),
+                'modules_count' => $course->modules_count,
+                'enrollments_count' => $course->enrollments_count,
+                'updated_at' => $course->updated_at?->format('M j, Y'),
+            ],
         ]);
     }
 

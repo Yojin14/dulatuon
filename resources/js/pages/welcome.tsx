@@ -94,23 +94,24 @@ export default function Welcome({
                 <div className="relative isolate overflow-hidden bg-world-sky text-slate-900">
                     <LowPolyClouds className="absolute inset-x-0 top-16 -z-10 w-[140%] max-w-none opacity-90 sm:w-full" />
 
-                    <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 pt-5 sm:px-8">
-                        <Link href="/" className="flex items-center rounded-xl focus-visible:ring-4 focus-visible:ring-violet-500/30 focus-visible:outline-none">
+                    <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 pt-5 sm:gap-4 sm:px-8">
+                        <Link href="/" className="flex min-w-0 items-center rounded-xl focus-visible:ring-4 focus-visible:ring-violet-500/30 focus-visible:outline-none">
                             <AppLogo />
                         </Link>
-                        <nav aria-label="Account" className="flex items-center gap-1 text-sm font-bold">
+                        <nav aria-label="Account" className="flex shrink-0 items-center gap-1 text-sm font-bold whitespace-nowrap">
                             {isSignedIn ? (
                                 <Link href={dashboard()} className="inline-flex h-10 items-center rounded-xl bg-white/70 px-4 ring-1 ring-black/5 hover:bg-white">
                                     Dashboard
                                 </Link>
                             ) : (
                                 <>
-                                    <Link href={login()} className="inline-flex h-10 items-center rounded-xl px-3 hover:bg-white/60">
+                                    <Link href={login()} className="inline-flex h-10 items-center rounded-xl px-2.5 hover:bg-white/60 sm:px-3">
                                         Log in
                                     </Link>
                                     {canRegister && (
-                                        <Link href={register()} className="inline-flex h-10 items-center rounded-xl bg-white/70 px-4 ring-1 ring-black/5 hover:bg-white">
-                                            Create account
+                                        <Link href={register()} className="inline-flex h-10 items-center rounded-xl bg-white/70 px-3.5 ring-1 ring-black/5 hover:bg-white sm:px-4">
+                                            <span className="sm:hidden">Sign up</span>
+                                            <span className="hidden sm:inline">Create account</span>
                                         </Link>
                                     )}
                                 </>
@@ -278,7 +279,7 @@ export default function Welcome({
                             <Reveal delay={0.1} className="lg:col-span-5 lg:col-start-8">
                                 <p className="font-display text-[clamp(2.5rem,5vw,4rem)] leading-none font-extrabold tracking-[-0.04em] text-amber-300">+50 XP</p>
                                 <p className="mt-3 max-w-[34ch] leading-relaxed text-white/75">Right answer, first try. The run keeps its hearts and the next lesson unlocks.</p>
-                                <div className="mt-6 max-w-sm rounded-2xl bg-white/6 p-4 ring-1 ring-white/10 [&_.text-foreground]:text-white [&_.text-muted-foreground]:text-white/65">
+                                <div className="dark mt-6 max-w-sm rounded-2xl bg-white/6 p-4 ring-1 ring-white/10 [&_.text-foreground]:text-white [&_.text-muted-foreground]:text-white/65">
                                     <XpBar player={examplePlayer} />
                                 </div>
                             </Reveal>

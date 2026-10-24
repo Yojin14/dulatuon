@@ -206,6 +206,8 @@ function THEMES_PLACEHOLDER(): Theme {
 
 function scheduler(): void {
     if (!ctx || !musicBus || !theme) { return; }
+    // Local copy: the module-level bus can't be narrowed inside the callbacks below.
+    const bus: GainNode = musicBus;
     const step = 60 / theme.tempo / 4; // sixteenth notes
     while (nextNoteTime < ctx.currentTime + 0.2) {
         const t = nextNoteTime;
@@ -217,16 +219,16 @@ function scheduler(): void {
         if (theme.hat > 0 && stepIndex % (theme.kick ? 2 : 4) === 0) { hat(t, stepIndex % 4 === 2 ? theme.hat * 1.6 : theme.hat); }
 
         if (inBar === 0 || inBar === 8) {
-            voice(chord.root, t, step * 7, 'sine', 0.55, musicBus, { attack: 0.02 });
+            voice(chord.root, t, step * 7, 'sine', 0.55, bus, { attack: 0.02 });
         }
         if (inBar === 0) {
-            chord.notes.forEach((n, i) => voice(n, t, step * 15.5, 'triangle', 0.05, musicBus, { attack: 0.08, pan: (i - 1.5) * 0.12 }));
+            chord.notes.forEach((n, i) => voice(n, t, step * 15.5, 'triangle', 0.05, bus, { attack: 0.08, pan: (i - 1.5) * 0.12 }));
         }
 
         const idx = theme.arp[inBar];
         if (idx !== null) {
             const pool = [chord.notes[0], chord.notes[1], chord.notes[2], chord.notes[3], chord.notes[0] * 2];
-            voice(pool[idx], t, step * 1.1, theme.lead, 0.3, musicBus, { detune: 4, pan: 0.18 });
+            voice(pool[idx], t, step * 1.1, theme.lead, 0.3, bus, { detune: 4, pan: 0.18 });
         }
 
         nextNoteTime += step;

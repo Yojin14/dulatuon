@@ -45,11 +45,15 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
-                'user' => $user ? $user->only([
-                    'id', 'name', 'email', 'avatar', 'role', 'is_active',
-                    'firstname', 'lastname', 'email_verified_at',
-                    'two_factor_confirmed_at', 'created_at', 'updated_at',
-                ]) : null,
+                'user' => $user ? [
+                    ...$user->only([
+                        'id', 'name', 'email', 'avatar', 'gender', 'role', 'is_active',
+                        'firstname', 'lastname', 'email_verified_at',
+                        'two_factor_confirmed_at', 'created_at', 'updated_at',
+                    ]),
+                    // Students' total XP, for the rank frame on their avatar.
+                    'xp' => $user->role === 'student' ? \App\Support\StudentProgress::storedXp([$user->id])[$user->id] : null,
+                ] : null,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'unreadNotificationCount' => $user

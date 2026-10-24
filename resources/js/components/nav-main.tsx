@@ -1,5 +1,9 @@
 import { Icon } from '@/components/icon';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
     SidebarGroup,
     SidebarGroupLabel,
@@ -15,9 +19,18 @@ import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
 
-const itemClass = 'h-11 group-data-[collapsible=icon]:size-10!';
+// Collapsed: a centred 44px icon only. The label and sub-menu arrow are hidden, not clipped,
+// so no sliver of text shows beside the icon.
+const itemClass =
+    'h-11 group-data-[collapsible=icon]:size-11! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:[&>span]:hidden group-data-[collapsible=icon]:[&>svg:not(:first-child)]:hidden';
 
-export function NavMain({ items = [], label = 'Platform' }: { items: NavItem[]; label?: string }) {
+export function NavMain({
+    items = [],
+    label = 'Platform',
+}: {
+    items: NavItem[];
+    label?: string;
+}) {
     const page = usePage();
     const pathname = page.url.split('?')[0];
 
@@ -41,10 +54,17 @@ export function NavMain({ items = [], label = 'Platform' }: { items: NavItem[]; 
                                         tooltip={{ children: item.title }}
                                         className={itemClass}
                                         isActive={item.items.some((sub) =>
-                                            pathname.startsWith(resolveUrl(sub.href)),
+                                            pathname.startsWith(
+                                                resolveUrl(sub.href),
+                                            ),
                                         )}
                                     >
-                                        {item.icon && <Icon iconNode={item.icon} className="size-[18px]" />}
+                                        {item.icon && (
+                                            <Icon
+                                                iconNode={item.icon}
+                                                className="size-[18px]"
+                                            />
+                                        )}
                                         <span>{item.title}</span>
                                         <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                                     </SidebarMenuButton>
@@ -55,10 +75,30 @@ export function NavMain({ items = [], label = 'Platform' }: { items: NavItem[]; 
                                             <SidebarMenuSubItem key={sub.title}>
                                                 <SidebarMenuSubButton
                                                     asChild
-                                                    isActive={pathname === resolveUrl(sub.href) || pathname.startsWith(resolveUrl(sub.href) + '/')}
+                                                    isActive={
+                                                        pathname ===
+                                                            resolveUrl(
+                                                                sub.href,
+                                                            ) ||
+                                                        pathname.startsWith(
+                                                            resolveUrl(
+                                                                sub.href,
+                                                            ) + '/',
+                                                        )
+                                                    }
                                                 >
-                                                    <Link href={sub.href} prefetch>
-                                                        {sub.icon && <Icon iconNode={sub.icon} className="h-4 w-4" />}
+                                                    <Link
+                                                        href={sub.href}
+                                                        prefetch
+                                                    >
+                                                        {sub.icon && (
+                                                            <Icon
+                                                                iconNode={
+                                                                    sub.icon
+                                                                }
+                                                                className="h-4 w-4"
+                                                            />
+                                                        )}
                                                         <span>{sub.title}</span>
                                                     </Link>
                                                 </SidebarMenuSubButton>
@@ -72,12 +112,19 @@ export function NavMain({ items = [], label = 'Platform' }: { items: NavItem[]; 
                         <SidebarMenuItem key={item.title}>
                             <SidebarMenuButton
                                 asChild
-                                isActive={pathname.startsWith(resolveUrl(item.href))}
+                                isActive={pathname.startsWith(
+                                    resolveUrl(item.href),
+                                )}
                                 tooltip={{ children: item.title }}
                                 className={itemClass}
                             >
                                 <Link href={item.href} prefetch>
-                                    {item.icon && <Icon iconNode={item.icon} className="size-[18px]" />}
+                                    {item.icon && (
+                                        <Icon
+                                            iconNode={item.icon}
+                                            className="size-[18px]"
+                                        />
+                                    )}
                                     <span>{item.title}</span>
                                 </Link>
                             </SidebarMenuButton>

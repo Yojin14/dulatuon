@@ -2,8 +2,8 @@ import { ACCENT_POOL, CourseCard } from '@/components/course-card';
 import { CoverGallery } from '@/components/cover/cover-gallery';
 import { EmptyState } from '@/components/game/empty-state';
 import { ProgressRing } from '@/components/game/progress-ring';
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
     Dialog,
     DialogContent,
@@ -11,7 +11,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { PageHeader } from '@/components/page-header';
+import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
@@ -80,10 +80,12 @@ function StudentMyClass({ enrollments }: { enrollments: EnrollmentData[] }) {
     });
 
     return (
-        <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-8 py-8">
+        <div className="mx-auto w-full max-w-[1600px] px-5 py-8 sm:px-8">
             <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
                 <div>
-                    <h1 className="font-display text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-extrabold tracking-[-0.035em]">My courses</h1>
+                    <h1 className="font-display text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-extrabold tracking-[-0.035em]">
+                        My courses
+                    </h1>
                     <p className="mt-1.5 text-muted-foreground">
                         {enrollments.length === 0
                             ? 'Courses you join will live here.'
@@ -119,11 +121,15 @@ function StudentMyClass({ enrollments }: { enrollments: EnrollmentData[] }) {
                         }
                     />
                 ) : filtered.length === 0 ? (
-                    <EmptyState title="No matches" description="No course in your list matches that search." />
+                    <EmptyState
+                        title="No matches"
+                        description="No course in your list matches that search."
+                    />
                 ) : (
                     <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                         {filtered.map((e, idx) => {
-                            const colors = ACCENT_POOL[idx % ACCENT_POOL.length];
+                            const colors =
+                                ACCENT_POOL[idx % ACCENT_POOL.length];
                             const isCleared = e.progress_percentage >= 100;
 
                             return (
@@ -132,23 +138,60 @@ function StudentMyClass({ enrollments }: { enrollments: EnrollmentData[] }) {
                                     title={e.course.title}
                                     thumbnail={e.course.thumbnail}
                                     thumbnailFocus={e.course.thumbnail_focus}
-                                    description={e.course.short_description ?? e.course.description}
+                                    description={
+                                        e.course.short_description ??
+                                        e.course.description
+                                    }
                                     colors={colors}
                                     badge={
                                         <span className="rounded-full bg-slate-900/75 px-2.5 py-1 text-xs font-bold text-white backdrop-blur-sm">
-                                            {isCleared ? 'Cleared' : e.course.level}
+                                            {isCleared
+                                                ? 'Cleared'
+                                                : e.course.level}
                                         </span>
                                     }
-                                    titleExtra={<ProgressRing value={e.progress_percentage} size={52} stroke={5} />}
-                                    stats={[{ icon: Layers, value: e.course.modules_count, label: 'modules' }]}
+                                    titleExtra={
+                                        <ProgressRing
+                                            value={e.progress_percentage}
+                                            size={52}
+                                            stroke={5}
+                                        />
+                                    }
+                                    stats={[
+                                        {
+                                            icon: Layers,
+                                            value: e.course.modules_count,
+                                            label: 'modules',
+                                        },
+                                    ]}
                                     meta={[
-                                        { icon: GraduationCap, text: e.course.instructor?.name ?? 'No instructor yet' },
-                                        { icon: Clock, text: `Joined ${e.enrollment_date}` },
+                                        {
+                                            icon: GraduationCap,
+                                            text:
+                                                e.course.instructor?.name ??
+                                                'No instructor yet',
+                                        },
+                                        {
+                                            icon: Clock,
+                                            text: `Joined ${e.enrollment_date}`,
+                                        },
                                     ]}
                                     cta={
-                                        <Button asChild variant={isCleared ? 'outline' : 'play'} className="w-full">
-                                            <Link href={`/my-course/${e.course_id}`}>
-                                                {isCleared ? 'Review course' : e.progress_percentage > 0 ? 'Continue' : 'Start'}
+                                        <Button
+                                            asChild
+                                            variant={
+                                                isCleared ? 'outline' : 'play'
+                                            }
+                                            className="w-full"
+                                        >
+                                            <Link
+                                                href={`/my-course/${e.course_id}`}
+                                            >
+                                                {isCleared
+                                                    ? 'Review course'
+                                                    : e.progress_percentage > 0
+                                                      ? 'Continue'
+                                                      : 'Start'}
                                                 <ChevronRight />
                                             </Link>
                                         </Button>
@@ -436,7 +479,11 @@ export default function MyClassIndex({
                 {/* Header */}
                 <PageHeader
                     title={isAdmin ? 'All courses' : 'Your courses'}
-                    description={isAdmin ? 'Every course created in Dulatuon.' : 'Manage your courses, modules and lesson materials.'}
+                    description={
+                        isAdmin
+                            ? 'Every course created in Dulatuon.'
+                            : 'Manage your courses, modules and lesson materials.'
+                    }
                 />
 
                 {/* Hidden file input for thumbnail upload */}
@@ -449,7 +496,7 @@ export default function MyClassIndex({
                 />
 
                 {/* Content */}
-                <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-8 space-y-10 py-8">
+                <div className="mx-auto w-full max-w-[1600px] space-y-10 px-5 py-8 sm:px-8">
                     {groups.map((group) => (
                         <div key={group.level}>
                             {/* Level label */}
@@ -458,7 +505,7 @@ export default function MyClassIndex({
                                     {group.level}
                                 </h2>
                                 <div className="flex-1 border-t border-border" />
-                                <span className="text-xs text-gray-400">
+                                <span className="text-xs text-muted-foreground">
                                     {group.courses.length} course
                                     {group.courses.length !== 1 ? 's' : ''}
                                 </span>
@@ -486,7 +533,7 @@ export default function MyClassIndex({
                                             }
                                             colors={colors}
                                             badge={
-                                                <span className="flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-medium text-gray-600 shadow-sm backdrop-blur-sm dark:bg-gray-900/80 dark:text-gray-300">
+                                                <span className="flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-medium text-muted-foreground shadow-sm backdrop-blur-sm dark:text-muted-foreground/60">
                                                     <span
                                                         className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[course.status] ?? 'bg-gray-400'}`}
                                                     />
@@ -554,9 +601,16 @@ export default function MyClassIndex({
                                                 },
                                             ]}
                                             cta={
-                                                <Button asChild variant="outline" className="w-full">
-                                                    <Link href={`/my-course/${course.id}`}>
-                                                        Manage course <ChevronRight />
+                                                <Button
+                                                    asChild
+                                                    variant="outline"
+                                                    className="w-full"
+                                                >
+                                                    <Link
+                                                        href={`/my-course/${course.id}`}
+                                                    >
+                                                        Manage course{' '}
+                                                        <ChevronRight />
                                                     </Link>
                                                 </Button>
                                             }
@@ -589,8 +643,8 @@ export default function MyClassIndex({
                         </DialogTitle>
                         {repos?.view === 'gallery' && (
                             <p className="text-sm text-muted-foreground">
-                                Pick a Dulatuon cover made for science courses, or
-                                upload your own photo.
+                                Pick a Dulatuon cover made for science courses,
+                                or upload your own photo.
                             </p>
                         )}
                     </DialogHeader>
@@ -601,7 +655,9 @@ export default function MyClassIndex({
                                 <CoverGallery
                                     selectedId={repos.presetId}
                                     onPick={handlePresetPick}
-                                    onUpload={() => openCoverUpload(repos.course)}
+                                    onUpload={() =>
+                                        openCoverUpload(repos.course)
+                                    }
                                 />
                             </div>
                             <DialogFooter className="gap-2 px-5 pt-3 pb-5">
@@ -611,7 +667,10 @@ export default function MyClassIndex({
                                         onClick={() =>
                                             setRepos((prev) =>
                                                 prev
-                                                    ? { ...prev, view: 'position' }
+                                                    ? {
+                                                          ...prev,
+                                                          view: 'position',
+                                                      }
                                                     : null,
                                             )
                                         }

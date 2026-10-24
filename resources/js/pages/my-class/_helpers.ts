@@ -2,37 +2,50 @@ export function uid(): string {
     return Math.random().toString(36).slice(2, 9);
 }
 
-export async function capi<T = unknown>(method: string, url: string, body?: unknown): Promise<T> {
+export async function capi<T = unknown>(
+    method: string,
+    url: string,
+    body?: unknown,
+): Promise<T> {
     const token = document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1];
     const res = await fetch(url, {
         method,
         headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json',
+            Accept: 'application/json',
             'X-XSRF-TOKEN': token ? decodeURIComponent(token) : '',
         },
         body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error((err as { message?: string }).message ?? `Request failed (${res.status})`);
+        throw new Error(
+            (err as { message?: string }).message ??
+                `Request failed (${res.status})`,
+        );
     }
     return res.json() as Promise<T>;
 }
 
-export async function capiForm<T = unknown>(url: string, formData: FormData): Promise<T> {
+export async function capiForm<T = unknown>(
+    url: string,
+    formData: FormData,
+): Promise<T> {
     const token = document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1];
     const res = await fetch(url, {
         method: 'POST',
         headers: {
-            'Accept': 'application/json',
+            Accept: 'application/json',
             'X-XSRF-TOKEN': token ? decodeURIComponent(token) : '',
         },
         body: formData,
     });
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error((err as { message?: string }).message ?? `Request failed (${res.status})`);
+        throw new Error(
+            (err as { message?: string }).message ??
+                `Request failed (${res.status})`,
+        );
     }
     return res.json() as Promise<T>;
 }

@@ -78,12 +78,15 @@ class CourseLeaderboardTest extends TestCase
         $this->student('Cara');
         $this->finish($ana, 2, 5);
         $this->finish($ben, 1);
+        $ana->update(['avatar' => '/avatars/pixel/girl-02.svg']);
 
         $this->actingAs($this->teacher)->getJson("/my-course/{$this->course->id}/leaderboard")
             ->assertOk()
             ->assertJsonPath('viewer', 'teacher')
             ->assertJsonPath('class_size', 3)
             ->assertJsonPath('rows.0.name', 'Ana')
+            ->assertJsonPath('rows.0.avatar', '/avatars/pixel/girl-02.svg')
+            ->assertJsonPath('rows.1.avatar', null)
             ->assertJsonPath('rows.0.rank', 1)
             ->assertJsonPath('rows.0.xp', 130)
             ->assertJsonPath('rows.0.complete', true)

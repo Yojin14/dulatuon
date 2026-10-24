@@ -16,7 +16,7 @@ export default function AppLogo({ inverted = false }: { inverted?: boolean }) {
                 <span className={cn('font-display text-lg font-semibold tracking-tight', inverted ? 'text-white' : 'text-foreground')}>
                     Dulatuon
                 </span>
-                <span className={cn('text-[10px] font-extrabold tracking-[0.14em] uppercase', inverted ? 'text-white/60' : 'text-primary')}>
+                <span className={cn('text-[10px] font-extrabold tracking-[0.14em] whitespace-nowrap uppercase', inverted ? 'text-white/60' : 'text-primary')}>
                     Learn by playing
                 </span>
             </div>

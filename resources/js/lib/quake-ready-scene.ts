@@ -391,6 +391,18 @@ export class QuakeReadyScene extends SimStage {
         this.studentGoal.copy(this.studentHome);
     }
 
+    /** Stand fallen things back up and mend the window, so a preview can loop. */
+    tidyUp(): void {
+        this.stopShaking();
+        this.fallen = 0;
+        this.shelf.rotation.x = 0;
+        this.shelf.position.z = BACK + 0.24;
+        this.heavyBox.rotation.x = 0;
+        this.heavyBox.position.set(0.4, 1.725, BACK + 0.28);
+        this.glass.visible = true;
+        this.shards.visible = false;
+    }
+
     /** Reveal what the room looks like once the shaking has stopped. */
     showAftermath(): void {
         this.aftermathProps.visible = true;

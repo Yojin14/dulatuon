@@ -6,6 +6,7 @@ use App\Models\Assignment;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Submission;
+use App\Support\StudentProgress;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -41,31 +42,21 @@ class ClassController extends Controller
         $user = $request->user();
 
         if ($user->role === 'student') {
-            $enrollments = Enrollment::with([
-                'course' => fn ($q) => $q->withCount(['modules', 'enrollments'])->with('teachers:id,name'),
+            $active = Enrollment::with([
+                'course' => fn ($q) => $q->withCount(['modules', 'enrollments'])->with(StudentProgress::COURSE_RELATIONS),
             ])
                 ->where('user_id', $user->id)
                 ->where('status', 'active')
                 ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function ($e) use ($user) {
+                ->get();
+            $summaries = StudentProgress::summary($user, $active->pluck('course')->filter())['courses'];
+
+            $enrollments = $active
+                ->map(function ($e) use ($summaries) {
                     $courseId = $e->course_id;
-
-                    $contentIds = \App\Models\CourseContentItem::whereHas(
-                        'session.module',
-                        fn ($q) => $q->where('course_id', $courseId)
-                    )->pluck('id');
-
-                    $totalContents = $contentIds->count();
-                    $completedContents = $totalContents > 0
-                        ? \App\Models\StudentContentProgress::where('user_id', $user->id)
-                            ->whereIn('content_id', $contentIds)
-                            ->whereNotNull('completed_at')
-                            ->count()
-                        : 0;
-
-                    $progress = $totalContents > 0
-                        ? round(($completedContents / $totalContents) * 100)
+                    $summary = $summaries[$courseId];
+                    $progress = $summary['items_total'] > 0
+                        ? round(($summary['items_completed'] / $summary['items_total']) * 100)
                         : 0;
 
                     return [
@@ -135,47 +126,58 @@ class ClassController extends Controller
 
         // Load courses with teachers, modules, and active enrollments
         $courses = Course::with([
-            'teachers:id,name,email',
+            'teachers:id,name,email,avatar',
             'modules',
-            'enrollments' => fn ($q) => $q->where('status', 'active')->with('user:id,name,email'),
+            'enrollments' => fn ($q) => $q->where('status', 'active')->with('user:id,name,email,avatar'),
             'announcements.author:id,name',
             'announcements.comments.author:id,name',
         ])
             ->when($user->role !== 'admin', fn ($q) => $q->whereHas('teachers', fn ($q) => $q->where('users.id', $user->id)))
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(fn ($course) => [
-                'id' => $course->id,
-                'title' => $course->title,
-                'course_code' => $course->course_code,
-                'level' => $course->level,
-                'status' => $course->status,
-                'teachers' => $course->teachers->map(fn ($t) => [
-                    'id' => $t->id,
-                    'name' => $t->name,
-                    'email' => $t->email,
-                ])->values(),
-                'modules' => $course->modules->map(fn ($m) => [
-                    'id' => $m->id,
-                    'title' => $m->title,
-                ])->values(),
-                'students' => $course->enrollments->map(fn ($e) => [
-                    'id' => $e->user->id,
-                    'name' => $e->user->name,
-                    'email' => $e->user->email,
-                    'progress_percentage' => $e->progress_percentage ?? 0,
-                    'enrollment_status' => $e->status,
-                    'enrollment_id' => $e->id,
-                ])->values(),
-                'announcements' => $course->announcements->map(fn ($a) => $a->toFeedArray())->values(),
-            ]);
+            ->map(function ($course) {
+                // Same rules as My Progress; the stored progress_percentage column is never updated.
+                $liveProgress = collect(StudentProgress::forClass($course, $course->enrollments->pluck('user')->filter()))
+                    ->pluck('progress', 'user_id');
+                // Overall XP across all their courses, for the rank frame on each student's avatar.
+                $rankXp = StudentProgress::storedXp($course->enrollments->pluck('user_id')->all());
+
+                return [
+                    'id' => $course->id,
+                    'title' => $course->title,
+                    'course_code' => $course->course_code,
+                    'level' => $course->level,
+                    'status' => $course->status,
+                    'teachers' => $course->teachers->map(fn ($t) => [
+                        'id' => $t->id,
+                        'name' => $t->name,
+                        'email' => $t->email,
+                        'avatar' => $t->avatar,
+                    ])->values(),
+                    'modules' => $course->modules->map(fn ($m) => [
+                        'id' => $m->id,
+                        'title' => $m->title,
+                    ])->values(),
+                    'students' => $course->enrollments->map(fn ($e) => [
+                        'id' => $e->user->id,
+                        'name' => $e->user->name,
+                        'email' => $e->user->email,
+                        'avatar' => $e->user->avatar,
+                        'progress_percentage' => $liveProgress[$e->user_id] ?? 0,
+                        'xp' => $rankXp[$e->user_id] ?? 0,
+                        'enrollment_status' => $e->status,
+                        'enrollment_id' => $e->id,
+                    ])->values(),
+                    'announcements' => $course->announcements->map(fn ($a) => $a->toFeedArray())->values(),
+                ];
+            });
 
         // Load assignments with submissions for these courses
         $courseIds = Course::when($user->role !== 'admin', fn ($q) => $q->whereHas('teachers', fn ($q) => $q->where('users.id', $user->id)))
             ->pluck('id');
 
         $assignments = Assignment::with([
-            'submissions' => fn ($q) => $q->where('is_submitted', true)->with('user:id,name,email'),
+            'submissions' => fn ($q) => $q->where('is_submitted', true)->with(['user:id,name,email,avatar', 'grade']),
             'session.module',
         ])
             ->whereHas('session.module', fn ($q) => $q->whereIn('course_id', $courseIds))
@@ -198,6 +200,7 @@ class ClassController extends Controller
                     'fileSize' => $s->file_size,
                     'submittedAt' => $s->submission_date?->format('M d, Y \a\t g:i A'),
                     'status' => $s->status,
+                    'grade' => $s->status === 'graded' ? $s->grade?->toSummary() : null,
                 ])->values(),
             ]);
 
@@ -240,11 +243,9 @@ class ClassController extends Controller
                 ->pluck('content_id')
                 ->toArray();
 
-            $completedGameIds = \App\Models\GameAttempt::where('user_id', $user->id)
-                ->whereHas('game.session.module', fn ($q) => $q->where('course_id', (int) $courseId))
-                ->distinct()
-                ->pluck('game_id')
-                ->toArray();
+            // Same rule as My Progress: a game is done once a run reaches the clear ratio.
+            $courseGameIds = \App\Models\CourseGame::whereHas('session.module', fn ($q) => $q->where('course_id', (int) $courseId))->pluck('id')->all();
+            $completedGameIds = array_keys(StudentProgress::clearedGames($user->id, $courseGameIds));
         }
 
         // Pass the student's own submissions keyed by assignment_id
@@ -256,6 +257,7 @@ class ClassController extends Controller
             $mySubmissions = Submission::where('user_id', $user->id)
                 ->whereIn('assignment_id', $assignmentIds)
                 ->where('is_submitted', true)
+                ->with('grade')
                 ->get()
                 ->keyBy('assignment_id')
                 ->map(fn ($s) => [
@@ -268,6 +270,7 @@ class ClassController extends Controller
                     'fileSize' => $s->file_size,
                     'submittedAt' => $s->submission_date?->format('M d, Y \a\t g:i A'),
                     'status' => $s->status,
+                    'grade' => $s->status === 'graded' ? $s->grade?->toSummary() : null,
                 ])
                 ->toArray();
         }

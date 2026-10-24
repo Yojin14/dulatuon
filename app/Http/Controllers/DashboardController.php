@@ -4,11 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Assignment;
 use App\Models\Course;
-use App\Models\CourseContentItem;
 use App\Models\Enrollment;
-use App\Models\StudentContentProgress;
 use App\Models\Submission;
 use App\Models\User;
+use App\Support\StudentProgress;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -175,42 +174,30 @@ class DashboardController extends Controller
      */
     private function studentData(User $user): array
     {
-        $enrollments = Enrollment::with(['course:id,title', 'course.teachers:id,name'])
+        $enrollments = Enrollment::with(array_map(fn (string $relation) => "course.{$relation}", StudentProgress::COURSE_RELATIONS))
             ->where('user_id', $user->id)
             ->whereIn('status', ['active', 'completed'])
             ->latest()
-            ->get();
+            ->get()
+            ->filter(fn (Enrollment $e) => $e->course !== null)
+            ->unique('course_id');
 
         $courseIds = $enrollments->pluck('course_id')->all();
 
-        $contentRows = CourseContentItem::query()
-            ->join('course_sessions', 'course_content_items.session_id', '=', 'course_sessions.id')
-            ->join('course_modules', 'course_sessions.module_id', '=', 'course_modules.id')
-            ->whereIn('course_modules.course_id', $courseIds)
-            ->get(['course_content_items.id as content_id', 'course_modules.course_id as course_id']);
+        // Same rules as My Progress: lesson materials plus games, a game counts once cleared.
+        ['courses' => $summaries, 'xp' => $xp] = StudentProgress::summary($user, $enrollments->pluck('course'));
 
-        $contentIdsByCourse = $contentRows->groupBy('course_id')->map(fn ($g) => $g->pluck('content_id'));
-        $allContentIds = $contentRows->pluck('content_id');
-
-        $completedContentIds = StudentContentProgress::where('user_id', $user->id)
-            ->whereIn('content_id', $allContentIds)
-            ->whereNotNull('completed_at')
-            ->pluck('content_id')
-            ->flip();
-
-        $courses = $enrollments->map(function (Enrollment $e) use ($contentIdsByCourse, $completedContentIds) {
-            $ids = $contentIdsByCourse->get($e->course_id, collect());
-            $total = $ids->count();
-            $done = $ids->filter(fn ($id) => $completedContentIds->has($id))->count();
-            $progress = $total > 0 ? (int) round($done / $total * 100) : 0;
+        $courses = $enrollments->map(function (Enrollment $e) use ($summaries) {
+            $summary = $summaries[$e->course_id];
 
             return [
                 'id' => $e->course_id,
-                'title' => $e->course?->title ?? 'Course',
-                'instructor' => $e->course?->teachers?->first()?->name ?? 'Instructor',
-                'completed' => $done,
-                'total' => $total,
-                'progress' => $progress,
+                'title' => $e->course->title,
+                'instructor' => $summary['instructor'] ?: 'Instructor',
+                'completed' => $summary['items_completed'],
+                'total' => $summary['items_total'],
+                'progress' => $summary['items_total'] > 0 ? (int) round($summary['items_completed'] / $summary['items_total'] * 100) : 0,
+                'cleared' => $summary['complete'],
                 'status' => $e->status,
             ];
         })->values();
@@ -250,6 +237,7 @@ class DashboardController extends Controller
             ],
             'courses' => $courses,
             'dueSoon' => $dueSoon,
+            'xp' => $xp,
         ];
     }
 }

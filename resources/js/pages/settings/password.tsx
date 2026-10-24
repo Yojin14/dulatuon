@@ -3,8 +3,8 @@ import InputError from '@/components/input-error';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { type BreadcrumbItem } from '@/types';
-import { CheckCircle2 } from 'lucide-react';
 import { Form, Head } from '@inertiajs/react';
+import { CheckCircle2 } from 'lucide-react';
 import { useRef } from 'react';
 
 import HeadingSmall from '@/components/heading-small';
@@ -125,7 +125,10 @@ export default function Password() {
                                     </Button>
 
                                     {recentlySuccessful && (
-                                        <p className="animate-pop-in inline-flex items-center gap-1.5 text-sm font-bold text-emerald-700 dark:text-emerald-400" role="status">
+                                        <p
+                                            className="animate-pop-in inline-flex items-center gap-1.5 text-sm font-bold text-emerald-700 dark:text-emerald-400"
+                                            role="status"
+                                        >
                                             <CheckCircle2 className="size-4" />
                                             Saved
                                         </p>

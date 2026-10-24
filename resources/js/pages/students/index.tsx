@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/page-header';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,6 @@ import {
 } from '@/components/ui/table';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useInitials } from '@/hooks/use-initials';
-import { PageHeader } from '@/components/page-header';
 import AppLayout from '@/layouts/app-layout';
 import { apiFetch } from '@/lib/api-fetch';
 import { type BreadcrumbItem, type SharedData } from '@/types';
@@ -37,20 +37,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/students',
     },
 ];
-
-interface Student {
-    id: number;
-    rid: string | null;
-    firstname: string;
-    middlename: string | null;
-    lastname: string;
-    email: string;
-    profile_pic: string | null;
-    full_name: string;
-    course_code: string | null;
-    coursedesc: string | null;
-    yearlevel: string | null;
-}
 
 interface APIStudent {
     id: number;
@@ -72,19 +58,21 @@ interface APIStudent {
     schedules?: unknown[];
 }
 
-interface APIResponse {
-    error?: string;
-    message?: string;
-    data?: APIStudent[];
-}
-
-interface PageProps extends SharedData {}
+type PageProps = SharedData;
 
 export default function StudentsIndex() {
     const getInitials = useInitials();
     const { auth, apiServerUrl } = usePage<PageProps>().props;
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [fetching, setLoading] = useState(true);
+    const [fetchError, setError] = useState<string | null>(null);
+    // Missing configuration is known up front, so it's derived rather than stored.
+    const configError = !auth.user?.sso_token
+        ? 'No SSO token found. Please log in with AIMS.'
+        : !apiServerUrl
+          ? 'API server URL is not configured.'
+          : null;
+    const loading = !configError && fetching;
+    const error = configError ?? fetchError;
     const [filters, setFilters] = useState({
         sy: '',
         semester: '',
@@ -100,26 +88,14 @@ export default function StudentsIndex() {
 
     // Simple function to fetch students
     const fetchStudents = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        setAllStudents([]);
-
         const ssoToken = auth.user?.sso_token;
-        if (!ssoToken) {
-            setError('No SSO token found. Please log in with AIMS.');
-            setLoading(false);
-            return;
-        }
-
-        if (!apiServerUrl) {
-            setError('API server URL is not configured.');
-            setLoading(false);
+        if (!ssoToken || !apiServerUrl) {
             return;
         }
 
         try {
             const apiUrl = `${apiServerUrl}/api/hive/get-students`;
-            const responseData = await apiFetch(apiUrl, ssoToken);
+            const responseData = await apiFetch(apiUrl, String(ssoToken));
 
             // Extract data array from response
             let studentsArray: APIStudent[] = [];
@@ -162,8 +138,11 @@ export default function StudentsIndex() {
 
     // Fetch students on mount
     useEffect(() => {
-        fetchStudents();
-    }, [fetchStudents]);
+        if (!configError) {
+            // Start the request after this effect; state is only set once the response arrives.
+            void Promise.resolve().then(fetchStudents);
+        }
+    }, [configError, fetchStudents]);
 
     // Filter and search students
     const filteredStudents = useMemo(() => {
@@ -220,10 +199,17 @@ export default function StudentsIndex() {
     const endIndex = startIndex + itemsPerPage;
     const paginatedStudents = filteredStudents.slice(startIndex, endIndex);
 
-    // Reset to first page when filters or search change
-    useEffect(() => {
+    // Back to the first page when filters or search change (adjusted during render, not in an effect).
+    const pageResetKey = JSON.stringify([
+        filters,
+        debouncedSearch,
+        itemsPerPage,
+    ]);
+    const [lastPageResetKey, setLastPageResetKey] = useState(pageResetKey);
+    if (lastPageResetKey !== pageResetKey) {
+        setLastPageResetKey(pageResetKey);
         setCurrentPage(1);
-    }, [filters, debouncedSearch, itemsPerPage]);
+    }
 
     // Extract available filter options from all students
     const availableSchoolYears = useMemo(() => {
@@ -308,200 +294,505 @@ export default function StudentsIndex() {
     };
 
     const retryFetch = () => {
-        fetchStudents();
+        setLoading(true);
+        setError(null);
+        setAllStudents([]);
+        void fetchStudents();
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Students" />
             <div className="min-h-full pb-10">
-
                 {/* Header */}
-                <PageHeader title="Students" description={loading ? 'Loading…' : `${allStudents.length} students across your sections.`} />
+                <PageHeader
+                    title="Students"
+                    description={
+                        loading
+                            ? 'Loading…'
+                            : `${allStudents.length} students across your sections.`
+                    }
+                />
 
                 <div className="mx-auto w-full max-w-[1600px] space-y-8 px-5 py-8 sm:px-8">
+                    {/* Loading State */}
+                    {loading && (
+                        <div className="flex flex-col items-center justify-center rounded-xl border border-border py-12">
+                            <Loader2 className="h-7 w-7 animate-spin text-muted-foreground/60 dark:text-muted-foreground" />
+                            <span className="mt-3 text-sm text-muted-foreground">
+                                Loading students...
+                            </span>
+                        </div>
+                    )}
 
-                {/* Loading State */}
-                {loading && (
-                    <div className="flex flex-col items-center justify-center rounded-xl border border-gray-100 py-12 dark:border-gray-800">
-                        <Loader2 className="h-7 w-7 animate-spin text-gray-300 dark:text-gray-600" />
-                        <span className="mt-3 text-sm text-gray-400">Loading students...</span>
-                    </div>
-                )}
-
-                {/* Error */}
-                {error && !loading && (
-                    <div className="flex flex-col items-center gap-4 rounded-xl border border-red-200 bg-red-50 py-10 text-center dark:border-red-800 dark:bg-red-900/10">
-                        <p className="text-sm font-medium text-red-600 dark:text-red-400">{error}</p>
-                        <Button variant="outline" onClick={retryFetch} className="border-red-300 text-red-600 hover:bg-red-50">
-                            <Loader2 className="mr-2 h-4 w-4" /> Try Again
-                        </Button>
-                    </div>
-                )}
-
-                {/* Filters */}
-                {!loading && !error && allStudents.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Filter className="h-4 w-4 text-gray-400" />
-                        {availableSchoolYears.length > 0 && (
-                            <Select value={filters.sy && filters.sy.trim() !== '' ? filters.sy : 'all'} onValueChange={(v) => handleFilterChange('sy', v)}>
-                                <SelectTrigger className="w-36"><SelectValue placeholder="School Year" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All School Years</SelectItem>
-                                    {availableSchoolYears.map((sy) => <SelectItem key={sy} value={sy}>{sy}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        )}
-                        {availableSemesters.length > 0 && (
-                            <Select value={filters.semester && filters.semester.trim() !== '' ? filters.semester : 'all'} onValueChange={(v) => handleFilterChange('semester', v)}>
-                                <SelectTrigger className="w-36"><SelectValue placeholder="Semester" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Semesters</SelectItem>
-                                    {availableSemesters.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        )}
-                        {availableCourses.length > 0 && (
-                            <Select value={filters.course && filters.course.trim() !== '' ? filters.course : 'all'} onValueChange={(v) => handleFilterChange('course', v)}>
-                                <SelectTrigger className="w-36"><SelectValue placeholder="Course" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Courses</SelectItem>
-                                    {availableCourses.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        )}
-                        {availableYearLevels.length > 0 && (
-                            <Select value={filters.yearlevel && filters.yearlevel.trim() !== '' ? filters.yearlevel : 'all'} onValueChange={(v) => handleFilterChange('yearlevel', v)}>
-                                <SelectTrigger className="w-36"><SelectValue placeholder="Year Level" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Year Levels</SelectItem>
-                                    {availableYearLevels.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        )}
-                        {availableSections.length > 0 && (
-                            <Select value={filters.section && filters.section.trim() !== '' ? filters.section : 'all'} onValueChange={(v) => handleFilterChange('section', v)}>
-                                <SelectTrigger className="w-36"><SelectValue placeholder="Section" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Sections</SelectItem>
-                                    {availableSections.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        )}
-                        {(filters.sy || filters.semester || filters.course || filters.yearlevel || filters.section || searchQuery) && filteredStudents.length > 0 && (
-                            <Button variant="ghost" size="sm" onClick={clearFilters}>
-                                <X className="mr-2 h-4 w-4" /> Clear
+                    {/* Error */}
+                    {error && !loading && (
+                        <div className="flex flex-col items-center gap-4 rounded-xl border border-red-200 bg-red-50 py-10 text-center dark:border-red-800 dark:bg-red-900/10">
+                            <p className="text-sm font-medium text-red-600 dark:text-red-400">
+                                {error}
+                            </p>
+                            <Button
+                                variant="outline"
+                                onClick={retryFetch}
+                                className="border-red-300 text-red-600 hover:bg-red-50"
+                            >
+                                <Loader2 className="mr-2 h-4 w-4" /> Try Again
                             </Button>
-                        )}
-                    </div>
-                )}
+                        </div>
+                    )}
 
-                {/* Students Table */}
-                {!loading && !error && allStudents.length > 0 && (
-                    <div className="space-y-3">
-                        <div className="flex flex-wrap items-center gap-3">
-                            <div className="relative max-w-sm flex-1">
-                                <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                                <Input
-                                    type="text"
-                                    placeholder="Search students..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="pl-9"
-                                />
-                                {searchQuery && (
-                                    <button type="button" onClick={() => setSearchQuery('')} className="absolute top-1/2 right-2 -translate-y-1/2 rounded-full p-1 hover:bg-accent">
-                                        <X className="h-4 w-4 text-gray-400" />
-                                    </button>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm text-gray-400">Show:</span>
-                                <Select value={itemsPerPage.toString()} onValueChange={(v) => { setItemsPerPage(Number(v)); setCurrentPage(1); }}>
-                                    <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
+                    {/* Filters */}
+                    {!loading && !error && allStudents.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Filter className="h-4 w-4 text-muted-foreground" />
+                            {availableSchoolYears.length > 0 && (
+                                <Select
+                                    value={
+                                        filters.sy && filters.sy.trim() !== ''
+                                            ? filters.sy
+                                            : 'all'
+                                    }
+                                    onValueChange={(v) =>
+                                        handleFilterChange('sy', v)
+                                    }
+                                >
+                                    <SelectTrigger className="w-36">
+                                        <SelectValue placeholder="School Year" />
+                                    </SelectTrigger>
                                     <SelectContent>
-                                        {[5, 10, 25, 50, 100].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+                                        <SelectItem value="all">
+                                            All School Years
+                                        </SelectItem>
+                                        {availableSchoolYears.map((sy) => (
+                                            <SelectItem key={sy} value={sy}>
+                                                {sy}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
-                                <span className="text-sm text-gray-400">entries</span>
-                            </div>
-                        </div>
-
-                        {filteredStudents.length > 0 ? (
-                            <>
-                                <div className="overflow-x-auto rounded-xl border border-border">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Student ID</TableHead>
-                                                <TableHead>Name</TableHead>
-                                                <TableHead>Email</TableHead>
-                                                <TableHead>Section</TableHead>
-                                                <TableHead>Course</TableHead>
-                                                <TableHead>Year Level</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {paginatedStudents.map((student) => (
-                                                <TableRow key={student.id}>
-                                                    <TableCell className="font-mono text-sm">{student.rid || `ID: ${student.id}`}</TableCell>
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-3">
-                                                            <Avatar className="h-8 w-8">
-                                                                <AvatarImage
-                                                                    src={student.profile_pic ? `http://aims.citycollege.edu.ph/${student.profile_pic}` : undefined}
-                                                                    alt={student.fullname}
-                                                                />
-                                                                <AvatarFallback>{getInitials(student.fullname || '')}</AvatarFallback>
-                                                            </Avatar>
-                                                            <span className="font-medium text-foreground">{student.fullname}</span>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell><span className="text-sm text-gray-400">{student.email}</span></TableCell>
-                                                    <TableCell><Badge variant="outline" className="text-xs">{student.section_name || 'Unassigned'}</Badge></TableCell>
-                                                    <TableCell><Badge variant="outline" className="text-xs">{student.course_code || 'N/A'}</Badge></TableCell>
-                                                    <TableCell><span className="text-sm">{student.yearlevel || 'N/A'}</span></TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                                {totalPages > 1 && (
-                                    <div className="flex items-center justify-between">
-                                        <p className="text-sm text-gray-400">
-                                            Showing {startIndex + 1}–{Math.min(endIndex, filteredStudents.length)} of {filteredStudents.length}
-                                        </p>
-                                        <div className="flex items-center gap-2">
-                                            <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
-                                            <span className="text-sm text-gray-400">Page {currentPage} of {totalPages}</span>
-                                            <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</Button>
-                                        </div>
-                                    </div>
+                            )}
+                            {availableSemesters.length > 0 && (
+                                <Select
+                                    value={
+                                        filters.semester &&
+                                        filters.semester.trim() !== ''
+                                            ? filters.semester
+                                            : 'all'
+                                    }
+                                    onValueChange={(v) =>
+                                        handleFilterChange('semester', v)
+                                    }
+                                >
+                                    <SelectTrigger className="w-36">
+                                        <SelectValue placeholder="Semester" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">
+                                            All Semesters
+                                        </SelectItem>
+                                        {availableSemesters.map((s) => (
+                                            <SelectItem key={s} value={s}>
+                                                {s}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                            {availableCourses.length > 0 && (
+                                <Select
+                                    value={
+                                        filters.course &&
+                                        filters.course.trim() !== ''
+                                            ? filters.course
+                                            : 'all'
+                                    }
+                                    onValueChange={(v) =>
+                                        handleFilterChange('course', v)
+                                    }
+                                >
+                                    <SelectTrigger className="w-36">
+                                        <SelectValue placeholder="Course" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">
+                                            All Courses
+                                        </SelectItem>
+                                        {availableCourses.map((c) => (
+                                            <SelectItem key={c} value={c}>
+                                                {c}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                            {availableYearLevels.length > 0 && (
+                                <Select
+                                    value={
+                                        filters.yearlevel &&
+                                        filters.yearlevel.trim() !== ''
+                                            ? filters.yearlevel
+                                            : 'all'
+                                    }
+                                    onValueChange={(v) =>
+                                        handleFilterChange('yearlevel', v)
+                                    }
+                                >
+                                    <SelectTrigger className="w-36">
+                                        <SelectValue placeholder="Year Level" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">
+                                            All Year Levels
+                                        </SelectItem>
+                                        {availableYearLevels.map((y) => (
+                                            <SelectItem key={y} value={y}>
+                                                {y}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                            {availableSections.length > 0 && (
+                                <Select
+                                    value={
+                                        filters.section &&
+                                        filters.section.trim() !== ''
+                                            ? filters.section
+                                            : 'all'
+                                    }
+                                    onValueChange={(v) =>
+                                        handleFilterChange('section', v)
+                                    }
+                                >
+                                    <SelectTrigger className="w-36">
+                                        <SelectValue placeholder="Section" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">
+                                            All Sections
+                                        </SelectItem>
+                                        {availableSections.map((s) => (
+                                            <SelectItem key={s} value={s}>
+                                                {s}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                            {(filters.sy ||
+                                filters.semester ||
+                                filters.course ||
+                                filters.yearlevel ||
+                                filters.section ||
+                                searchQuery) &&
+                                filteredStudents.length > 0 && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={clearFilters}
+                                    >
+                                        <X className="mr-2 h-4 w-4" /> Clear
+                                    </Button>
                                 )}
-                            </>
-                        ) : (
-                            <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-100 py-12 text-center dark:border-gray-800">
-                                <Users className="h-8 w-8 text-gray-200 dark:text-gray-700" />
-                                <p className="text-sm text-gray-400">No students match the selected filters.</p>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Empty State */}
-                {!loading && !error && allStudents.length === 0 && (
-                    <div className="flex flex-col items-center gap-3 rounded-xl border border-gray-100 py-12 text-center dark:border-gray-800">
-                        <Users className="h-8 w-8 text-gray-200 dark:text-gray-700" />
-                        <div>
-                            <p className="text-sm font-medium text-muted-foreground">No students found</p>
-                            <p className="mt-0.5 text-xs text-gray-400">No students are assigned to your sections.</p>
                         </div>
-                        <Button variant="outline" size="sm" onClick={retryFetch}>
-                            <Loader2 className="mr-2 h-4 w-4" /> Refresh
-                        </Button>
-                    </div>
-                )}
+                    )}
 
+                    {/* Students Table */}
+                    {!loading && !error && allStudents.length > 0 && (
+                        <div className="space-y-3">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <div className="relative max-w-sm flex-1">
+                                    <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                    <Input
+                                        type="text"
+                                        placeholder="Search students..."
+                                        value={searchQuery}
+                                        onChange={(e) =>
+                                            setSearchQuery(e.target.value)
+                                        }
+                                        className="pl-9"
+                                    />
+                                    {searchQuery && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setSearchQuery('')}
+                                            className="absolute top-1/2 right-2 -translate-y-1/2 rounded-full p-1 hover:bg-accent"
+                                        >
+                                            <X className="h-4 w-4 text-muted-foreground" />
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm text-muted-foreground">
+                                        Show:
+                                    </span>
+                                    <Select
+                                        value={itemsPerPage.toString()}
+                                        onValueChange={(v) => {
+                                            setItemsPerPage(Number(v));
+                                            setCurrentPage(1);
+                                        }}
+                                    >
+                                        <SelectTrigger className="w-20">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {[5, 10, 25, 50, 100].map((n) => (
+                                                <SelectItem
+                                                    key={n}
+                                                    value={String(n)}
+                                                >
+                                                    {n}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <span className="text-sm text-muted-foreground">
+                                        entries
+                                    </span>
+                                </div>
+                            </div>
+
+                            {filteredStudents.length > 0 ? (
+                                <>
+                                    {/* Phones: one card per student */}
+                                    <ul className="flex flex-col gap-2 md:hidden">
+                                        {paginatedStudents.map((student) => (
+                                            <li
+                                                key={student.id}
+                                                className="flex items-center gap-3 rounded-2xl border bg-card p-3"
+                                            >
+                                                <Avatar className="size-10 shrink-0">
+                                                    <AvatarImage
+                                                        src={
+                                                            student.profile_pic
+                                                                ? `http://aims.citycollege.edu.ph/${student.profile_pic}`
+                                                                : undefined
+                                                        }
+                                                        alt={student.fullname}
+                                                    />
+                                                    <AvatarFallback>
+                                                        {getInitials(
+                                                            student.fullname ||
+                                                                '',
+                                                        )}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="truncate font-semibold text-foreground">
+                                                        {student.fullname}
+                                                    </p>
+                                                    <p className="truncate text-xs text-muted-foreground">
+                                                        {student.rid ||
+                                                            `ID: ${student.id}`}{' '}
+                                                        · {student.email}
+                                                    </p>
+                                                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="text-xs"
+                                                        >
+                                                            {student.section_name ||
+                                                                'Unassigned'}
+                                                        </Badge>
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="text-xs"
+                                                        >
+                                                            {student.course_code ||
+                                                                'N/A'}
+                                                        </Badge>
+                                                        {student.yearlevel && (
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="text-xs"
+                                                            >
+                                                                {
+                                                                    student.yearlevel
+                                                                }
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    {/* Tablets and up: table */}
+                                    <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>
+                                                        Student ID
+                                                    </TableHead>
+                                                    <TableHead>Name</TableHead>
+                                                    <TableHead>Email</TableHead>
+                                                    <TableHead>
+                                                        Section
+                                                    </TableHead>
+                                                    <TableHead>
+                                                        Course
+                                                    </TableHead>
+                                                    <TableHead>
+                                                        Year Level
+                                                    </TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {paginatedStudents.map(
+                                                    (student) => (
+                                                        <TableRow
+                                                            key={student.id}
+                                                        >
+                                                            <TableCell className="font-mono text-sm">
+                                                                {student.rid ||
+                                                                    `ID: ${student.id}`}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <div className="flex items-center gap-3">
+                                                                    <Avatar className="h-8 w-8">
+                                                                        <AvatarImage
+                                                                            src={
+                                                                                student.profile_pic
+                                                                                    ? `http://aims.citycollege.edu.ph/${student.profile_pic}`
+                                                                                    : undefined
+                                                                            }
+                                                                            alt={
+                                                                                student.fullname
+                                                                            }
+                                                                        />
+                                                                        <AvatarFallback>
+                                                                            {getInitials(
+                                                                                student.fullname ||
+                                                                                    '',
+                                                                            )}
+                                                                        </AvatarFallback>
+                                                                    </Avatar>
+                                                                    <span className="font-medium text-foreground">
+                                                                        {
+                                                                            student.fullname
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <span className="text-sm text-muted-foreground">
+                                                                    {
+                                                                        student.email
+                                                                    }
+                                                                </span>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className="text-xs"
+                                                                >
+                                                                    {student.section_name ||
+                                                                        'Unassigned'}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className="text-xs"
+                                                                >
+                                                                    {student.course_code ||
+                                                                        'N/A'}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <span className="text-sm">
+                                                                    {student.yearlevel ||
+                                                                        'N/A'}
+                                                                </span>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ),
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                    {totalPages > 1 && (
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-sm text-muted-foreground">
+                                                Showing {startIndex + 1}–
+                                                {Math.min(
+                                                    endIndex,
+                                                    filteredStudents.length,
+                                                )}{' '}
+                                                of {filteredStudents.length}
+                                            </p>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        setCurrentPage((p) =>
+                                                            Math.max(1, p - 1),
+                                                        )
+                                                    }
+                                                    disabled={currentPage === 1}
+                                                >
+                                                    Previous
+                                                </Button>
+                                                <span className="text-sm text-muted-foreground">
+                                                    Page {currentPage} of{' '}
+                                                    {totalPages}
+                                                </span>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        setCurrentPage((p) =>
+                                                            Math.min(
+                                                                totalPages,
+                                                                p + 1,
+                                                            ),
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        currentPage ===
+                                                        totalPages
+                                                    }
+                                                >
+                                                    Next
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="flex flex-col items-center gap-2 rounded-xl border border-border py-12 text-center">
+                                    <Users className="h-8 w-8 text-muted-foreground/40" />
+                                    <p className="text-sm text-muted-foreground">
+                                        No students match the selected filters.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Empty State */}
+                    {!loading && !error && allStudents.length === 0 && (
+                        <div className="flex flex-col items-center gap-3 rounded-xl border border-border py-12 text-center">
+                            <Users className="h-8 w-8 text-muted-foreground/40" />
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground">
+                                    No students found
+                                </p>
+                                <p className="mt-0.5 text-xs text-muted-foreground">
+                                    No students are assigned to your sections.
+                                </p>
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={retryFetch}
+                            >
+                                <Loader2 className="mr-2 h-4 w-4" /> Refresh
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </div>
         </AppLayout>

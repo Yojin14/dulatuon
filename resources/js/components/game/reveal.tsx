@@ -13,7 +13,17 @@ export function MotionRoot({ children }: { children: ReactNode }) {
 }
 
 /** Fade-and-rise when scrolled into view. Must sit inside MotionRoot. */
-export function Reveal({ children, delay = 0, className, as = 'div' }: { children: ReactNode; delay?: number; className?: string; as?: 'div' | 'li' }) {
+export function Reveal({
+    children,
+    delay = 0,
+    className,
+    as = 'div',
+}: {
+    children: ReactNode;
+    delay?: number;
+    className?: string;
+    as?: 'div' | 'li';
+}) {
     const Component = as === 'li' ? m.li : m.div;
 
     return (

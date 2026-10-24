@@ -8,7 +8,6 @@ use App\Models\CourseGame;
 use App\Models\Enrollment;
 use App\Models\GameAttempt;
 use App\Support\Realtime;
-use App\Support\SimulationGames;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -91,6 +90,9 @@ class GamePlayController extends Controller
             'completed_at' => now(),
         ]);
 
+        // Keep the stored course progress in step for teacher and admin reports.
+        Enrollment::where('user_id', auth()->id())->where('course_id', $courseId)->first()?->recalculateProgress();
+
         Realtime::dispatch(fn () => broadcast(new GameLeaderboardUpdated($courseId, $game->id, $this->globalLeaderboard($game))));
 
         return response()->json([
@@ -111,11 +113,7 @@ class GamePlayController extends Controller
      */
     private function items(CourseGame $game): array
     {
-        if (SimulationGames::isSimulation($game->game_type)) {
-            return SimulationGames::items($game->game_type);
-        }
-
-        return $game->config['items'] ?? [];
+        return $game->checkpointItems();
     }
 
     /**
@@ -272,6 +270,6 @@ class GamePlayController extends Controller
 
     private function matches(string $given, string $answer): bool
     {
-        return mb_strtolower(trim($given)) === mb_strtolower(trim($answer));
+        return CourseGame::answerMatches($given, $answer);
     }
 }

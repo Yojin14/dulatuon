@@ -8,6 +8,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { initializeTheme } from './hooks/use-appearance';
 import { initializeTextScale } from './hooks/use-text-scale';
+import { registerServiceWorker } from './lib/pwa';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -37,3 +38,5 @@ createInertiaApp({
 initializeTheme();
 // Apply saved text scale before first render...
 initializeTextScale();
+// Installable app + offline reading (production builds only).
+registerServiceWorker();

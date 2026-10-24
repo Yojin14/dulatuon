@@ -10,6 +10,20 @@ class ProfileUpdateTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_gender_can_be_updated()
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->patch(route('profile.update'), ['name' => $user->name, 'email' => $user->email, 'gender' => 'male'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('male', $user->refresh()->gender);
+
+        $this->actingAs($user)
+            ->patch(route('profile.update'), ['name' => $user->name, 'email' => $user->email, 'gender' => 'robot'])
+            ->assertSessionHasErrors('gender');
+    }
+
     public function test_profile_page_is_displayed()
     {
         $user = User::factory()->create();

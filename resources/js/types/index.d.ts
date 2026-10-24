@@ -102,7 +102,8 @@ export interface User {
     id: number;
     name: string;
     email: string;
-    avatar?: string;
+    avatar?: string | null;
+    gender?: 'male' | 'female' | 'unspecified' | null;
     email_verified_at: string | null;
     two_factor_enabled?: boolean;
     role: 'admin' | 'teacher' | 'student';
@@ -110,5 +111,7 @@ export interface User {
     updated_at: string;
     firstname?: string | null;
     lastname?: string | null;
+    /** Students only: total XP, used for the rank frame on their avatar. */
+    xp?: number | null;
     [key: string]: unknown; // This allows for additional properties...
 }
