@@ -75,6 +75,17 @@ class AvatarTest extends TestCase
         Storage::disk('public')->assertMissing($upload);
     }
 
+    public function test_a_team_portrait_can_be_picked(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->put(route('avatar.preset'), ['preset' => 'shellou'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('/avatars/pixel/shellou.webp', $user->refresh()->avatar);
+    }
+
     public function test_unknown_characters_are_rejected(): void
     {
         $user = User::factory()->create();
@@ -102,7 +113,8 @@ class AvatarTest extends TestCase
 
     public function test_every_character_file_exists(): void
     {
-        $this->assertCount(24, AvatarPresets::ids());
+        $this->assertCount(27, AvatarPresets::ids());
+        $this->assertSame(['shellou', 'fhel', 'eugz'], array_slice(AvatarPresets::ids(), 0, 3));
         foreach (AvatarPresets::ids() as $id) {
             $this->assertFileExists(public_path(ltrim(AvatarPresets::url($id), '/')), $id);
         }

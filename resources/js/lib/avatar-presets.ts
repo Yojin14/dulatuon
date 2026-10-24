@@ -1,4 +1,7 @@
-/** Mirrors App\Support\AvatarPresets: pixel characters in public/avatars/pixel (DiceBear "Pixel Art", CC0). */
+/**
+ * Mirrors App\Support\AvatarPresets: pixel characters in public/avatars/pixel. The team's own
+ * portraits come first, then the DiceBear "Pixel Art" set (CC0).
+ */
 export type Gender = 'male' | 'female' | 'unspecified';
 
 export interface AvatarPreset {
@@ -9,15 +12,23 @@ export interface AvatarPreset {
 
 const PER_SET = 12;
 
-export const AVATAR_PRESETS: AvatarPreset[] = (
-    ['boy', 'girl'] as const
-).flatMap((set) =>
-    Array.from({ length: PER_SET }, (_, index) => {
-        const id = `${set}-${String(index + 1).padStart(2, '0')}`;
+/** Hand-made portraits, shown before the generated characters. */
+const FEATURED: AvatarPreset[] = [
+    { id: 'shellou', set: 'girl', src: '/avatars/pixel/shellou.webp' },
+    { id: 'fhel', set: 'boy', src: '/avatars/pixel/fhel.webp' },
+    { id: 'eugz', set: 'boy', src: '/avatars/pixel/eugz.webp' },
+];
 
-        return { id, set, src: `/avatars/pixel/${id}.svg` };
-    }),
-);
+export const AVATAR_PRESETS: AvatarPreset[] = [
+    ...FEATURED,
+    ...(['boy', 'girl'] as const).flatMap((set) =>
+        Array.from({ length: PER_SET }, (_, index) => {
+            const id = `${set}-${String(index + 1).padStart(2, '0')}`;
+
+            return { id, set, src: `/avatars/pixel/${id}.svg` };
+        }),
+    ),
+];
 
 /** Characters that match a gender; everyone else sees the whole set. */
 export function presetsFor(gender: Gender | null | undefined): AvatarPreset[] {
