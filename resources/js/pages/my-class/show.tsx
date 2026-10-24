@@ -13,6 +13,8 @@ import {
     pagesForSave,
     type FlipbookPage,
 } from '@/components/flipbook/flipbook-types';
+import { HudPill } from '@/components/game/hud-pill';
+import { LowPolyBlock } from '@/components/game/low-poly-scene';
 import { ProgressRing } from '@/components/game/progress-ring';
 import { AnswerTile } from '@/components/game/quiz/answer-tile';
 import {
@@ -34,7 +36,7 @@ import { WorldChip } from '@/components/world/world-scope';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AppLayout from '@/layouts/app-layout';
 import { toast } from '@/lib/toast';
-import { worldFor, worldStyle } from '@/lib/worlds';
+import { worldFor, worldStyle, type WorldTheme } from '@/lib/worlds';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import {
     DndContext,
@@ -88,6 +90,7 @@ import {
     Link2,
     Lock,
     Map as MapIcon,
+    Maximize,
     Megaphone,
     Mountain,
     PenLine,
@@ -786,6 +789,156 @@ function ContentViewer({ content }: { content: ContentItem }) {
             ) : (
                 <p className="text-sm text-gray-400">No file uploaded yet.</p>
             )}
+        </div>
+    );
+}
+
+// ─── Game Preview ─────────────────────────────────────────────────────────────
+/**
+ * What a game is before you launch it: a game-night stage with the course's low-poly
+ * block, the rules in brief and a full-screen tip. Only "Play" opens the game tab.
+ */
+function GamePreview({
+    game,
+    completed,
+    isStudent,
+    world,
+}: {
+    game: Game;
+    completed: boolean;
+    isStudent: boolean;
+    world: WorldTheme;
+}) {
+    const meta = GAME_TYPE_META[game.gameType];
+    const isSimulation = SIMULATION_GAMES.includes(game.gameType);
+    const playUrl = game.dbId ? `/games/${game.dbId}/play` : null;
+    const itemsLabel = isSimulation
+        ? 'Built-in checkpoints'
+        : `${game.items.length} ${game.items.length === 1 ? 'question' : 'questions'}`;
+    const livesLabel =
+        game.lives > 0
+            ? `${game.lives} ${game.lives === 1 ? 'life' : 'lives'} a day`
+            : 'Unlimited tries';
+
+    return (
+        <div className="flex flex-1 flex-col overflow-y-auto">
+            <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4 sm:p-6">
+                {/* Stage */}
+                <section className="relative overflow-hidden rounded-3xl bg-game-night text-white">
+                    <div className="grid items-center gap-6 p-6 sm:grid-cols-[minmax(0,1fr)_13rem] sm:p-8">
+                        <div className="min-w-0">
+                            <HudPill tone="light">
+                                <meta.icon />
+                                {meta.label} ·{' '}
+                                {isSimulation ? '3D lab' : 'Game'}
+                            </HudPill>
+                            <h2 className="mt-3 font-display text-[clamp(1.6rem,3.5vw,2.25rem)] leading-tight font-extrabold tracking-[-0.03em] text-balance">
+                                {game.title}
+                            </h2>
+                            <p className="mt-2 max-w-[48ch] text-white/70">
+                                {game.description || meta.tagline}
+                            </p>
+                            <div className="mt-5 flex flex-wrap gap-2">
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-sm font-bold ring-1 ring-white/10">
+                                    <Trophy className="size-4 text-amber-300" />
+                                    {game.points} pts
+                                </span>
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-sm font-bold ring-1 ring-white/10">
+                                    <Heart className="size-4 text-rose-300" />
+                                    {livesLabel}
+                                </span>
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-sm font-bold ring-1 ring-white/10">
+                                    <ClipboardList className="size-4 text-sky-300" />
+                                    {itemsLabel}
+                                </span>
+                            </div>
+                        </div>
+                        <div
+                            className="relative mx-auto w-44 sm:w-full"
+                            aria-hidden
+                        >
+                            <LowPolyBlock
+                                biome={world.biome}
+                                variant={
+                                    world.biome === 'earth' ? 'quake' : 'town'
+                                }
+                                className="drop-shadow-[0_18px_18px_rgba(0,0,0,0.35)]"
+                            />
+                            <span className="absolute -top-2 right-1 grid size-12 place-items-center bg-linear-to-b from-violet-400 to-violet-600 text-white shadow-[0_3px_0_0_var(--color-violet-800)] [clip-path:polygon(50%_0,93%_25%,93%_75%,50%_100%,7%_75%,7%_25%)]">
+                                <meta.icon className="size-5" />
+                            </span>
+                        </div>
+                    </div>
+                </section>
+
+                {completed && (
+                    <div className="flex items-center gap-3 rounded-2xl bg-emerald-50 px-4 py-3 text-emerald-900 dark:bg-emerald-500/10 dark:text-emerald-200">
+                        <CheckCircle2 className="size-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        <p className="text-sm">
+                            <span className="font-bold">Cleared.</span> Play
+                            again any time to beat your best score.
+                        </p>
+                    </div>
+                )}
+
+                {/* Full-screen tip */}
+                <div className="flex gap-3 rounded-2xl bg-violet-50 px-4 py-3.5 dark:bg-violet-500/10">
+                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-primary shadow-sm dark:bg-white/10">
+                        <Maximize className="size-4" />
+                    </span>
+                    <div className="text-sm">
+                        <p className="font-bold text-foreground">
+                            Best played in full screen
+                        </p>
+                        <p className="mt-0.5 text-muted-foreground">
+                            The game opens in a new tab and goes full screen
+                            when you press{' '}
+                            <span className="font-semibold">Start game</span>.
+                            On a phone, turn it sideways for the widest view.
+                        </p>
+                    </div>
+                </div>
+
+                {!isStudent &&
+                    isSimulation &&
+                    SIMULATION_NOTES[game.gameType] && (
+                        <p className="rounded-2xl bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
+                            <span className="font-semibold text-foreground">
+                                For teachers:{' '}
+                            </span>
+                            {SIMULATION_NOTES[game.gameType]}
+                        </p>
+                    )}
+
+                <div className="pt-1">
+                    {playUrl ? (
+                        <Button
+                            asChild
+                            variant="play"
+                            size="lg"
+                            className="h-13 w-full text-base sm:w-auto sm:min-w-56"
+                        >
+                            <a
+                                href={`${playUrl}?fullscreen=1`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <Play className="fill-current" />
+                                {completed ? 'Play again' : 'Play'}
+                            </a>
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="play"
+                            size="lg"
+                            className="h-13 w-full text-base sm:w-auto"
+                            disabled
+                        >
+                            Save the course to play
+                        </Button>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }
@@ -4076,9 +4229,11 @@ interface SidebarSessionProps {
     completedGames?: Set<number>;
     isActive: boolean;
     activeContentId: string | null;
+    activeGameId?: string | null;
     activeAssessmentId: string | null;
     viewedIds: Set<string>;
     onSelectContent: (session: Session, content: ContentItem) => void;
+    onSelectGame?: (session: Session, game: Game) => void;
     onSelectAssessment: (session: Session, assessment: Assessment) => void;
     onSelectSession: (session: Session) => void;
     onDelete: () => void;
@@ -4093,9 +4248,11 @@ const SidebarSession = memo(function SidebarSession({
     completedGames,
     isActive,
     activeContentId,
+    activeGameId,
     activeAssessmentId,
     viewedIds,
     onSelectContent,
+    onSelectGame,
     onSelectAssessment,
     onSelectSession,
     onDelete,
@@ -4139,7 +4296,7 @@ const SidebarSession = memo(function SidebarSession({
     return (
         <div ref={setNodeRef} style={style} className={indent ? 'pl-4' : ''}>
             <div
-                className={`group/sess flex items-center gap-2 rounded-xl px-3 py-3 transition-all ${locked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${isActive && !activeContentId && !activeAssessmentId ? 'bg-primary/10 text-primary dark:bg-violet-900/20 dark:text-violet-300' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/60'}`}
+                className={`group/sess flex items-center gap-2 rounded-xl px-3 py-3 transition-all ${locked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${isActive && !activeContentId && !activeAssessmentId && !activeGameId ? 'bg-primary/10 text-primary dark:bg-violet-900/20 dark:text-violet-300' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/60'}`}
                 onClick={() => {
                     if (renaming || locked) {
                         return;
@@ -4162,13 +4319,13 @@ const SidebarSession = memo(function SidebarSession({
                     </button>
                 )}
                 <div
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${isActive && !activeContentId && !activeAssessmentId ? 'bg-primary/20' : locked ? 'bg-muted' : 'bg-muted'}`}
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${isActive && !activeContentId && !activeAssessmentId && !activeGameId ? 'bg-primary/20' : locked ? 'bg-muted' : 'bg-muted'}`}
                 >
                     {locked ? (
                         <Lock className="h-3 w-3 text-gray-400" />
                     ) : (
                         <BookOpen
-                            className={`h-3 w-3 ${isActive && !activeContentId && !activeAssessmentId ? 'text-primary' : 'text-gray-400'}`}
+                            className={`h-3 w-3 ${isActive && !activeContentId && !activeAssessmentId && !activeGameId ? 'text-primary' : 'text-gray-400'}`}
                         />
                     )}
                 </div>
@@ -4212,7 +4369,10 @@ const SidebarSession = memo(function SidebarSession({
                 ) : (
                     (() => {
                         const active =
-                            isActive && !activeContentId && !activeAssessmentId;
+                            isActive &&
+                            !activeContentId &&
+                            !activeAssessmentId &&
+                            !activeGameId;
                         const completableCount =
                             session.contents.length +
                             session.assessments.length +
@@ -4244,7 +4404,7 @@ const SidebarSession = memo(function SidebarSession({
                 {!editMode && hasSubItems && (
                     <>
                         <span
-                            className={`shrink-0 text-[10px] font-medium ${isActive && !activeContentId && !activeAssessmentId ? 'text-primary/50' : 'text-gray-400'}`}
+                            className={`shrink-0 text-[10px] font-medium ${isActive && !activeContentId && !activeAssessmentId && !activeGameId ? 'text-primary/50' : 'text-gray-400'}`}
                         >
                             {subItemCount}
                         </span>
@@ -4401,17 +4561,17 @@ const SidebarSession = memo(function SidebarSession({
                         const completed = !!(
                             g.dbId && completedGames?.has(g.dbId)
                         );
-                        const href = g.dbId
-                            ? `/games/${g.dbId}/play${completed ? '?view=leaderboard' : ''}`
-                            : '#';
+                        const selected = activeGameId === g.id;
                         return (
-                            <a
+                            <button
                                 key={g.id}
-                                href={href}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 rounded-md px-3 py-3 text-sm text-gray-500 transition-all hover:bg-violet-50 hover:text-violet-700 dark:hover:bg-violet-950/20"
-                                onClick={(e) => e.stopPropagation()}
+                                type="button"
+                                aria-current={selected ? 'true' : undefined}
+                                className={`flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-3 text-left text-sm transition-all ${selected ? 'bg-primary/10 text-primary dark:bg-violet-900/20 dark:text-violet-300' : 'text-gray-500 hover:bg-violet-50 hover:text-violet-700 dark:hover:bg-violet-950/20'}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSelectGame?.(session, g);
+                                }}
                             >
                                 <meta.icon className="size-4 shrink-0" />
                                 <span
@@ -4427,7 +4587,7 @@ const SidebarSession = memo(function SidebarSession({
                                         Play
                                     </span>
                                 )}
-                            </a>
+                            </button>
                         );
                     })}
                 </div>
@@ -4476,9 +4636,11 @@ interface SidebarLessonGroupProps {
     completedGames?: Set<number>;
     activeSessionId: string | null;
     activeContentId: string | null;
+    activeGameId?: string | null;
     activeAssessmentId: string | null;
     viewedIds: Set<string>;
     onSelectContent: (session: Session, content: ContentItem) => void;
+    onSelectGame?: (session: Session, game: Game) => void;
     onSelectAssessment: (session: Session, assessment: Assessment) => void;
     onSelectSession: (session: Session) => void;
     onDelete: () => void;
@@ -4495,9 +4657,11 @@ const SidebarLessonGroup = memo(function SidebarLessonGroup({
     completedGames,
     activeSessionId,
     activeContentId,
+    activeGameId,
     activeAssessmentId,
     viewedIds,
     onSelectContent,
+    onSelectGame,
     onSelectAssessment,
     onSelectSession,
     onDelete,
@@ -4660,6 +4824,11 @@ const SidebarLessonGroup = memo(function SidebarLessonGroup({
                                             ? activeContentId
                                             : null
                                     }
+                                    activeGameId={
+                                        activeSessionId === session.id
+                                            ? activeGameId
+                                            : null
+                                    }
                                     activeAssessmentId={
                                         activeSessionId === session.id
                                             ? activeAssessmentId
@@ -4667,6 +4836,7 @@ const SidebarLessonGroup = memo(function SidebarLessonGroup({
                                     }
                                     viewedIds={viewedIds}
                                     onSelectContent={onSelectContent}
+                                    onSelectGame={onSelectGame}
                                     onSelectAssessment={onSelectAssessment}
                                     onSelectSession={onSelectSession}
                                     onDelete={() => onDeleteSession(session.id)}
@@ -4782,9 +4952,11 @@ interface SidebarModuleProps {
     completedGames?: Set<number>;
     activeSessionId: string | null;
     activeContentId: string | null;
+    activeGameId?: string | null;
     activeAssessmentId: string | null;
     viewedIds: Set<string>;
     onSelectContent: (session: Session, content: ContentItem) => void;
+    onSelectGame?: (session: Session, game: Game) => void;
     onSelectAssessment: (session: Session, assessment: Assessment) => void;
     onSelectSession: (session: Session) => void;
     onDelete: () => void;
@@ -4813,9 +4985,11 @@ const SidebarModule = memo(function SidebarModule({
     completedGames,
     activeSessionId,
     activeContentId,
+    activeGameId,
     activeAssessmentId,
     viewedIds,
     onSelectContent,
+    onSelectGame,
     onSelectAssessment,
     onSelectSession,
     onDelete,
@@ -4989,11 +5163,13 @@ const SidebarModule = memo(function SidebarModule({
                                             completedGames={completedGames}
                                             activeSessionId={activeSessionId}
                                             activeContentId={activeContentId}
+                                            activeGameId={activeGameId}
                                             activeAssessmentId={
                                                 activeAssessmentId
                                             }
                                             viewedIds={viewedIds}
                                             onSelectContent={onSelectContent}
+                                            onSelectGame={onSelectGame}
                                             onSelectAssessment={
                                                 onSelectAssessment
                                             }
@@ -5043,6 +5219,11 @@ const SidebarModule = memo(function SidebarModule({
                                                 ? activeContentId
                                                 : null
                                         }
+                                        activeGameId={
+                                            activeSessionId === item.id
+                                                ? activeGameId
+                                                : null
+                                        }
                                         activeAssessmentId={
                                             activeSessionId === item.id
                                                 ? activeAssessmentId
@@ -5050,6 +5231,7 @@ const SidebarModule = memo(function SidebarModule({
                                         }
                                         viewedIds={viewedIds}
                                         onSelectContent={onSelectContent}
+                                        onSelectGame={onSelectGame}
                                         onSelectAssessment={onSelectAssessment}
                                         onSelectSession={onSelectSession}
                                         onDelete={() => onDeleteItem(item.id)}
@@ -5583,6 +5765,7 @@ function TeacherCourseDetail({
     const [activeAssessment, setActiveAssessment] = useState<Assessment | null>(
         null,
     );
+    const [activeGame, setActiveGame] = useState<Game | null>(null);
     const [showAnnouncements, setShowAnnouncements] = useState(() => {
         if (typeof window === 'undefined') return false;
         return (
@@ -5723,6 +5906,7 @@ function TeacherCourseDetail({
             setActiveSession(session);
             setActiveContent(content);
             setActiveAssessment(null);
+            setActiveGame(null);
             setMobilePanel('content');
             markViewed(content.id);
         },
@@ -5735,16 +5919,27 @@ function TeacherCourseDetail({
             setActiveSession(session);
             setActiveAssessment(assessment);
             setActiveContent(null);
+            setActiveGame(null);
             setMobilePanel('content');
             markViewed(assessment.id);
         },
         [markViewed],
     );
+    const handleSelectGame = useCallback((session: Session, game: Game) => {
+        setShowAnnouncements(false);
+        setShowLeaderboard(false);
+        setActiveSession(session);
+        setActiveGame(game);
+        setActiveContent(null);
+        setActiveAssessment(null);
+        setMobilePanel('content');
+    }, []);
     const handleSelectSession = useCallback(
         (session: Session) => {
             setShowAnnouncements(false);
             setShowLeaderboard(false);
             setActiveSession(session);
+            setActiveGame(null);
             if (!effectiveEditMode) {
                 if (session.contents.length > 0) {
                     setActiveContent(session.contents[0]);
@@ -6780,6 +6975,7 @@ function TeacherCourseDetail({
                                         setActiveSession(null);
                                         setActiveContent(null);
                                         setActiveAssessment(null);
+                                        setActiveGame(null);
                                         setMobilePanel('content');
                                     }}
                                     className={`group flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition-all ${
@@ -6845,12 +7041,16 @@ function TeacherCourseDetail({
                                             activeContentId={
                                                 activeContent?.id ?? null
                                             }
+                                            activeGameId={
+                                                activeGame?.id ?? null
+                                            }
                                             activeAssessmentId={
                                                 activeAssessment?.id ?? null
                                             }
                                             onSelectContent={
                                                 handleSelectContent
                                             }
+                                            onSelectGame={handleSelectGame}
                                             onSelectAssessment={
                                                 handleSelectAssessment
                                             }
@@ -7008,6 +7208,7 @@ function TeacherCourseDetail({
                                         setActiveSession(null);
                                         setActiveContent(null);
                                         setActiveAssessment(null);
+                                        setActiveGame(null);
                                         setMobilePanel('content');
                                     }}
                                 />
@@ -7021,6 +7222,7 @@ function TeacherCourseDetail({
                                     setActiveSession(null);
                                     setActiveContent(null);
                                     setActiveAssessment(null);
+                                    setActiveGame(null);
                                     setMobilePanel('content');
                                 }}
                             />
@@ -7147,6 +7349,17 @@ function TeacherCourseDetail({
                                     />
                                 )}
                             </div>
+                        ) : activeGame ? (
+                            <GamePreview
+                                key={activeGame.id}
+                                game={activeGame}
+                                completed={
+                                    !!activeGame.dbId &&
+                                    completedGames.has(activeGame.dbId)
+                                }
+                                isStudent={isStudent}
+                                world={courseWorld}
+                            />
                         ) : activeContent ? (
                             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                                 {/* Fixed content header */}

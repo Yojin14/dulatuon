@@ -91,6 +91,9 @@ class GamePlayController extends Controller
             'completed_at' => now(),
         ]);
 
+        // Keep the stored course progress in step for teacher and admin reports.
+        Enrollment::where('user_id', auth()->id())->where('course_id', $courseId)->first()?->recalculateProgress();
+
         Realtime::dispatch(fn () => broadcast(new GameLeaderboardUpdated($courseId, $game->id, $this->globalLeaderboard($game))));
 
         return response()->json([

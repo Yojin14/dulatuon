@@ -25,10 +25,10 @@ class CertificateController extends Controller
             ->whereIn('status', ['active', 'completed'])
             ->firstOrFail();
 
-        $course->load(['modules', 'instructor:id,name']);
-        $summary = StudentProgress::courses(StudentProgress::modules($user, [$course]))[$course->id] ?? null;
+        $course->load(StudentProgress::COURSE_RELATIONS);
+        $summary = StudentProgress::summary($user, [$course])['courses'][$course->id];
 
-        if ($summary === null || ! $summary['complete']) {
+        if (! $summary['complete']) {
             return to_route('my-progress.index')->with('error', 'Clear every module in this course to unlock its certificate.');
         }
 
@@ -38,7 +38,7 @@ class CertificateController extends Controller
                 'student_name' => $user->name,
                 'course_title' => $course->title,
                 'course_code' => $course->course_code,
-                'instructor' => $course->instructor->name ?? null,
+                'instructor' => StudentProgress::teacherName($course) ?: null,
                 'modules' => $summary['modules_total'],
                 'items' => $summary['items_total'],
                 'completed_at' => $summary['completed_on']?->format('F j, Y'),

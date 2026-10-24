@@ -16,7 +16,7 @@ class MyProgressController extends Controller
     {
         $user = $request->user();
 
-        $courses = Enrollment::with(['course.instructor:id,name', 'course.modules'])
+        $courses = Enrollment::with(array_map(fn (string $relation) => "course.{$relation}", StudentProgress::COURSE_RELATIONS))
             ->where('user_id', $user->id)
             ->whereIn('status', ['active', 'completed'])
             ->orderBy('updated_at', 'desc')
@@ -25,9 +25,9 @@ class MyProgressController extends Controller
             ->filter()
             ->unique('id');
 
-        $modules = StudentProgress::modules($user, $courses);
+        ['modules' => $modules, 'courses' => $courseSummaries, 'xp' => $xp] = StudentProgress::summary($user, $courses);
 
-        $certificates = collect(StudentProgress::courses($modules))
+        $certificates = collect($courseSummaries)
             ->filter(fn (array $course) => $course['complete'])
             ->map(fn (array $course) => [
                 'course_id' => $course['course_id'],
@@ -45,6 +45,7 @@ class MyProgressController extends Controller
                 return $module;
             }, $modules),
             'certificates' => $certificates,
+            'xp' => $xp,
         ]);
     }
 
@@ -52,7 +53,7 @@ class MyProgressController extends Controller
     {
         $user = $request->user();
 
-        Enrollment::where('user_id', $user->id)
+        $enrollment = Enrollment::where('user_id', $user->id)
             ->where('course_id', $courseId)
             ->whereIn('status', ['active', 'completed'])
             ->firstOrFail();
@@ -66,6 +67,8 @@ class MyProgressController extends Controller
             ['user_id' => $user->id, 'content_id' => $contentId],
             ['course_id' => $courseId, 'completed_at' => now()]
         );
+
+        $enrollment->recalculateProgress();
 
         return response()->json(['ok' => true]);
     }

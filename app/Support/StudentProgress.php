@@ -24,10 +24,74 @@ class StudentProgress
      */
     public const GAME_CLEAR_RATIO = 0.6;
 
+    /** XP for each finished lesson material or cleared game. Mirrors resources/js/lib/gamification.ts. */
+    public const XP_PER_ITEM = 10;
+
+    /** Bonus XP for clearing every module of a course. */
+    public const XP_PER_COURSE_CLEAR = 100;
+
+    /** Relations {@see summary()} and {@see modules()} expect on each course. */
+    public const COURSE_RELATIONS = ['modules', 'teachers:id,name', 'instructor:id,name'];
+
+    /**
+     * The teacher shown for a course everywhere: its first assigned teacher, falling back
+     * to the legacy instructor column.
+     */
+    public static function teacherName(Course $course): string
+    {
+        return $course->teachers->first()?->name ?? $course->instructor?->name ?? '';
+    }
+
+    /**
+     * Everything the student-facing pages need in one pass: module rows, per-course totals
+     * (including enrolled courses that have no items yet) and total XP.
+     *
+     * @param  iterable<Course>  $courses  Courses with {@see COURSE_RELATIONS} loaded.
+     * @return array{modules: array<int, array<string, mixed>>, courses: array<int, array<string, mixed>>, xp: int}
+     */
+    public static function summary(User $user, iterable $courses): array
+    {
+        $courses = collect($courses);
+        $modules = self::modules($user, $courses);
+        $byCourse = self::courses($modules);
+
+        $summaries = [];
+        foreach ($courses as $course) {
+            $summaries[$course->id] = $byCourse[$course->id] ?? [
+                'course_id' => $course->id,
+                'course_title' => $course->title,
+                'instructor' => self::teacherName($course),
+                'modules_total' => 0,
+                'modules_cleared' => 0,
+                'items_completed' => 0,
+                'items_total' => 0,
+                'complete' => false,
+                'completed_on' => null,
+            ];
+        }
+
+        return ['modules' => $modules, 'courses' => $summaries, 'xp' => self::xp($summaries)];
+    }
+
+    /**
+     * Total XP across course summaries: 10 per finished item plus 100 per cleared course.
+     *
+     * @param  iterable<array{items_completed: int, complete: bool}>  $courseSummaries
+     */
+    public static function xp(iterable $courseSummaries): int
+    {
+        $xp = 0;
+        foreach ($courseSummaries as $course) {
+            $xp += $course['items_completed'] * self::XP_PER_ITEM + ($course['complete'] ? self::XP_PER_COURSE_CLEAR : 0);
+        }
+
+        return $xp;
+    }
+
     /**
      * Progress per module for the given courses. Modules with nothing in them are skipped.
      *
-     * @param  iterable<Course>  $courses  Courses with `modules` and `instructor` loaded.
+     * @param  iterable<Course>  $courses  Courses with {@see COURSE_RELATIONS} loaded.
      * @return array<int, array{module_id: int, course_id: int, module_title: string, course_title: string, instructor: string, contents_completed: int, total_contents: int, games_cleared: int, total_games: int, progress: int, completed_on: Carbon|null}>
      */
     public static function modules(User $user, iterable $courses): array
@@ -95,7 +159,7 @@ class StudentProgress
                 'course_id' => $course->id,
                 'module_title' => $module->title,
                 'course_title' => $course->title,
-                'instructor' => $course->instructor->name ?? '',
+                'instructor' => self::teacherName($course),
                 'contents_completed' => $done,
                 'total_contents' => $total,
                 'games_cleared' => $gamesCleared,
@@ -238,7 +302,7 @@ class StudentProgress
                 'labs_cleared' => count($clearedGames),
                 'labs_total' => $gameModule->count(),
                 'game_points' => array_sum($bestScore),
-                'xp' => $itemsDone * 10 + ($complete ? 100 : 0),
+                'xp' => $itemsDone * self::XP_PER_ITEM + ($complete ? self::XP_PER_COURSE_CLEAR : 0),
                 'complete' => $complete,
                 'last_active_at' => $lastActive,
             ];

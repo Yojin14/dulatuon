@@ -278,7 +278,7 @@ export default function Welcome({
                             <Reveal delay={0.1} className="lg:col-span-5 lg:col-start-8">
                                 <p className="font-display text-[clamp(2.5rem,5vw,4rem)] leading-none font-extrabold tracking-[-0.04em] text-amber-300">+50 XP</p>
                                 <p className="mt-3 max-w-[34ch] leading-relaxed text-white/75">Right answer, first try. The run keeps its hearts and the next lesson unlocks.</p>
-                                <div className="mt-6 max-w-sm rounded-2xl bg-white/6 p-4 ring-1 ring-white/10 [&_.text-foreground]:text-white [&_.text-muted-foreground]:text-white/65">
+                                <div className="dark mt-6 max-w-sm rounded-2xl bg-white/6 p-4 ring-1 ring-white/10 [&_.text-foreground]:text-white [&_.text-muted-foreground]:text-white/65">
                                     <XpBar player={examplePlayer} />
                                 </div>
                             </Reveal>

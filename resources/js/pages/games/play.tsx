@@ -4,8 +4,9 @@ import { WorldChip } from '@/components/world/world-scope';
 import { SIMULATION_WORLD, WORLDS } from '@/lib/worlds';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { isMuted, setMuted as setAudioMuted, sfxCorrect, sfxLose, sfxMedal, sfxPop, sfxWin, sfxWrong, startMusic, stopMusic, unlockAudio } from '@/lib/game-audio';
+import { useFullscreen } from '@/hooks/use-fullscreen';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { ArrowLeft, Brain, Building2, CheckCircle2, Clock, Crown, Eye, Grid3x3, Heart, Layers, LifeBuoy, Lock, Map as MapIcon, Medal, Mountain, RotateCcw, ShieldCheck, Shuffle, Sparkles, Trophy, Users, Volume2, VolumeX, Waves, Zap, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, Brain, Building2, CheckCircle2, Clock, Crown, Eye, Grid3x3, Heart, Layers, LifeBuoy, Lock, Map as MapIcon, Maximize, Medal, Minimize, Smartphone, Mountain, RotateCcw, ShieldCheck, Shuffle, Sparkles, Trophy, Users, Volume2, VolumeX, Waves, Zap, type LucideIcon } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // three.js is only downloaded when a student opens the 3D simulation.
@@ -960,7 +961,7 @@ function BackToCourse({ courseId }: { courseId: number }) {
 }
 
 // ─── Intro ───────────────────────────────────────────────────────────────────────
-function IntroScreen({ game, me, leaderboard, myId, onStart }: { game: GameProp; me: MeState; leaderboard: Leaderboard; myId: number | null; onStart: () => void }) {
+function IntroScreen({ game, me, leaderboard, myId, onStart, fullscreenChoice }: { game: GameProp; me: MeState; leaderboard: Leaderboard; myId: number | null; onStart: () => void; fullscreenChoice?: React.ReactNode }) {
     const meta = GAME_META[game.gameType];
     const locked = me.livesRemaining !== null && me.livesRemaining <= 0;
     const countdown = useCountdown(locked ? me.nextResetAt : null);
@@ -983,9 +984,12 @@ function IntroScreen({ game, me, leaderboard, myId, onStart }: { game: GameProp;
                     {locked ? (
                         <OutOfLives countdown={countdown} />
                     ) : (
-                        <Button onClick={onStart} variant="play" size="lg" className="h-14 w-full text-lg">
-                            Start game
-                        </Button>
+                        <>
+                            <Button onClick={onStart} variant="play" size="lg" className="h-14 w-full text-lg">
+                                Start game
+                            </Button>
+                            {fullscreenChoice}
+                        </>
                     )}
                 </div>
                 <p className="mt-4 text-xs font-medium text-white/50">{SIMULATION_GAMES.includes(game.gameType) ? 'Your first answer at each checkpoint is the one that counts.' : 'Questions are shuffled every match.'}</p>
@@ -1129,6 +1133,54 @@ function MedalPopup({ rank, onClose }: { rank: number; onClose: () => void }) {
     );
 }
 
+// ─── Full screen preference ──────────────────────────────────────────────────
+const FULLSCREEN_PREF_KEY = 'dulatuon:game-fullscreen';
+
+/** On by default; the course preview's "Play in full screen" link forces it on with ?fullscreen=1. */
+function initialFullscreenPref(): boolean {
+    if (typeof window === 'undefined') {
+        return true;
+    }
+    if (new URLSearchParams(window.location.search).get('fullscreen') === '1') {
+        return true;
+    }
+    try {
+        return window.localStorage.getItem(FULLSCREEN_PREF_KEY) !== '0';
+    } catch {
+        return true;
+    }
+}
+
+function FullscreenChoice({ supported, checked, onChange }: { supported: boolean; checked: boolean; onChange: (value: boolean) => void }) {
+    if (!supported) {
+        return (
+            <p className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-white/70">
+                <Smartphone className="size-4 text-violet-300" />
+                Turn your phone sideways for the widest view.
+            </p>
+        );
+    }
+
+    return (
+        <button
+            type="button"
+            role="switch"
+            aria-checked={checked}
+            onClick={() => onChange(!checked)}
+            className="mx-auto mt-4 flex w-full cursor-pointer items-center gap-3 rounded-2xl bg-white/5 px-4 py-3 text-left ring-1 ring-white/10 transition hover:bg-white/10"
+        >
+            <Maximize className="size-5 shrink-0 text-violet-300" />
+            <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold text-white">Play in full screen</span>
+                <span className="block text-xs text-white/60">Best experience: no tabs or toolbars. Press Esc to leave.</span>
+            </span>
+            <span className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? 'bg-violet-500' : 'bg-white/20'}`}>
+                <span className={`absolute top-0.5 size-5 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
+            </span>
+        </button>
+    );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 type Phase = 'intro' | 'leaderboard' | 'playing' | 'result';
 
@@ -1147,6 +1199,16 @@ export default function GamePlay() {
     const [matchKey, setMatchKey] = useState(0);
     const [muted, setMutedState] = useState(isMuted());
     const [medalRank, setMedalRank] = useState<number | null>(null);
+    const fullscreen = useFullscreen();
+    const [fullscreenPref, setFullscreenPref] = useState(initialFullscreenPref);
+    const changeFullscreenPref = useCallback((value: boolean) => {
+        setFullscreenPref(value);
+        try {
+            window.localStorage.setItem(FULLSCREEN_PREF_KEY, value ? '1' : '0');
+        } catch {
+            /* storage unavailable: the choice lasts for this visit only */
+        }
+    }, []);
 
     const meta = GAME_META[game.gameType];
     const elapsed = useStopwatch(phase === 'playing');
@@ -1195,11 +1257,14 @@ export default function GamePlay() {
 
     const startMatch = useCallback(() => {
         unlockAudio(); // satisfy the browser's autoplay gesture requirement
+        if (fullscreenPref) {
+            fullscreen.enter();
+        }
         setResult(null);
         setMatchKey((k) => k + 1);
         startedAt.current = Date.now();
         setPhase('playing');
-    }, []);
+    }, [fullscreenPref, fullscreen]);
 
     const handleFinish = useCallback(async (localAnswers: Record<number, string>) => {
         setSubmitting(true);
@@ -1274,6 +1339,16 @@ export default function GamePlay() {
                     </div>
                 )}
                 <div className="flex items-center gap-2">
+                    {fullscreen.supported && (
+                        <button
+                            onClick={fullscreen.toggle}
+                            aria-label={fullscreen.active ? 'Exit full screen' : 'Enter full screen'}
+                            title={fullscreen.active ? 'Exit full screen (Esc)' : 'Full screen'}
+                            className="inline-flex size-10 items-center justify-center rounded-xl bg-white/10 text-white/80 transition hover:bg-white/20 hover:text-white"
+                        >
+                            {fullscreen.active ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                        </button>
+                    )}
                     <button
                         onClick={toggleMute}
                         aria-label={muted ? 'Unmute' : 'Mute'}
@@ -1305,7 +1380,14 @@ export default function GamePlay() {
                 ) : phase === 'leaderboard' ? (
                     <LeaderboardScreen game={game} me={me} leaderboard={leaderboard} myId={myId} courseId={game.courseId} onPlay={startMatch} />
                 ) : phase === 'intro' ? (
-                    <IntroScreen game={game} me={me} leaderboard={leaderboard} myId={myId} onStart={startMatch} />
+                    <IntroScreen
+                        game={game}
+                        me={me}
+                        leaderboard={leaderboard}
+                        myId={myId}
+                        onStart={startMatch}
+                        fullscreenChoice={<FullscreenChoice supported={fullscreen.supported} checked={fullscreenPref} onChange={changeFullscreenPref} />}
+                    />
                 ) : phase === 'result' && result ? (
                     <ResultScreen result={result} leaderboard={leaderboard} me={me} myId={myId} courseId={game.courseId} onReplay={startMatch} />
                 ) : (

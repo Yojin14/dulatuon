@@ -1,17 +1,11 @@
-import { AchievementBadge } from '@/components/game/achievement-badge';
 import { EmptyState } from '@/components/game/empty-state';
-import { ProgressTrack, XpBar } from '@/components/game/xp-bar';
+import { ProgressTrack, RankLadder, XpBar } from '@/components/game/xp-bar';
 import { Button } from '@/components/ui/button';
 import { WorldEmblem } from '@/components/world/world-scope';
 import AppLayout from '@/layouts/app-layout';
-import {
-    computeAchievements,
-    computeLevel,
-    computeXp,
-} from '@/lib/gamification';
+import { computeLevel } from '@/lib/gamification';
 import { worldFor } from '@/lib/worlds';
 import { type BreadcrumbItem } from '@/types';
-import type { CourseProgressInput } from '@/types/gamification';
 import { Head, Link } from '@inertiajs/react';
 import { Award, ChevronRight, Compass, Medal } from 'lucide-react';
 import { useMemo } from 'react';
@@ -46,43 +40,22 @@ interface CertificateLink {
 interface Props {
     modules: ModuleProgress[];
     certificates?: CertificateLink[];
+    /** Total XP, worked out on the server with the same rules as the dashboard. */
+    xp?: number;
 }
 
-/** Roll module rows up into per-course totals for XP and badges. */
-function toCourseProgress(modules: ModuleProgress[]): CourseProgressInput[] {
-    const byCourse = new Map<number, CourseProgressInput>();
-    for (const m of modules) {
-        const course = byCourse.get(m.course_id) ?? {
-            id: m.course_id,
-            title: m.course_title,
-            completed: 0,
-            total: 0,
-            progress: 0,
-        };
-        course.completed += m.contents_completed;
-        course.total += m.total_contents;
-        byCourse.set(m.course_id, course);
-    }
+export default function MyProgress({
+    modules = [],
+    certificates = [],
+    xp = 0,
+}: Props) {
+    // Exact counts: a rounded 100% (e.g. 199 of 200) is not cleared yet.
+    const isCleared = (m: ModuleProgress) =>
+        m.contents_completed >= m.total_contents;
+    const earned = modules.filter(isCleared);
+    const inProgress = modules.filter((m) => !isCleared(m));
 
-    return [...byCourse.values()].map((c) => ({
-        ...c,
-        progress: c.total > 0 ? Math.round((c.completed / c.total) * 100) : 0,
-    }));
-}
-
-export default function MyProgress({ modules = [], certificates = [] }: Props) {
-    const earned = modules.filter((m) => m.progress >= 100);
-    const inProgress = modules.filter((m) => m.progress < 100);
-
-    const { player, achievements } = useMemo(() => {
-        const courses = toCourseProgress(modules);
-
-        return {
-            player: computeLevel(computeXp(courses)),
-            achievements: computeAchievements(courses),
-        };
-    }, [modules]);
-    const earnedBadges = achievements.filter((a) => a.earned).length;
+    const player = useMemo(() => computeLevel(xp), [xp]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -91,32 +64,27 @@ export default function MyProgress({ modules = [], certificates = [] }: Props) {
             {/* Trophy room: game-night mode for the moments that are earned */}
             <header className="bg-game-night text-white">
                 <div className="mx-auto grid max-w-[1600px] gap-8 px-5 py-9 sm:px-8 lg:grid-cols-12 lg:items-end">
-                    <div className="lg:col-span-6">
+                    <div className="lg:col-span-5">
                         <h1 className="font-display text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-extrabold tracking-[-0.035em]">
                             Your progress
                         </h1>
                         <p className="mt-2 text-white/70">
                             {earned.length}{' '}
                             {earned.length === 1 ? 'module' : 'modules'} cleared
-                            · {earnedBadges} of {achievements.length} badges
+                            {certificates.length > 0 &&
+                                ` · ${certificates.length} ${certificates.length === 1 ? 'certificate' : 'certificates'}`}
                         </p>
-                        <div className="mt-6 max-w-md rounded-2xl bg-white/6 p-4 ring-1 ring-white/10 [&_.text-foreground]:text-white [&_.text-muted-foreground]:text-white/65">
-                            <XpBar player={player} />
-                        </div>
                     </div>
 
-                    <section aria-label="Badges" className="lg:col-span-6">
-                        <div className="grid grid-cols-5 gap-2 rounded-3xl bg-white/4 px-3 pt-5 pb-4 ring-1 ring-white/10 [&_.text-foreground]:text-white [&_.text-muted-foreground]:text-white/55">
-                            {achievements.map((achievement) => (
-                                <AchievementBadge
-                                    key={achievement.id}
-                                    achievement={achievement}
-                                />
-                            ))}
-                        </div>
-                        <div
-                            aria-hidden
-                            className="mx-4 h-2 rounded-b-xl bg-[linear-gradient(180deg,#a3623f,#6f3b2a)]"
+                    {/* `dark` so the rank colours and track use their on-dark variants here */}
+                    <section
+                        aria-label="Your rank"
+                        className="dark rounded-3xl bg-white/6 p-5 ring-1 ring-white/10 lg:col-span-7 [&_.text-foreground]:text-white [&_.text-muted-foreground]:text-white/65"
+                    >
+                        <XpBar player={player} />
+                        <RankLadder
+                            player={player}
+                            className="mt-4 border-t border-white/10 pt-3"
                         />
                     </section>
                 </div>
@@ -126,7 +94,7 @@ export default function MyProgress({ modules = [], certificates = [] }: Props) {
                 {modules.length === 0 && (
                     <EmptyState
                         title="No progress yet"
-                        description="Read lesson materials and clear 3D labs to fill this up. Your XP and badges are earned here."
+                        description="Read lesson materials and clear 3D labs to fill this up. Every lesson and lab you finish adds XP and moves you up the ranks."
                         action={
                             <Button asChild>
                                 <Link href="/explore">
