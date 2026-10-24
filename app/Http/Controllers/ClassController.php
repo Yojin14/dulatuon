@@ -177,7 +177,7 @@ class ClassController extends Controller
             ->pluck('id');
 
         $assignments = Assignment::with([
-            'submissions' => fn ($q) => $q->where('is_submitted', true)->with('user:id,name,email'),
+            'submissions' => fn ($q) => $q->where('is_submitted', true)->with(['user:id,name,email,avatar', 'grade']),
             'session.module',
         ])
             ->whereHas('session.module', fn ($q) => $q->whereIn('course_id', $courseIds))
@@ -200,6 +200,7 @@ class ClassController extends Controller
                     'fileSize' => $s->file_size,
                     'submittedAt' => $s->submission_date?->format('M d, Y \a\t g:i A'),
                     'status' => $s->status,
+                    'grade' => $s->status === 'graded' ? $s->grade?->toSummary() : null,
                 ])->values(),
             ]);
 
@@ -256,6 +257,7 @@ class ClassController extends Controller
             $mySubmissions = Submission::where('user_id', $user->id)
                 ->whereIn('assignment_id', $assignmentIds)
                 ->where('is_submitted', true)
+                ->with('grade')
                 ->get()
                 ->keyBy('assignment_id')
                 ->map(fn ($s) => [
@@ -268,6 +270,7 @@ class ClassController extends Controller
                     'fileSize' => $s->file_size,
                     'submittedAt' => $s->submission_date?->format('M d, Y \a\t g:i A'),
                     'status' => $s->status,
+                    'grade' => $s->status === 'graded' ? $s->grade?->toSummary() : null,
                 ])
                 ->toArray();
         }

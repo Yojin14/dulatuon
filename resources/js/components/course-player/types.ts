@@ -43,6 +43,13 @@ export interface AssignmentSubmission {
     fileSize: number | null;
     submittedAt: string;
     status: 'submitted' | 'graded' | 'late';
+    grade?: {
+        points: number;
+        possible: number;
+        percent: number;
+        feedback: string | null;
+        gradedAt: string | null;
+    } | null;
 }
 
 export interface Assignment {

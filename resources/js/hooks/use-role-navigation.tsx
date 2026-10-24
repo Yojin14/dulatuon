@@ -4,6 +4,7 @@ import {
     Award,
     BarChart3,
     BookOpen,
+    ClipboardList,
     Compass,
     FileText,
     LayoutGrid,
@@ -32,7 +33,7 @@ export function useRoleNavigation(userRole: 'admin' | 'teacher' | 'student') {
                 href: '/courses',
                 icon: BookOpen,
             },
-    
+
             {
                 title: 'User Management',
                 href: '/admin/users',
@@ -64,6 +65,11 @@ export function useRoleNavigation(userRole: 'admin' | 'teacher' | 'student') {
                 icon: FileText,
             },
             {
+                title: 'Assignments',
+                href: '/assignments',
+                icon: ClipboardList,
+            },
+            {
                 title: 'Chat',
                 href: '/chat',
                 icon: MessageCircle,
@@ -82,12 +88,17 @@ export function useRoleNavigation(userRole: 'admin' | 'teacher' | 'student') {
             {
                 title: 'Explore Courses',
                 href: '/explore',
-                icon: Compass,  
+                icon: Compass,
             },
             {
                 title: 'My Course',
                 href: '/my-course',
                 icon: BookOpen,
+            },
+            {
+                title: 'Assignments',
+                href: '/assignments',
+                icon: ClipboardList,
             },
             {
                 title: 'My Progress',

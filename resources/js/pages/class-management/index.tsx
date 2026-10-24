@@ -1,3 +1,7 @@
+import {
+    GradeDialog,
+    type GradeSummary,
+} from '@/components/assignments/grade-dialog';
 import { RankAvatar } from '@/components/game/rank-avatar';
 import { PageHeader } from '@/components/page-header';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -111,6 +115,7 @@ interface DbSubmission {
     fileSize: number | null;
     submittedAt: string;
     status: 'submitted' | 'graded' | 'late';
+    grade?: GradeSummary | null;
 }
 
 interface DbAssignment {
@@ -782,6 +787,14 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
     const [expanded, setExpanded] = useState<number | null>(
         assignments[0]?.id ?? null,
     );
+    // Grades saved on this page, so the row updates without a reload.
+    const [savedGrades, setSavedGrades] = useState<
+        Record<number, GradeSummary>
+    >({});
+    const [grading, setGrading] = useState<{
+        submission: DbSubmission;
+        assignment: DbAssignment;
+    } | null>(null);
     const [openRows, setOpenRows] = useState<Set<number>>(new Set());
     const toggleRow = (id: number) =>
         setOpenRows((prev) => {
@@ -984,66 +997,106 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                                                             {s.submittedAt}
                                                         </td>
                                                         <td className="px-5 py-3.5 text-center">
-                                                            <span
-                                                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase ${
-                                                                    s.status ===
-                                                                    'graded'
-                                                                        ? 'bg-violet-100 text-violet-600'
-                                                                        : s.status ===
-                                                                            'late'
-                                                                          ? 'bg-red-100 text-red-600'
-                                                                          : 'bg-emerald-100 text-emerald-600'
-                                                                }`}
-                                                            >
-                                                                {s.status ===
-                                                                    'submitted' && (
-                                                                    <CheckCircle2 className="h-2.5 w-2.5" />
-                                                                )}
-                                                                {s.status}
-                                                            </span>
+                                                            {(savedGrades[
+                                                                s.id
+                                                            ] ?? s.grade) ? (
+                                                                <span className="inline-flex rounded-full bg-violet-100 px-2 py-0.5 text-xs font-bold text-violet-700 tabular-nums dark:bg-violet-500/15 dark:text-violet-300">
+                                                                    {
+                                                                        (savedGrades[
+                                                                            s.id
+                                                                        ] ??
+                                                                            s.grade)!
+                                                                            .points
+                                                                    }
+                                                                    /
+                                                                    {a.maxScore}
+                                                                </span>
+                                                            ) : (
+                                                                <span
+                                                                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase ${
+                                                                        s.status ===
+                                                                        'graded'
+                                                                            ? 'bg-violet-100 text-violet-600'
+                                                                            : s.status ===
+                                                                                'late'
+                                                                              ? 'bg-red-100 text-red-600'
+                                                                              : 'bg-emerald-100 text-emerald-600'
+                                                                    }`}
+                                                                >
+                                                                    {s.status ===
+                                                                        'submitted' && (
+                                                                        <CheckCircle2 className="h-2.5 w-2.5" />
+                                                                    )}
+                                                                    {s.status}
+                                                                </span>
+                                                            )}
                                                         </td>
                                                         <td className="px-5 py-3.5 text-right">
-                                                            {isText ? (
+                                                            <div className="flex items-center justify-end gap-1.5">
                                                                 <button
+                                                                    type="button"
                                                                     onClick={() =>
-                                                                        toggleRow(
-                                                                            s.id,
+                                                                        setGrading(
+                                                                            {
+                                                                                submission:
+                                                                                    s,
+                                                                                assignment:
+                                                                                    a,
+                                                                            },
                                                                         )
                                                                     }
-                                                                    className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-violet-300 hover:text-violet-600 dark:text-muted-foreground/60"
+                                                                    className="inline-flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90"
                                                                 >
-                                                                    <Eye className="h-3.5 w-3.5" />
-                                                                    {rowOpen
-                                                                        ? 'Hide'
-                                                                        : 'View'}
+                                                                    <PenLine className="h-3.5 w-3.5" />
+                                                                    {(savedGrades[
+                                                                        s.id
+                                                                    ] ??
+                                                                    s.grade)
+                                                                        ? 'Edit grade'
+                                                                        : 'Grade'}
                                                                 </button>
-                                                            ) : isVideo ? (
-                                                                <a
-                                                                    href={
-                                                                        s.videoUrl ??
-                                                                        '#'
-                                                                    }
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-violet-300 hover:text-violet-600 dark:text-muted-foreground/60"
-                                                                >
-                                                                    <ExternalLink className="h-3.5 w-3.5" />
-                                                                    Open
-                                                                </a>
-                                                            ) : (
-                                                                <a
-                                                                    href={
-                                                                        s.filePath ??
-                                                                        '#'
-                                                                    }
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-violet-300 hover:text-violet-600 dark:text-muted-foreground/60"
-                                                                >
-                                                                    <Download className="h-3.5 w-3.5" />
-                                                                    Download
-                                                                </a>
-                                                            )}
+                                                                {isText ? (
+                                                                    <button
+                                                                        onClick={() =>
+                                                                            toggleRow(
+                                                                                s.id,
+                                                                            )
+                                                                        }
+                                                                        className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-violet-300 hover:text-violet-600 dark:text-muted-foreground/60"
+                                                                    >
+                                                                        <Eye className="h-3.5 w-3.5" />
+                                                                        {rowOpen
+                                                                            ? 'Hide'
+                                                                            : 'View'}
+                                                                    </button>
+                                                                ) : isVideo ? (
+                                                                    <a
+                                                                        href={
+                                                                            s.videoUrl ??
+                                                                            '#'
+                                                                        }
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-violet-300 hover:text-violet-600 dark:text-muted-foreground/60"
+                                                                    >
+                                                                        <ExternalLink className="h-3.5 w-3.5" />
+                                                                        Open
+                                                                    </a>
+                                                                ) : (
+                                                                    <a
+                                                                        href={
+                                                                            s.filePath ??
+                                                                            '#'
+                                                                        }
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-violet-300 hover:text-violet-600 dark:text-muted-foreground/60"
+                                                                    >
+                                                                        <Download className="h-3.5 w-3.5" />
+                                                                        Download
+                                                                    </a>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                     {isText && rowOpen && (
@@ -1072,6 +1125,29 @@ function SubmissionsTab({ assignments }: { assignments: DbAssignment[] }) {
                     </div>
                 );
             })}
+
+            {grading && (
+                <GradeDialog
+                    key={grading.submission.id}
+                    open
+                    onOpenChange={(open) => !open && setGrading(null)}
+                    submissionId={grading.submission.id}
+                    studentName={grading.submission.student.name}
+                    assignmentTitle={grading.assignment.title}
+                    maxPoints={grading.assignment.maxScore}
+                    current={
+                        savedGrades[grading.submission.id] ??
+                        grading.submission.grade ??
+                        null
+                    }
+                    onGraded={(grade) =>
+                        setSavedGrades((prev) => ({
+                            ...prev,
+                            [grading.submission.id]: grade,
+                        }))
+                    }
+                />
+            )}
         </div>
     );
 }

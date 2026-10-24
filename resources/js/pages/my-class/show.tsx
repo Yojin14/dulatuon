@@ -2202,6 +2202,7 @@ function TeacherCourseDetail({ isStudent = false }: { isStudent?: boolean }) {
                                     <QuizViewer
                                         key={activeAssessment.id}
                                         quiz={activeAssessment}
+                                        courseId={isStudent ? courseId : null}
                                         savedState={
                                             quizResults[activeAssessment.id]
                                         }

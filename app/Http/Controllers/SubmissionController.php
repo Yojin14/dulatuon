@@ -162,6 +162,7 @@ class SubmissionController extends Controller
             'fileSize' => $submission->file_size,
             'submittedAt' => $submission->submission_date?->toIso8601String(),
             'status' => $submission->status,
+            'grade' => $submission->grade?->toSummary(),
         ];
     }
 

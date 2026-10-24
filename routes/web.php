@@ -138,12 +138,22 @@ Route::middleware(['auth', 'verified', 'throttle:global'])->group(function () {
             ->middleware('throttle:writes')
             ->name('submissions.store');
         Route::get('{courseId}/assignments/{assignmentId}/my-submission', [$sc, 'mySubmission'])->name('submissions.mine');
+        Route::get('{courseId}/quizzes/{quizId}/attempts', [App\Http\Controllers\QuizAttemptController::class, 'index'])->name('quiz-attempts.index');
+        Route::post('{courseId}/quizzes/{quizId}/attempts', [App\Http\Controllers\QuizAttemptController::class, 'store'])
+            ->middleware('throttle:writes')
+            ->name('quiz-attempts.store');
     });
 
     Route::get('classes/{sectionName}', [App\Http\Controllers\ClassController::class, 'show'])->name('classes.show');
 
     // Class Management page (teacher/admin)
     Route::get('class-management', [App\Http\Controllers\ClassController::class, 'classManagement'])->name('class-management.index');
+
+    // Assignments and quizzes: grading hub for teachers, to-do list for students
+    Route::get('assignments', [App\Http\Controllers\AssignmentsController::class, 'index'])->name('assignments.index');
+    Route::put('assignments/submissions/{submission}/grade', [App\Http\Controllers\SubmissionGradeController::class, 'update'])
+        ->middleware(['role:teacher,admin', 'throttle:writes'])
+        ->name('assignments.grade');
 
     // tasks routes
     Route::get('tasks', [App\Http\Controllers\TasksController::class, 'index'])->name('tasks.index');

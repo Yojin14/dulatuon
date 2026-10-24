@@ -45,7 +45,14 @@ import {
     Video,
     XCircle,
 } from 'lucide-react';
-import { Suspense, lazy, useRef, useState, useSyncExternalStore } from 'react';
+import {
+    Suspense,
+    lazy,
+    useEffect,
+    useRef,
+    useState,
+    useSyncExternalStore,
+} from 'react';
 
 // The editor (tiptap) only downloads when a student opens a written answer.
 const RichTextEditor = lazy(() =>
@@ -422,28 +429,123 @@ export interface QuizSavedState {
     submitted: boolean;
 }
 
+/** What the server keeps for a student's quiz: latest attempt plus best score. */
+interface QuizServerResult {
+    attempts: number;
+    best: number | null;
+    latest: {
+        answers: (number | null)[];
+        score: number;
+        correct: number;
+        total: number;
+        attempt: number;
+    } | null;
+}
+
 export function QuizViewer({
     quiz,
     savedState,
     onSave,
     onMarkDone,
+    courseId = null,
 }: {
     quiz: Quiz;
     savedState?: QuizSavedState;
     onSave?: (s: QuizSavedState) => void;
     onMarkDone?: () => void;
+    /** Students: saves attempts to the server so results follow them to any device. */
+    courseId?: string | number | null;
 }) {
     const [answers, setAnswers] = useState<(number | null)[]>(
         savedState?.answers ?? Array(quiz.questions.length).fill(null),
     );
     const [submitted, setSubmitted] = useState(savedState?.submitted ?? false);
+    const [server, setServer] = useState<QuizServerResult | null>(null);
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const startedAt = useRef(0);
+    const attemptsUrl =
+        courseId && quiz.dbId
+            ? `/curriculum/${courseId}/quizzes/${quiz.dbId}/attempts`
+            : null;
+
+    // Load the saved result, so a quiz taken on another device shows its score here.
+    useEffect(() => {
+        startedAt.current = Date.now();
+        if (!attemptsUrl) {
+            return;
+        }
+        let cancelled = false;
+        fetch(attemptsUrl, {
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
+        })
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data: QuizServerResult | null) => {
+                if (cancelled || !data?.latest) {
+                    return;
+                }
+                setServer(data);
+                setAnswers(data.latest.answers);
+                setSubmitted(true);
+            })
+            .catch(() => undefined);
+
+        return () => {
+            cancelled = true;
+        };
+    }, [attemptsUrl]);
+
+    const localCorrect = answers.filter(
+        (a, i) => a === quiz.questions[i].correctIndex,
+    ).length;
     const correctCount = submitted
-        ? answers.filter((a, i) => a === quiz.questions[i].correctIndex).length
+        ? (server?.latest?.correct ?? localCorrect)
         : 0;
     const score =
-        quiz.questions.length > 0
-            ? Math.round((correctCount / quiz.questions.length) * 100)
-            : 0;
+        server?.latest && submitted
+            ? server.latest.score
+            : quiz.questions.length > 0
+              ? Math.round((correctCount / quiz.questions.length) * 100)
+              : 0;
+
+    const submit = async () => {
+        if (attemptsUrl) {
+            setSaving(true);
+            setSaveError(null);
+            try {
+                const token = document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1];
+                const res = await fetch(attemptsUrl, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-XSRF-TOKEN': token ? decodeURIComponent(token) : '',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        answers,
+                        timeSpent: Math.round(
+                            (Date.now() - startedAt.current) / 1000,
+                        ),
+                    }),
+                });
+                if (!res.ok) {
+                    throw new Error();
+                }
+                setServer((await res.json()) as QuizServerResult);
+            } catch {
+                setSaveError(
+                    'Could not save your result. It is kept on this device; retake when you are back online to save it.',
+                );
+            } finally {
+                setSaving(false);
+            }
+        }
+        setSubmitted(true);
+        onSave?.({ answers, submitted: true });
+        onMarkDone?.();
+    };
     const allAnswered = answers.every((a) => a !== null);
 
     if (quiz.questions.length === 0)
@@ -495,7 +597,25 @@ export function QuizViewer({
                         </h2>
                         <p className="mt-1 text-sm text-muted-foreground">
                             {correctCount} of {quiz.questions.length} correct
+                            {server && server.attempts > 0 && (
+                                <>
+                                    {' · '}Best{' '}
+                                    <span className="font-semibold text-foreground">
+                                        {server.best}%
+                                    </span>
+                                    {' · '}
+                                    {server.attempts}{' '}
+                                    {server.attempts === 1
+                                        ? 'attempt'
+                                        : 'attempts'}
+                                </>
+                            )}
                         </p>
+                        {saveError && (
+                            <p className="mt-1 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                                {saveError}
+                            </p>
+                        )}
                     </div>
                     <Button
                         variant="outline"
@@ -505,6 +625,7 @@ export function QuizViewer({
                             );
                             setSubmitted(false);
                             setAnswers(fresh);
+                            startedAt.current = Date.now();
                             onSave?.({ answers: fresh, submitted: false });
                         }}
                     >
@@ -622,14 +743,10 @@ export function QuizViewer({
             <Button
                 size="lg"
                 className="h-14 w-full text-base"
-                disabled={!allAnswered}
-                onClick={() => {
-                    setSubmitted(true);
-                    onSave?.({ answers, submitted: true });
-                    onMarkDone?.();
-                }}
+                disabled={!allAnswered || saving}
+                onClick={() => void submit()}
             >
-                <Send />
+                {saving ? <RefreshCw className="animate-spin" /> : <Send />}
                 {allAnswered
                     ? 'Submit answers'
                     : `Answer all questions (${answeredCount}/${quiz.questions.length})`}
@@ -825,6 +942,39 @@ export function AssignmentViewer({
                     <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/85">
                         {assignment.instructions}
                     </p>
+                </div>
+            )}
+
+            {/* Teacher's grade and feedback */}
+            {submission?.grade && !resubmitting && (
+                <div className="flex items-start gap-4 rounded-2xl border border-violet-200 bg-violet-50/70 p-5 dark:border-violet-500/30 dark:bg-violet-500/10">
+                    <ProgressRing
+                        value={submission.grade.percent}
+                        size={64}
+                        stroke={6}
+                    >
+                        <span className="text-sm font-extrabold">
+                            {submission.grade.percent}%
+                        </span>
+                    </ProgressRing>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-eyebrow text-violet-600 dark:text-violet-300">
+                            Graded
+                        </p>
+                        <p className="font-display text-xl font-extrabold tracking-[-0.02em]">
+                            {submission.grade.points} /{' '}
+                            {submission.grade.possible} points
+                        </p>
+                        {submission.grade.feedback ? (
+                            <p className="mt-2 rounded-xl bg-card px-3 py-2 text-sm whitespace-pre-line text-foreground">
+                                {submission.grade.feedback}
+                            </p>
+                        ) : (
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                No written feedback.
+                            </p>
+                        )}
+                    </div>
                 </div>
             )}
 
