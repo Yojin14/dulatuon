@@ -147,6 +147,60 @@ class CurriculumFlipbookTest extends TestCase
         $this->assertCount(1, $item->pages);
     }
 
+    public function test_free_pages_keep_wrapped_pictures_and_text_styles(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $session = $this->sessionForNewCourse();
+        $courseId = $session->module->course_id;
+
+        $body = '<h3>Fault lines</h3>'
+            .'<img src="/storage/course-content/flipbook/house.webp" data-align="left" data-size="medium">'
+            .'<p>Soft ground <span style="color: #dc2626; background-color: #fef08a; font-weight: 700">shakes more</span>.</p>'
+            .'<img src="https://evil.example/x.png" onerror="alert(1)">';
+
+        $id = $this->actingAs($admin)->postJson("/curriculum/{$courseId}/sessions/{$session->id}/content", [
+            'type' => 'flipbook',
+            'title' => 'Free page reader',
+            'pages' => [['layout' => 'text', 'heading' => 'Free page', 'body' => $body]],
+        ])->assertCreated()->json('dbId');
+
+        $saved = CourseContentItem::findOrFail($id)->pages[0]['body'];
+        $this->assertStringContainsString('<h3>Fault lines</h3>', $saved);
+        $this->assertStringContainsString('src="/storage/course-content/flipbook/house.webp" data-align="left" data-size="medium"', $saved);
+        $this->assertStringContainsString('style="color: #dc2626; background-color: #fef08a; font-weight: 700"', $saved);
+        $this->assertStringNotContainsString('evil.example', $saved);
+        $this->assertStringNotContainsString('onerror', $saved);
+    }
+
+    public function test_page_backgrounds_are_saved_and_checked(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $session = $this->sessionForNewCourse();
+        $courseId = $session->module->course_id;
+        $url = "/curriculum/{$courseId}/sessions/{$session->id}/content";
+
+        $id = $this->actingAs($admin)->postJson($url, [
+            'type' => 'flipbook',
+            'title' => 'Backgrounds',
+            'pages' => [
+                ['layout' => 'text', 'heading' => 'Notebook', 'body' => '<p>a</p>', 'background' => 'lined', 'spacing' => 'double'],
+                ['layout' => 'text', 'heading' => 'Plain', 'body' => '<p>b</p>'],
+            ],
+        ])->assertCreated()->json('dbId');
+
+        $pages = CourseContentItem::findOrFail($id)->pages;
+        $this->assertSame('lined', $pages[0]['background']);
+        $this->assertSame('paper', $pages[1]['background']);
+        $this->assertSame('double', $pages[0]['spacing']);
+        $this->assertSame('normal', $pages[1]['spacing']);
+
+        $this->actingAs($admin)->postJson($url, [
+            'type' => 'flipbook',
+            'title' => 'Bad background',
+            'pages' => [['layout' => 'text', 'heading' => 'x', 'body' => '<p>x</p>', 'background' => 'url(evil)', 'spacing' => 'triple']],
+        ])->assertUnprocessable()->assertJsonValidationErrors(['pages.0.background', 'pages.0.spacing']);
+    }
+
     public function test_pages_cannot_be_sent_for_other_content_types(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

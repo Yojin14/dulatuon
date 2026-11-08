@@ -1,381 +1,79 @@
+import { type Editor } from '@/components/rich-text-editor';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { type Transaction } from '@tiptap/pm/state';
+import { ArrowLeft, FileUp, Loader2, PenLine, Plus, X } from 'lucide-react';
 import {
-    ArrowDown,
-    ArrowUp,
-    BookOpenCheck,
-    Copy,
-    Eye,
-    FileUp,
-    ImagePlus,
-    Lightbulb,
-    Loader2,
-    PenLine,
-    Plus,
-    RefreshCw,
-    Trash2,
-    X,
-} from 'lucide-react';
-import { lazy, Suspense, useRef, useState } from 'react';
-import { type SheetSize, useFlipbookSheets } from './flipbook-layout';
+    type KeyboardEvent as ReactKeyboardEvent,
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+} from 'react';
+import { useFlipbookHistory } from './flipbook-history';
+import { splitBody } from './flipbook-layout';
+import { type FlipbookSheet, FlipbookSheetView } from './flipbook-page';
+import { FlipbookPageCanvas } from './flipbook-page-canvas';
 import { FlipbookReader } from './flipbook-reader';
+import { FlipbookRibbon } from './flipbook-ribbon';
 import {
-    FLIPBOOK_LAYOUTS,
-    type FlipbookImage,
-    type FlipbookLayout,
+    type FlipbookBackground,
     type FlipbookPage,
     MAX_FLIPBOOK_PAGES,
     newPage,
     pageHasContent,
     slotCount,
 } from './flipbook-types';
+import { type FlipbookImageUploader, MAX_IMAGE_BYTES } from './flipbook-upload';
 
-const RichTextEditor = lazy(() =>
-    import('@/components/rich-text-editor').then((m) => ({
-        default: m.RichTextEditor,
-    })),
-);
+export type { FlipbookImageUploader } from './flipbook-upload';
 
-export type FlipbookImageUploader = (
-    file: File,
-    onProgress: (percent: number) => void,
-) => Promise<string>;
+/** Body typing within this time is one undo step (the text editor's own grouping). */
+const BODY_GROUP_MS = 500;
+const THUMB_WIDTH = 132;
+const THUMB_SHEET = { width: 540, height: 745 };
 
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
-
-/** Small wireframe of each page template, drawn like the page itself. */
-/** A typical page of the two-page book on a laptop, used to check whether a page fits. */
-const TYPICAL_SHEET: SheetSize = { width: 540, height: 700 };
-
-/**
- * Tells the teacher whether the page fits on one sheet of the book. Long pages still work
- * (they continue on the next sheet) but read better when trimmed or split.
- */
-function PageFitNote({ page }: { page: FlipbookPage }) {
-    const { sheets, measurer, ready } = useFlipbookSheets(
-        [page],
-        TYPICAL_SHEET,
-    );
-    const extra = sheets.length - 1;
-
-    return (
-        <>
-            {measurer}
-            {ready && pageHasContent(page) && (
-                <p
-                    className={cn(
-                        'flex items-start gap-2 rounded-xl px-3 py-2 text-sm',
-                        extra > 0
-                            ? 'bg-amber-50 text-amber-900 dark:bg-amber-400/10 dark:text-amber-100'
-                            : 'bg-emerald-50 text-emerald-900 dark:bg-emerald-500/10 dark:text-emerald-200',
-                    )}
-                    aria-live="polite"
-                >
-                    <BookOpenCheck
-                        className="mt-0.5 size-4 shrink-0"
-                        aria-hidden
-                    />
-                    {extra > 0
-                        ? `This page is long, so it continues onto ${extra} more ${extra === 1 ? 'sheet' : 'sheets'} in the book. Shorten the text or move part of it to a new page for a cleaner read.`
-                        : 'Fits on one sheet of the book.'}
-                </p>
-            )}
-        </>
-    );
-}
-
-function LayoutGlyph({ layout }: { layout: FlipbookLayout }) {
-    const line = 'fill-current opacity-35';
-    const img = 'fill-current opacity-70';
-    return (
-        <svg viewBox="0 0 48 60" className="h-12 w-10" aria-hidden>
-            <rect
-                x="1"
-                y="1"
-                width="46"
-                height="58"
-                rx="5"
-                className="fill-white stroke-current opacity-90 dark:fill-white/5"
-                strokeWidth="1.5"
-            />
-            <rect
-                x="7"
-                y="7"
-                width="22"
-                height="4"
-                rx="2"
-                className="fill-current"
-            />
-            {layout === 'text' &&
-                [16, 22, 28, 34, 40, 46].map((y) => (
-                    <rect
-                        key={y}
-                        x="7"
-                        y={y}
-                        width={y === 46 ? 20 : 34}
-                        height="2.5"
-                        rx="1.25"
-                        className={line}
-                    />
-                ))}
-            {layout === 'image-right' && (
-                <>
-                    {[16, 22, 28, 34, 40].map((y) => (
-                        <rect
-                            key={y}
-                            x="7"
-                            y={y}
-                            width="18"
-                            height="2.5"
-                            rx="1.25"
-                            className={line}
-                        />
-                    ))}
-                    <rect
-                        x="28"
-                        y="16"
-                        width="13"
-                        height="16"
-                        rx="2"
-                        className={img}
-                    />
-                </>
-            )}
-            {layout === 'image-top' && (
-                <>
-                    <rect
-                        x="7"
-                        y="15"
-                        width="34"
-                        height="17"
-                        rx="2"
-                        className={img}
-                    />
-                    {[37, 43, 49].map((y) => (
-                        <rect
-                            key={y}
-                            x="7"
-                            y={y}
-                            width="34"
-                            height="2.5"
-                            rx="1.25"
-                            className={line}
-                        />
-                    ))}
-                </>
-            )}
-            {layout === 'image-full' && (
-                <rect
-                    x="7"
-                    y="15"
-                    width="34"
-                    height="38"
-                    rx="2"
-                    className={img}
-                />
-            )}
-            {layout === 'two-images' && (
-                <>
-                    <rect
-                        x="7"
-                        y="15"
-                        width="16"
-                        height="14"
-                        rx="2"
-                        className={img}
-                    />
-                    <rect
-                        x="25"
-                        y="15"
-                        width="16"
-                        height="14"
-                        rx="2"
-                        className={img}
-                    />
-                    {[35, 41, 47].map((y) => (
-                        <rect
-                            key={y}
-                            x="7"
-                            y={y}
-                            width="34"
-                            height="2.5"
-                            rx="1.25"
-                            className={line}
-                        />
-                    ))}
-                </>
-            )}
-        </svg>
-    );
-}
-
-function ImageSlot({
-    image,
-    index,
-    uploadImage,
-    onChange,
-    onRemove,
-}: {
-    image: FlipbookImage | undefined;
-    index: number;
-    uploadImage: FlipbookImageUploader;
-    onChange: (image: FlipbookImage) => void;
-    onRemove: () => void;
-}) {
-    const inputRef = useRef<HTMLInputElement>(null);
-    const [progress, setProgress] = useState<number | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [dragging, setDragging] = useState(false);
-
-    const upload = async (file: File | undefined) => {
-        if (!file) {
-            return;
-        }
-        if (!file.type.startsWith('image/')) {
-            setError('Choose an image file (JPG, PNG, WebP or GIF).');
-            return;
-        }
-        if (file.size > MAX_IMAGE_BYTES) {
-            setError('That image is over 8 MB. Try a smaller one.');
-            return;
-        }
-        setError(null);
-        setProgress(0);
-        try {
-            const url = await uploadImage(file, setProgress);
-            onChange({ url, caption: image?.caption ?? '' });
-        } catch (e) {
-            setError((e as Error).message || 'Upload failed. Try again.');
-        } finally {
-            setProgress(null);
-        }
+/** A small, true-to-life picture of a page for the page list (first sheet only). */
+function PageThumb({ page }: { page: FlipbookPage }) {
+    const sheet: FlipbookSheet = {
+        pageIndex: 0,
+        layout: page.layout,
+        heading: page.heading || null,
+        images: page.images
+            .filter((image) => image.url)
+            .slice(0, slotCount(page.layout)),
+        blocks: splitBody(page.body),
+        highlight: page.highlight || null,
+        continued: false,
+        side: page.layout === 'image-right',
+        background: page.background,
+        spacing: page.spacing,
     };
-
-    const picker = (
-        <input
-            ref={inputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            className="hidden"
-            onChange={(e) => {
-                void upload(e.target.files?.[0]);
-                e.target.value = '';
-            }}
-        />
-    );
-
-    if (progress !== null) {
-        return (
-            <div className="flex h-40 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 px-4">
-                <Loader2
-                    className="size-5 animate-spin text-primary"
-                    aria-hidden
-                />
-                <div className="h-1.5 w-full max-w-40 overflow-hidden rounded-full bg-primary/15">
-                    <div
-                        className="h-full rounded-full bg-primary transition-[width]"
-                        style={{ width: `${progress}%` }}
-                    />
-                </div>
-                <p className="text-xs font-semibold text-primary tabular-nums">
-                    Uploading {progress}%
-                </p>
-            </div>
-        );
-    }
-
-    if (!image?.url) {
-        return (
-            <div>
-                {picker}
-                <button
-                    type="button"
-                    onClick={() => inputRef.current?.click()}
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        setDragging(true);
-                    }}
-                    onDragLeave={() => setDragging(false)}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        setDragging(false);
-                        void upload(e.dataTransfer.files?.[0]);
-                    }}
-                    className={cn(
-                        'flex h-40 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 text-center transition-colors',
-                        dragging
-                            ? 'border-primary bg-primary/10'
-                            : 'border-border bg-background hover:border-primary/50 hover:bg-primary/5',
-                    )}
-                >
-                    <ImagePlus className="size-6 text-primary" aria-hidden />
-                    <span className="text-sm font-bold text-foreground">
-                        Add image {index + 1}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                        Click or drop · JPG, PNG, WebP up to 8 MB
-                    </span>
-                </button>
-                {error && (
-                    <p className="mt-1.5 text-xs font-medium text-destructive">
-                        {error}
-                    </p>
-                )}
-            </div>
-        );
-    }
+    const scale = THUMB_WIDTH / THUMB_SHEET.width;
 
     return (
-        <div className="flex flex-col gap-2 rounded-2xl border bg-background p-2.5">
-            {picker}
-            <div className="relative overflow-hidden rounded-xl bg-muted">
-                <img
-                    src={image.url}
-                    alt={image.caption || `Image ${index + 1}`}
-                    className="h-36 w-full object-contain"
-                />
-                <div className="absolute top-2 right-2 flex gap-1">
-                    <button
-                        type="button"
-                        onClick={() => inputRef.current?.click()}
-                        className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-slate-900/75 text-white backdrop-blur-sm hover:bg-slate-900"
-                        aria-label="Replace image"
-                        title="Replace image"
-                    >
-                        <RefreshCw className="size-3.5" />
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onRemove}
-                        className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-slate-900/75 text-white backdrop-blur-sm hover:bg-red-600"
-                        aria-label="Remove image"
-                        title="Remove image"
-                    >
-                        <X className="size-3.5" />
-                    </button>
-                </div>
+        <div
+            className="pointer-events-none relative overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-black/5"
+            style={{ width: THUMB_WIDTH, height: THUMB_SHEET.height * scale }}
+            aria-hidden
+        >
+            <div
+                style={{
+                    width: THUMB_SHEET.width,
+                    height: THUMB_SHEET.height,
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'top left',
+                }}
+            >
+                <FlipbookSheetView sheet={sheet} />
             </div>
-            <Input
-                value={image.caption ?? ''}
-                onChange={(e) =>
-                    onChange({ ...image, caption: e.target.value })
-                }
-                placeholder="Caption (optional), e.g. Convergent boundary"
-                maxLength={255}
-                className="h-10"
-            />
-            {error && (
-                <p className="text-xs font-medium text-destructive">{error}</p>
-            )}
         </div>
     );
 }
 
 /**
- * Teacher-facing flipbook builder: a page rail on the left, the selected page's
- * template, topic, text, key idea and images on the right, plus a live book preview.
+ * Teacher-facing flipbook builder. Pages are edited right on the paper, like a word
+ * processor: a page list on the left, a ribbon of tools, and the live page in the middle.
  */
 export function FlipbookEditor({
     pages,
@@ -401,6 +99,42 @@ export function FlipbookEditor({
     } | null>(null);
     const pdfInputRef = useRef<HTMLInputElement>(null);
     const importAbort = useRef<AbortController | null>(null);
+    const [editor, setEditor] = useState<Editor | null>(null);
+    const history = useFlipbookHistory();
+    // When body-text changes happened (one per typing burst), to order undo with page history.
+    const bodyUndoTimes = useRef<number[]>([]);
+    const bodyRedoTimes = useRef<number[]>([]);
+    useEffect(() => {
+        bodyUndoTimes.current = [];
+        bodyRedoTimes.current = [];
+        if (!editor) {
+            return;
+        }
+        const onUpdate = ({ transaction }: { transaction: Transaction }) => {
+            // Undo/redo steps from the editor itself are not new changes.
+            if (!transaction.docChanged || transaction.getMeta('history$')) {
+                return;
+            }
+            const now = Date.now();
+            const last = bodyUndoTimes.current.at(-1) ?? 0;
+            if (now - last > BODY_GROUP_MS) {
+                bodyUndoTimes.current.push(now);
+            } else {
+                bodyUndoTimes.current[bodyUndoTimes.current.length - 1] = now;
+            }
+            bodyRedoTimes.current = [];
+        };
+        editor.on('update', onUpdate);
+        return () => {
+            editor.off('update', onUpdate);
+        };
+    }, [editor]);
+    const [keyIdeaFor, setKeyIdeaFor] = useState<string | null>(null);
+    const [sheetCount, setSheetCount] = useState(1);
+    const onSheetCount = useCallback(
+        (count: number) => setSheetCount(count),
+        [],
+    );
 
     const isFresh = pages.length === 1 && !pageHasContent(pages[0]);
 
@@ -487,15 +221,33 @@ export function FlipbookEditor({
     );
     const page = pages[activeIndex];
 
-    const updatePage = (patch: Partial<FlipbookPage>) =>
+    const updatePage = (patch: Partial<FlipbookPage>) => {
+        if (!page) {
+            return;
+        }
+        // Body text is undone by the text editor itself; everything else goes in page history.
+        const fields = (Object.keys(patch) as (keyof FlipbookPage)[]).filter(
+            (field) => field !== 'body' && field !== 'id',
+        );
+        if (fields.length > 0) {
+            const before: Record<string, unknown> = {};
+            const after: Record<string, unknown> = {};
+            fields.forEach((field) => {
+                before[field] = page[field];
+                after[field] = patch[field];
+            });
+            history.record({ type: 'patch', pageId: page.id, before, after });
+        }
         onChange(
             pages.map((p, i) => (i === activeIndex ? { ...p, ...patch } : p)),
         );
+    };
 
     const addPage = () => {
         const next = newPage(page?.layout ?? 'image-right');
         const copy = [...pages];
         copy.splice(activeIndex + 1, 0, next);
+        history.record({ type: 'insert', page: next, index: activeIndex + 1 });
         onChange(copy);
         setActiveId(next.id);
     };
@@ -511,87 +263,171 @@ export function FlipbookEditor({
         };
         const copy = [...pages];
         copy.splice(activeIndex + 1, 0, dup);
+        history.record({ type: 'insert', page: dup, index: activeIndex + 1 });
         onChange(copy);
         setActiveId(dup.id);
     };
 
     const movePage = (dir: -1 | 1) => {
         const target = activeIndex + dir;
-        if (target < 0 || target >= pages.length) {
+        if (target < 0 || target >= pages.length || !page) {
             return;
         }
         const copy = [...pages];
         [copy[activeIndex], copy[target]] = [copy[target], copy[activeIndex]];
+        history.record({
+            type: 'move',
+            pageId: page.id,
+            from: activeIndex,
+            to: target,
+        });
         onChange(copy);
     };
 
     const deletePage = () => {
+        if (!page) {
+            return;
+        }
         if (pages.length <= 1) {
-            onChange([newPage(page?.layout)]);
+            const fresh = newPage(page.layout);
+            history.record({
+                type: 'batch',
+                entries: [
+                    { type: 'remove', page, index: 0 },
+                    { type: 'insert', page: fresh, index: 0 },
+                ],
+            });
+            onChange([fresh]);
             return;
         }
         const copy = pages.filter((_, i) => i !== activeIndex);
+        history.record({ type: 'remove', page, index: activeIndex });
         onChange(copy);
         setActiveId(copy[Math.min(activeIndex, copy.length - 1)].id);
     };
 
-    const setImage = (slot: number, image: FlipbookImage | null) => {
-        if (!page) {
+    const setBackground = (
+        background: FlipbookBackground,
+        everyPage: boolean,
+    ) => {
+        if (!everyPage) {
+            updatePage({ background });
             return;
         }
-        const images = [...page.images];
-        if (image) {
-            images[slot] = image;
-        } else {
-            images.splice(slot, 1);
-        }
-        updatePage({ images: images.filter(Boolean) });
+        history.record({
+            type: 'batch',
+            entries: pages.map((p) => ({
+                type: 'patch' as const,
+                pageId: p.id,
+                before: { background: p.background },
+                after: { background },
+            })),
+        });
+        onChange(pages.map((p) => ({ ...p, background })));
     };
 
-    const iconButton =
-        'flex size-9 cursor-pointer items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-35';
+    // ── Undo / redo: one timeline across page changes and body text (like Word) ──
+    const undoAll = () => {
+        const bodyCan = !!editor?.can().undo();
+        const bodyAt = bodyUndoTimes.current.at(-1) ?? (bodyCan ? 1 : 0);
+        if (editor && bodyCan && bodyAt >= history.lastUndoAt()) {
+            editor.chain().focus().undo().run();
+            bodyUndoTimes.current.pop();
+            bodyRedoTimes.current.push(Date.now());
+            return;
+        }
+        const result = history.undo(pages);
+        if (result) {
+            onChange(result.pages);
+            if (result.focus) {
+                setActiveId(result.focus);
+            }
+        } else if (editor && bodyCan) {
+            editor.chain().focus().undo().run();
+        }
+    };
+
+    const redoAll = () => {
+        const bodyCan = !!editor?.can().redo();
+        const bodyAt = bodyRedoTimes.current.at(-1) ?? (bodyCan ? 1 : 0);
+        if (editor && bodyCan && bodyAt >= history.lastRedoAt()) {
+            editor.chain().focus().redo().run();
+            bodyRedoTimes.current.pop();
+            bodyUndoTimes.current.push(Date.now());
+            return;
+        }
+        const result = history.redo(pages);
+        if (result) {
+            onChange(result.pages);
+            if (result.focus) {
+                setActiveId(result.focus);
+            }
+        } else if (editor && bodyCan) {
+            editor.chain().focus().redo().run();
+        }
+    };
+
+    const undoKeys = (event: KeyboardEvent | ReactKeyboardEvent) => {
+        if (!(event.ctrlKey || event.metaKey) || event.altKey) {
+            return;
+        }
+        const key = event.key.toLowerCase();
+        if (key !== 'z' && key !== 'y') {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        if (key === 'y' || event.shiftKey) {
+            redoAll();
+        } else {
+            undoAll();
+        }
+    };
+    const undoKeysRef = useRef(undoKeys);
+    useEffect(() => {
+        undoKeysRef.current = undoKeys;
+    });
+    // Ctrl+Z also works when nothing on the page has focus (e.g. right after closing a menu).
+    useEffect(() => {
+        const onKey = (event: KeyboardEvent) => {
+            if (event.target === document.body) {
+                undoKeysRef.current(event);
+            }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, []);
+
+    // Pictures inserted from the ribbon go straight into the text.
+    const uploadIntoText = async (file: File): Promise<string | null> => {
+        if (!file.type.startsWith('image/') || file.size > MAX_IMAGE_BYTES) {
+            setImportNotice({
+                tone: 'error',
+                text: 'Choose a JPG, PNG, WebP or GIF picture up to 8 MB.',
+            });
+            return null;
+        }
+        try {
+            return await uploadImage(file, () => {});
+        } catch (e) {
+            setImportNotice({
+                tone: 'error',
+                text:
+                    (e as Error).message ||
+                    'The picture could not be uploaded.',
+            });
+            return null;
+        }
+    };
+
+    const insertKeyIdea = () => {
+        if (page) {
+            setKeyIdeaFor(page.id);
+        }
+    };
 
     return (
-        <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm text-muted-foreground">
-                    <span className="font-bold text-foreground">
-                        {pages.length}
-                    </span>{' '}
-                    {pages.length === 1 ? 'page' : 'pages'} · Students turn
-                    through them like a book.
-                </p>
-                <div
-                    className="inline-flex rounded-xl bg-muted p-1"
-                    role="tablist"
-                    aria-label="Flipbook view"
-                >
-                    {(
-                        [
-                            ['build', 'Build', PenLine],
-                            ['preview', 'Preview', Eye],
-                        ] as const
-                    ).map(([value, label, Icon]) => (
-                        <button
-                            key={value}
-                            type="button"
-                            role="tab"
-                            aria-selected={view === value}
-                            onClick={() => setView(value)}
-                            className={cn(
-                                'inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-bold transition-colors',
-                                view === value
-                                    ? 'bg-card text-foreground shadow-sm'
-                                    : 'text-muted-foreground hover:text-foreground',
-                            )}
-                        >
-                            <Icon className="size-4" />
-                            {label}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
+        <div className="flex flex-col gap-4" onKeyDownCapture={undoKeys}>
             <input
                 ref={pdfInputRef}
                 type="file"
@@ -642,6 +478,28 @@ export function FlipbookEditor({
                         Stop import
                     </Button>
                 </div>
+            ) : view === 'preview' ? (
+                <div className="flex flex-col gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setView('build')}
+                        >
+                            <ArrowLeft />
+                            Back to editing
+                        </Button>
+                        <p className="text-sm text-muted-foreground">
+                            This is exactly what students see.
+                        </p>
+                    </div>
+                    <FlipbookReader
+                        key={`preview-${activeIndex}`}
+                        pages={pages.filter(pageHasContent)}
+                        title={title}
+                        initialPage={activeIndex}
+                    />
+                </div>
             ) : (
                 <>
                     {importNotice && (
@@ -670,7 +528,7 @@ export function FlipbookEditor({
                         </div>
                     )}
 
-                    {isFresh && view === 'build' && (
+                    {isFresh && (
                         <div className="grid gap-3 sm:grid-cols-2">
                             <button
                                 type="button"
@@ -701,310 +559,123 @@ export function FlipbookEditor({
                                 </span>
                                 <span>
                                     <span className="block font-extrabold text-foreground">
-                                        Or build it page by page
+                                        Or type right on the page
                                     </span>
                                     <span className="block text-sm text-muted-foreground">
-                                        Start with page 1 below, then add the
-                                        next.
+                                        Click the title or text on page 1 below
+                                        and start writing.
                                     </span>
                                 </span>
                             </div>
                         </div>
                     )}
-                </>
-            )}
 
-            {pdfImport ? null : view === 'preview' ? (
-                <FlipbookReader
-                    key={`preview-${activeIndex}`}
-                    pages={pages.filter(pageHasContent)}
-                    title={title}
-                    initialPage={activeIndex}
-                />
-            ) : (
-                <div className="grid gap-4 lg:grid-cols-[13rem_minmax(0,1fr)]">
-                    {/* Page rail */}
-                    <nav
-                        aria-label="Pages"
-                        className="flex gap-2 overflow-x-auto pb-1 lg:max-h-[42rem] lg:flex-col lg:overflow-y-auto lg:pb-0"
-                    >
-                        {pages.map((p, i) => {
-                            const active = i === activeIndex;
-                            return (
-                                <button
-                                    key={p.id}
-                                    type="button"
-                                    onClick={() => setActiveId(p.id)}
-                                    aria-current={active ? 'page' : undefined}
-                                    className={cn(
-                                        'flex w-44 shrink-0 cursor-pointer items-center gap-3 rounded-2xl border-2 bg-card p-2.5 text-left transition-colors lg:w-full',
-                                        active
-                                            ? 'border-primary'
-                                            : 'border-transparent hover:border-border',
-                                    )}
-                                >
-                                    <span
+                    {page && (
+                        <FlipbookRibbon
+                            editor={editor}
+                            layout={page.layout}
+                            onLayout={(layout) => updatePage({ layout })}
+                            background={page.background ?? 'paper'}
+                            onBackground={setBackground}
+                            spacing={page.spacing ?? 'normal'}
+                            onSpacing={(spacing) => updatePage({ spacing })}
+                            onUndo={undoAll}
+                            onRedo={redoAll}
+                            historyCanUndo={history.canUndo}
+                            historyCanRedo={history.canRedo}
+                            onUploadImage={uploadIntoText}
+                            onInsertKeyIdea={insertKeyIdea}
+                            keyIdeaShown={
+                                (page.highlight ?? '') !== '' ||
+                                keyIdeaFor === page.id
+                            }
+                            onAddPage={addPage}
+                            onDuplicate={duplicatePage}
+                            onMove={movePage}
+                            onDelete={deletePage}
+                            canMoveUp={activeIndex > 0}
+                            canMoveDown={activeIndex < pages.length - 1}
+                            onRead={() => setView('preview')}
+                            onImportPdf={() => pdfInputRef.current?.click()}
+                            sheetCount={sheetCount}
+                        />
+                    )}
+
+                    <div className="grid gap-4 lg:grid-cols-[10.5rem_minmax(0,1fr)]">
+                        {/* Page list */}
+                        <nav
+                            aria-label="Pages"
+                            className="flex gap-3 overflow-x-auto pb-1 lg:max-h-[48rem] lg:flex-col lg:overflow-y-auto lg:pr-1 lg:pb-0"
+                        >
+                            {pages.map((p, i) => {
+                                const active = i === activeIndex;
+                                return (
+                                    <button
+                                        key={p.id}
+                                        type="button"
+                                        onClick={() => setActiveId(p.id)}
+                                        aria-current={
+                                            active ? 'page' : undefined
+                                        }
+                                        aria-label={`Page ${i + 1}${p.heading ? `: ${p.heading}` : ''}`}
                                         className={cn(
-                                            'flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-extrabold tabular-nums',
+                                            'flex shrink-0 cursor-pointer flex-col items-center gap-1.5 rounded-xl p-1.5 transition-colors',
                                             active
-                                                ? 'bg-primary text-primary-foreground'
-                                                : 'bg-muted text-muted-foreground',
+                                                ? 'bg-primary/10'
+                                                : 'hover:bg-muted',
                                         )}
                                     >
-                                        {i + 1}
-                                    </span>
-                                    <span className="min-w-0 flex-1">
                                         <span
                                             className={cn(
-                                                'block truncate text-sm font-bold',
-                                                p.heading
-                                                    ? 'text-foreground'
-                                                    : 'text-muted-foreground italic',
+                                                'rounded-md ring-2 ring-offset-2 ring-offset-background',
+                                                active
+                                                    ? 'ring-primary'
+                                                    : 'ring-transparent',
                                             )}
                                         >
-                                            {p.heading || 'Untitled page'}
+                                            <PageThumb page={p} />
                                         </span>
-                                        <span className="block truncate text-xs text-muted-foreground">
-                                            {
-                                                FLIPBOOK_LAYOUTS.find(
-                                                    (l) => l.value === p.layout,
-                                                )?.label
-                                            }
+                                        <span
+                                            className={cn(
+                                                'max-w-[8.5rem] truncate text-xs font-semibold',
+                                                active
+                                                    ? 'text-primary'
+                                                    : 'text-muted-foreground',
+                                            )}
+                                        >
+                                            {i + 1}. {p.heading || 'Untitled'}
                                         </span>
-                                    </span>
-                                </button>
-                            );
-                        })}
-                        <button
-                            type="button"
-                            onClick={addPage}
-                            className="flex w-44 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-primary/35 px-3 py-3 text-sm font-bold text-primary transition-colors hover:border-primary hover:bg-primary/5 lg:w-full"
-                        >
-                            <Plus className="size-4" />
-                            Add page
-                        </button>
-                        {!isFresh && (
+                                    </button>
+                                );
+                            })}
                             <button
                                 type="button"
-                                onClick={() => pdfInputRef.current?.click()}
-                                className="flex w-44 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-bold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:w-full"
+                                onClick={addPage}
+                                className="flex w-[8.25rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-primary/35 px-3 py-6 text-sm font-bold text-primary transition-colors hover:border-primary hover:bg-primary/5 lg:w-full"
                             >
-                                <FileUp className="size-4" />
-                                Add pages from PDF
+                                <Plus className="size-5" />
+                                Add page
                             </button>
-                        )}
-                    </nav>
+                        </nav>
 
-                    {/* Page editor */}
-                    {page && (
-                        <div className="flex min-w-0 flex-col gap-5 rounded-3xl border bg-card p-4 sm:p-5">
-                            <div className="flex items-center justify-between gap-2">
-                                <h4 className="font-display text-lg font-extrabold tracking-[-0.02em]">
-                                    Page {activeIndex + 1}{' '}
-                                    <span className="font-semibold text-muted-foreground">
-                                        of {pages.length}
-                                    </span>
-                                </h4>
-                                <div className="flex items-center">
-                                    <button
-                                        type="button"
-                                        className={iconButton}
-                                        onClick={() => movePage(-1)}
-                                        disabled={activeIndex === 0}
-                                        aria-label="Move page earlier"
-                                        title="Move earlier"
-                                    >
-                                        <ArrowUp className="size-4" />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={iconButton}
-                                        onClick={() => movePage(1)}
-                                        disabled={
-                                            activeIndex === pages.length - 1
-                                        }
-                                        aria-label="Move page later"
-                                        title="Move later"
-                                    >
-                                        <ArrowDown className="size-4" />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={iconButton}
-                                        onClick={duplicatePage}
-                                        aria-label="Duplicate page"
-                                        title="Duplicate"
-                                    >
-                                        <Copy className="size-4" />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={cn(
-                                            iconButton,
-                                            'hover:bg-destructive/10 hover:text-destructive',
-                                        )}
-                                        onClick={deletePage}
-                                        aria-label="Delete page"
-                                        title="Delete page"
-                                    >
-                                        <Trash2 className="size-4" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <fieldset className="flex flex-col gap-2">
-                                <legend className="mb-2 text-sm font-bold">
-                                    Page layout
-                                </legend>
-                                <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-                                    {FLIPBOOK_LAYOUTS.map((l) => {
-                                        const selected =
-                                            page.layout === l.value;
-                                        return (
-                                            <button
-                                                key={l.value}
-                                                type="button"
-                                                onClick={() =>
-                                                    updatePage({
-                                                        layout: l.value,
-                                                    })
-                                                }
-                                                aria-pressed={selected}
-                                                className={cn(
-                                                    'flex cursor-pointer flex-col items-center gap-1.5 rounded-2xl border-2 px-2 py-3 text-xs font-bold transition-colors',
-                                                    selected
-                                                        ? 'border-primary bg-primary/5 text-primary'
-                                                        : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground',
-                                                )}
-                                            >
-                                                <LayoutGlyph layout={l.value} />
-                                                {l.label}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </fieldset>
-
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor={`fb-heading-${page.id}`}>
-                                    Topic
-                                </Label>
-                                <Input
-                                    id={`fb-heading-${page.id}`}
-                                    value={page.heading}
-                                    onChange={(e) =>
-                                        updatePage({ heading: e.target.value })
-                                    }
-                                    placeholder="e.g. Earth Is Made of Moving Plates"
-                                    maxLength={255}
+                        {/* The page, on a desk */}
+                        <div className="min-w-0 rounded-3xl bg-muted/50 px-3 py-6 sm:px-8 sm:py-8">
+                            {page && (
+                                <FlipbookPageCanvas
+                                    key={page.id}
+                                    page={page}
+                                    number={activeIndex + 1}
+                                    onPatch={updatePage}
+                                    uploadImage={uploadImage}
+                                    onEditor={setEditor}
+                                    keyIdeaOpen={keyIdeaFor === page.id}
+                                    onCloseKeyIdea={() => setKeyIdeaFor(null)}
+                                    onSheetCount={onSheetCount}
                                 />
-                            </div>
-
-                            <div className="flex flex-col gap-2">
-                                <Label>Text</Label>
-                                <Suspense
-                                    fallback={
-                                        <div className="h-[196px] animate-pulse rounded-xl bg-muted" />
-                                    }
-                                >
-                                    <RichTextEditor
-                                        key={page.id}
-                                        value={page.body}
-                                        onChange={(html) =>
-                                            updatePage({ body: html })
-                                        }
-                                        placeholder="Write the explanation for this page…"
-                                    />
-                                </Suspense>
-                            </div>
-
-                            <div className="flex flex-col gap-2">
-                                <Label
-                                    htmlFor={`fb-highlight-${page.id}`}
-                                    className="flex items-center gap-1.5"
-                                >
-                                    <Lightbulb
-                                        className="size-4 text-amber-500"
-                                        aria-hidden
-                                    />
-                                    Key idea{' '}
-                                    <span className="font-normal text-muted-foreground">
-                                        (optional, shown highlighted)
-                                    </span>
-                                </Label>
-                                <Input
-                                    id={`fb-highlight-${page.id}`}
-                                    value={page.highlight ?? ''}
-                                    onChange={(e) =>
-                                        updatePage({
-                                            highlight: e.target.value,
-                                        })
-                                    }
-                                    placeholder="e.g. Tension → rocks are pulled apart → normal fault"
-                                    maxLength={500}
-                                />
-                            </div>
-
-                            {slotCount(page.layout) > 0 && (
-                                <div className="flex flex-col gap-2">
-                                    <Label>
-                                        {slotCount(page.layout) === 1
-                                            ? 'Image'
-                                            : 'Images'}
-                                    </Label>
-                                    <div
-                                        className={cn(
-                                            'grid gap-3',
-                                            slotCount(page.layout) === 2 &&
-                                                'sm:grid-cols-2',
-                                        )}
-                                    >
-                                        {Array.from(
-                                            { length: slotCount(page.layout) },
-                                            (_, slot) => (
-                                                <ImageSlot
-                                                    key={`${page.id}-${slot}`}
-                                                    image={page.images[slot]}
-                                                    index={slot}
-                                                    uploadImage={uploadImage}
-                                                    onChange={(image) =>
-                                                        setImage(slot, image)
-                                                    }
-                                                    onRemove={() =>
-                                                        setImage(slot, null)
-                                                    }
-                                                />
-                                            ),
-                                        )}
-                                    </div>
-                                </div>
                             )}
-
-                            <PageFitNote page={page} />
-
-                            <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setView('preview')}
-                                >
-                                    <Eye />
-                                    Preview this page
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={addPage}
-                                >
-                                    <Plus />
-                                    Add page after
-                                </Button>
-                            </div>
                         </div>
-                    )}
-                </div>
+                    </div>
+                </>
             )}
         </div>
     );

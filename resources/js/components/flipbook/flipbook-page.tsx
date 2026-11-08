@@ -1,7 +1,14 @@
 import { cn } from '@/lib/utils';
 import { Lightbulb } from 'lucide-react';
 import { type CSSProperties, type ReactNode } from 'react';
-import { type FlipbookImage, type FlipbookLayout } from './flipbook-types';
+import {
+    backgroundClass,
+    type FlipbookBackground,
+    type FlipbookImage,
+    type FlipbookLayout,
+    type FlipbookSpacing,
+    spacingClass,
+} from './flipbook-types';
 
 /**
  * One printed sheet of a flipbook. A teacher's page can flow over several sheets when its
@@ -25,6 +32,10 @@ export interface FlipbookSheet {
     overflow?: boolean;
     /** Text sits beside the image (image-right on a wide enough sheet). */
     side: boolean;
+    /** The page's background colour or template. */
+    background?: FlipbookBackground;
+    /** The page's line and paragraph spacing. */
+    spacing?: FlipbookSpacing;
 }
 
 /** The sheet is a size container so images can be sized in `cqh` and stay predictable. */
@@ -153,7 +164,15 @@ export function FlipbookSheetView({
     if (sheet.layout === 'image-full' && sheet.images[0]) {
         const image = sheet.images[0];
         return (
-            <article className={cn(SHEET_CLASS, className)} style={SHEET_STYLE}>
+            <article
+                className={cn(
+                    SHEET_CLASS,
+                    backgroundClass(sheet.background),
+                    spacingClass(sheet.spacing),
+                    className,
+                )}
+                style={SHEET_STYLE}
+            >
                 {sheet.heading && (
                     <h2 className="shrink-0 px-6 pt-5 font-display text-lg leading-tight font-extrabold tracking-[-0.02em] text-balance">
                         {sheet.heading}
@@ -196,7 +215,15 @@ export function FlipbookSheetView({
     const stackedImages = sheet.side ? [] : sheet.images;
 
     return (
-        <article className={cn(SHEET_CLASS, className)} style={SHEET_STYLE}>
+        <article
+            className={cn(
+                SHEET_CLASS,
+                backgroundClass(sheet.background),
+                spacingClass(sheet.spacing),
+                className,
+            )}
+            style={SHEET_STYLE}
+        >
             <div
                 className={cn(
                     SHEET_CONTENT_CLASS,
