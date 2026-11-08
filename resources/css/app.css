@@ -316,16 +316,62 @@ html[data-text-scale='extra-large'] { font-size: 125%;   }  /* 20px */
 /* Flipbook pages: paper, readable body type and the page-turn leaf */
 .flipbook-paper { background: #fffdf8; color: #1f2937; }
 .dark .flipbook-paper { background: #1c1b22; color: #e5e7eb; }
-.flipbook-prose { font-size: 1rem; line-height: 1.7; text-wrap: pretty; }
-.flipbook-prose p { margin: 0 0 0.75rem; }
-.flipbook-prose ul { list-style: disc; padding-left: 1.4rem; margin: 0 0 0.75rem; }
-.flipbook-prose ol { list-style: decimal; padding-left: 1.4rem; margin: 0 0 0.75rem; }
-.flipbook-prose li { margin: 0.25rem 0; }
+/* Page backgrounds a teacher can pick. Text stays dark on them, in light and dark mode. */
+.flipbook-paper[class*="fb-bg-"] { color: #1f2937; }
+.flipbook-paper.fb-bg-white { background: #ffffff; }
+.flipbook-paper.fb-bg-sky { background: #eaf6ff; }
+.flipbook-paper.fb-bg-mint { background: #ecfdf3; }
+.flipbook-paper.fb-bg-lemon { background: #fffbe6; }
+.flipbook-paper.fb-bg-blush { background: #fff1f3; }
+.flipbook-paper.fb-bg-lavender { background: #f3efff; }
+.flipbook-paper.fb-bg-lined { background-color: #fffef9; background-image: linear-gradient(transparent calc(1.7rem - 1px), #dde8f6 calc(1.7rem - 1px)), linear-gradient(90deg, transparent 2.6rem, #f6c6c6 2.6rem, #f6c6c6 calc(2.6rem + 1px), transparent calc(2.6rem + 1px)); background-size: 100% 1.7rem, 100% 100%; background-position: 0 0.35rem, 0 0; }
+.flipbook-paper.fb-bg-grid { background-color: #fbfdff; background-image: linear-gradient(#dbe8f5 1px, transparent 1px), linear-gradient(90deg, #dbe8f5 1px, transparent 1px); background-size: 1.25rem 1.25rem; }
+.flipbook-paper.fb-bg-dots { background-color: #fffdf8; background-image: radial-gradient(#d4cfe0 1.2px, transparent 1.3px); background-size: 1.1rem 1.1rem; }
+.flipbook-paper.fb-bg-sky-fade { background: linear-gradient(180deg, #d6ecff 0%, #f2f9ff 45%, #ffffff 100%); }
+.flipbook-paper.fb-bg-sunrise { background: linear-gradient(180deg, #ffe1c7 0%, #fff4e8 45%, #fffdf8 100%); }
+.flipbook-prose { font-size: 1rem; line-height: 1.6; text-wrap: pretty; }
+.flipbook-prose p { margin: 0 0 0.45rem; }
+/* Word-style spacing per page (the default above is "1.15"). */
+.fb-sp-single .flipbook-prose { line-height: 1.35; }
+.fb-sp-single .flipbook-prose :is(p, ul, ol) { margin-bottom: 0.1rem; }
+.fb-sp-single .flipbook-prose li { margin: 0; }
+.fb-sp-relaxed .flipbook-prose { line-height: 1.85; }
+.fb-sp-relaxed .flipbook-prose :is(p, ul, ol) { margin-bottom: 0.75rem; }
+.fb-sp-double .flipbook-prose { line-height: 2.2; }
+.fb-sp-double .flipbook-prose :is(p, ul, ol) { margin-bottom: 1rem; }
+.flipbook-prose ul { list-style: disc; padding-left: 1.4rem; margin: 0 0 0.45rem; }
+.flipbook-prose ol { list-style: decimal; padding-left: 1.4rem; margin: 0 0 0.45rem; }
+.flipbook-prose li { margin: 0.15rem 0; }
 .flipbook-prose strong, .flipbook-prose b { font-weight: 700; }
 .flipbook-prose em, .flipbook-prose i { font-style: italic; }
 .flipbook-prose u { text-decoration: underline; }
 .flipbook-prose a { color: var(--color-primary); text-decoration: underline; }
 .flipbook-prose > :last-child { margin-bottom: 0; }
+
+/* Free pages: pictures inside the text, wrapped like a word processor, plus headings and highlights. */
+.flipbook-prose h3 { font-family: var(--font-display); font-size: 1.3rem; font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; margin: 0.25rem 0 0.6rem; }
+.flipbook-prose h4 { font-family: var(--font-display); font-size: 1.08rem; font-weight: 700; line-height: 1.25; margin: 0.25rem 0 0.5rem; }
+.flipbook-prose img { display: block; height: auto; width: 50%; max-height: var(--fb-img-max, 55cqh); object-fit: contain; border-radius: 0.75rem; margin: 0.25rem auto 0.75rem; }
+.flipbook-prose img[data-size="small"] { width: 33%; }
+.flipbook-prose img[data-size="medium"] { width: 50%; }
+.flipbook-prose img[data-size="large"] { width: 75%; }
+.flipbook-prose img[data-size="full"] { width: 100%; }
+.flipbook-prose img[data-align="left"]:not([data-size="full"]) { float: left; margin: 0.3rem 1.25rem 0.6rem 0; }
+.flipbook-prose img[data-align="right"]:not([data-size="full"]) { float: right; margin: 0.3rem 0 0.6rem 1.25rem; }
+.flipbook-prose .fb-wrap::after,
+.flipbook-body-editor::after { content: ""; display: table; clear: both; }
+.flipbook-prose span[style*="background-color"] { border-radius: 0.2em; padding: 0 0.12em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.flipbook-editing .ProseMirror img { cursor: pointer; }
+.flipbook-editing .ProseMirror img.ProseMirror-selectednode { outline: 3px solid var(--color-primary); outline-offset: 2px; }
+
+/* Editing a flipbook page in place: show what can be clicked and typed into. */
+.flipbook-editing .flipbook-inline,
+.flipbook-editing .flipbook-body-editor { border-radius: 0.5rem; outline: 2px solid transparent; outline-offset: 4px; transition: outline-color 150ms ease; }
+.flipbook-editing .flipbook-inline:hover,
+.flipbook-editing .flipbook-body-editor:hover { outline-color: color-mix(in oklab, var(--color-primary) 18%, transparent); }
+.flipbook-editing .flipbook-inline:focus,
+.flipbook-editing .flipbook-body-editor:focus { outline-color: color-mix(in oklab, var(--color-primary) 45%, transparent); }
+.flipbook-editing .flipbook-inline::placeholder { color: currentColor; opacity: 0.4; }
 
 .flipbook-stage { perspective: 2400px; }
 .flipbook-leaf { transform-style: preserve-3d; will-change: transform; }

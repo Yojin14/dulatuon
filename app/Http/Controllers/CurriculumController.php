@@ -683,6 +683,9 @@ class CurriculumController extends Controller
         return false;
     }
 
+    /** Page backgrounds the flipbook editor offers (mirrors FLIPBOOK_BACKGROUNDS in flipbook-types.ts). */
+    private const FLIPBOOK_BACKGROUNDS = ['paper', 'white', 'sky', 'mint', 'lemon', 'blush', 'lavender', 'lined', 'grid', 'dots', 'sky-fade', 'sunrise'];
+
     /**
      * Validation rules for the pages of a flipbook content item.
      *
@@ -700,6 +703,8 @@ class CurriculumController extends Controller
             'pages.*.images' => 'nullable|array|max:2',
             'pages.*.images.*.url' => 'required|string|max:2048|starts_with:/storage/course-content/flipbook/',
             'pages.*.images.*.caption' => 'nullable|string|max:255',
+            'pages.*.background' => 'nullable|string|in:'.implode(',', self::FLIPBOOK_BACKGROUNDS),
+            'pages.*.spacing' => 'nullable|string|in:single,normal,relaxed,double',
         ];
     }
 
@@ -707,7 +712,7 @@ class CurriculumController extends Controller
      * Normalise validated flipbook pages into the stored shape, keeping only safe rich-text markup.
      *
      * @param  array<int, array<string, mixed>>  $pages
-     * @return array<int, array{id: string, layout: string, heading: string, body: string, highlight: string, images: array<int, array{url: string, caption: string}>}>
+     * @return array<int, array{id: string, layout: string, heading: string, body: string, highlight: string, background: string, images: array<int, array{url: string, caption: string}>}>
      */
     private static function normaliseFlipbookPages(array $pages): array
     {
@@ -717,6 +722,8 @@ class CurriculumController extends Controller
             'heading' => trim((string) ($page['heading'] ?? '')),
             'body' => self::sanitiseRichText((string) ($page['body'] ?? '')),
             'highlight' => trim((string) ($page['highlight'] ?? '')),
+            'background' => (string) ($page['background'] ?? 'paper'),
+            'spacing' => (string) ($page['spacing'] ?? 'normal'),
             'images' => array_values(array_map(fn (array $image) => [
                 'url' => $image['url'],
                 'caption' => trim((string) ($image['caption'] ?? '')),
@@ -725,14 +732,11 @@ class CurriculumController extends Controller
     }
 
     /**
-     * Strip editor HTML down to basic formatting tags, removing attributes other than safe link targets.
+     * Clean editor HTML to the allow-list the flipbook editor produces (formatting, pictures, text styles).
      */
     private static function sanitiseRichText(string $html): string
     {
-        $clean = strip_tags($html, '<p><br><strong><b><em><i><u><s><ul><ol><li><a><h3><h4><blockquote>');
-        $clean = preg_replace('/\s(?!href=)[a-z-]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $clean) ?? '';
-
-        return preg_replace('/href\s*=\s*("|\')\s*(?!https?:|mailto:)[^"\']*\1/i', 'href="#"', $clean) ?? '';
+        return \App\Support\RichTextSanitizer::flipbook($html);
     }
 
     /**
@@ -741,8 +745,12 @@ class CurriculumController extends Controller
     private static function deleteFlipbookImages(CourseContentItem $item): void
     {
         foreach ($item->pages ?? [] as $page) {
-            foreach ($page['images'] ?? [] as $image) {
-                $path = str_replace('/storage/', '', (string) ($image['url'] ?? ''));
+            $urls = [
+                ...array_map(fn ($image) => (string) ($image['url'] ?? ''), $page['images'] ?? []),
+                ...\App\Support\RichTextSanitizer::imageUrls((string) ($page['body'] ?? '')),
+            ];
+            foreach ($urls as $url) {
+                $path = str_replace('/storage/', '', $url);
                 if (str_starts_with($path, 'course-content/flipbook/')) {
                     \Storage::disk('public')->delete($path);
                 }
