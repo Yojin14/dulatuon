@@ -13,14 +13,65 @@ import {
     SheetHeading,
     SIDE_GRID_CLASS,
 } from './flipbook-page';
-import { type FlipbookPage, slotCount } from './flipbook-types';
+import { type FlipbookPage, slotCount, spacingClass } from './flipbook-types';
 
 export interface SheetSize {
     width: number;
     height: number;
 }
 
-/** Split editor HTML into top-level blocks (paragraphs, lists, quotes) that can flow between sheets. */
+/** About how much text wraps beside one picture; that text moves with the picture. */
+const WRAP_CHARS = 420;
+const WRAP_MAX_BLOCKS = 4;
+
+function isWrappedImage(element: Element): boolean {
+    const align = element.getAttribute('data-align');
+
+    return element.tagName === 'IMG' && (align === 'left' || align === 'right');
+}
+
+function hasContent(element: Element): boolean {
+    return (
+        element.tagName === 'IMG' ||
+        (element.textContent ?? '').trim() !== '' ||
+        element.querySelector('img') !== null
+    );
+}
+
+/**
+ * Group top-level editor elements into the units that flow between sheets. A picture that
+ * text wraps around keeps that text with it, so the wrap looks the same in the book.
+ * Shared by the reader (splitBody) and the editor's page-break markers.
+ */
+export function groupBlocks(elements: Element[]): Element[][] {
+    const items = elements.filter(hasContent);
+    const groups: Element[][] = [];
+    for (let i = 0; i < items.length; i++) {
+        const element = items[i];
+        if (!isWrappedImage(element)) {
+            groups.push([element]);
+            continue;
+        }
+        const group = [element];
+        let chars = 0;
+        while (
+            i + 1 < items.length &&
+            !isWrappedImage(items[i + 1]) &&
+            items[i + 1].tagName !== 'IMG' &&
+            chars < WRAP_CHARS &&
+            group.length <= WRAP_MAX_BLOCKS
+        ) {
+            i++;
+            group.push(items[i]);
+            chars += (items[i].textContent ?? '').length;
+        }
+        groups.push(group);
+    }
+
+    return groups;
+}
+
+/** Split editor HTML into blocks (paragraphs, lists, pictures with their wrapped text) that can flow between sheets. */
 export function splitBody(html: string): string[] {
     if (!html.trim()) {
         return [];
@@ -32,20 +83,24 @@ export function splitBody(html: string): string[] {
         `<div>${html}</div>`,
         'text/html',
     );
-    const blocks: string[] = [];
-    for (const node of Array.from(
-        doc.body.firstElementChild?.childNodes ?? [],
-    )) {
-        if (node.nodeType === Node.ELEMENT_NODE) {
-            const element = node as HTMLElement;
-            if (element.textContent?.trim() || element.querySelector('img')) {
-                blocks.push(element.outerHTML);
-            }
-        } else if (node.textContent?.trim()) {
-            blocks.push(`<p>${node.textContent}</p>`);
+    const root = doc.body.firstElementChild;
+    if (!root) {
+        return [];
+    }
+    // Loose text outside any element becomes its own paragraph.
+    for (const node of Array.from(root.childNodes)) {
+        if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) {
+            const p = doc.createElement('p');
+            p.textContent = node.textContent;
+            root.replaceChild(p, node);
         }
     }
-    return blocks;
+
+    return groupBlocks(Array.from(root.children)).map((group) =>
+        group.length === 1
+            ? group[0].outerHTML
+            : `<div class="fb-wrap">${group.map((el) => el.outerHTML).join('')}</div>`,
+    );
 }
 
 export interface PageMeasure {
@@ -73,6 +128,8 @@ function naiveSheets(pages: FlipbookPage[]): FlipbookSheet[] {
         highlight: page.highlight || null,
         continued: false,
         side: page.layout === 'image-right',
+        background: page.background,
+        spacing: page.spacing,
     }));
 }
 
@@ -203,7 +260,11 @@ export function paginate(
         }
     });
 
-    return sheets;
+    return sheets.map((sheet) => ({
+        ...sheet,
+        background: pages[sheet.pageIndex]?.background,
+        spacing: pages[sheet.pageIndex]?.spacing,
+    }));
 }
 
 /** Hidden copies of every page at the real sheet size, with each part tagged for measuring. */
@@ -222,7 +283,7 @@ function Measurer({ pages, size }: { pages: FlipbookPage[]; size: SheetSize }) {
                     <article
                         key={pageIndex}
                         data-page={pageIndex}
-                        className={SHEET_CLASS}
+                        className={`${SHEET_CLASS} ${spacingClass(page.spacing)}`}
                         style={{
                             ...SHEET_STYLE,
                             width: size.width,
@@ -377,6 +438,14 @@ export function useFlipbookSheets(
         };
         run();
 
+        // Pictures change height once they load; measure again when each one arrives.
+        const pending = Array.from(root.querySelectorAll('img')).filter(
+            (img) => !img.complete,
+        );
+        pending.forEach((img) =>
+            img.addEventListener('load', run, { once: true }),
+        );
+
         // Fonts arriving late change text height; measure again once they're ready.
         let cancelled = false;
         void document.fonts?.ready.then(() => {
@@ -386,6 +455,7 @@ export function useFlipbookSheets(
         });
         return () => {
             cancelled = true;
+            pending.forEach((img) => img.removeEventListener('load', run));
         };
         // `key` captures the pages' content and the sheet size; callers often pass fresh
         // arrays and size objects each render, which must not re-run the layout.
