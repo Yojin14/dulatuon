@@ -16,19 +16,31 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'My Progress', href: '/my-progress' },
 ];
 
-interface ModuleProgress {
-    module_id: number;
+interface CourseProgress {
     course_id: number;
-    module_title: string;
     course_title: string;
     instructor: string;
-    /** Materials read plus games cleared. */
-    contents_completed: number;
-    total_contents: number;
-    games_cleared: number;
-    total_games: number;
+    modules_cleared: number;
+    modules_total: number;
+    items_completed: number;
+    items_total: number;
+    labs_cleared: number;
+    labs_total: number;
     progress: number;
+    complete: boolean;
     completed_at: string | null;
+}
+
+interface OverallProgress {
+    progress: number;
+    items_completed: number;
+    items_total: number;
+    courses_total: number;
+    courses_cleared: number;
+    modules_cleared: number;
+    modules_total: number;
+    labs_cleared: number;
+    labs_total: number;
 }
 
 interface CertificateLink {
@@ -39,23 +51,31 @@ interface CertificateLink {
 }
 
 interface Props {
-    modules: ModuleProgress[];
+    courses?: CourseProgress[];
+    overall?: OverallProgress;
     certificates?: CertificateLink[];
     /** Total XP, worked out on the server with the same rules as the dashboard. */
     xp?: number;
 }
 
+const emptyOverall: OverallProgress = {
+    progress: 0,
+    items_completed: 0,
+    items_total: 0,
+    courses_total: 0,
+    courses_cleared: 0,
+    modules_cleared: 0,
+    modules_total: 0,
+    labs_cleared: 0,
+    labs_total: 0,
+};
+
 export default function MyProgress({
-    modules = [],
+    courses = [],
+    overall = emptyOverall,
     certificates = [],
     xp = 0,
 }: Props) {
-    // Exact counts: a rounded 100% (e.g. 199 of 200) is not cleared yet.
-    const isCleared = (m: ModuleProgress) =>
-        m.contents_completed >= m.total_contents;
-    const earned = modules.filter(isCleared);
-    const inProgress = modules.filter((m) => !isCleared(m));
-
     const player = useMemo(() => computeLevel(xp), [xp]);
     const { auth } = usePage<SharedData>().props;
 
@@ -78,9 +98,11 @@ export default function MyProgress({
                                 My Progress
                             </h1>
                             <p className="mt-2 text-white/70">
-                                {player.title} · {earned.length}{' '}
-                                {earned.length === 1 ? 'module' : 'modules'}{' '}
-                                cleared
+                                {player.title} · {overall.courses_total}{' '}
+                                {overall.courses_total === 1
+                                    ? 'course'
+                                    : 'courses'}{' '}
+                                enrolled
                                 {certificates.length > 0 &&
                                     ` · ${certificates.length} ${certificates.length === 1 ? 'certificate' : 'certificates'}`}
                             </p>
@@ -102,7 +124,7 @@ export default function MyProgress({
             </header>
 
             <div className="mx-auto max-w-[1600px] space-y-12 px-5 py-10 sm:px-8">
-                {modules.length === 0 && (
+                {courses.length === 0 && (
                     <EmptyState
                         title="No progress yet"
                         description="Read lesson materials and clear 3D labs to fill this up. Every lesson and lab you finish adds XP and moves you up the ranks."
@@ -158,41 +180,105 @@ export default function MyProgress({
                     </section>
                 )}
 
-                {inProgress.length > 0 && (
-                    <section aria-labelledby="in-progress">
+                {courses.length > 0 && (
+                    <section aria-labelledby="overall">
                         <h2
-                            id="in-progress"
+                            id="overall"
                             className="text-xl font-bold tracking-[-0.02em]"
                         >
-                            In progress
+                            Overall progress
+                        </h2>
+                        <div className="mt-4 rounded-3xl border bg-card p-5 shadow-panel">
+                            <div className="flex items-center gap-4">
+                                <ProgressTrack value={overall.progress} />
+                                <span className="w-14 shrink-0 text-right font-display text-2xl font-extrabold tabular-nums">
+                                    {overall.progress}%
+                                </span>
+                            </div>
+                            <p className="mt-2 text-sm text-muted-foreground">
+                                {overall.items_completed} of{' '}
+                                {overall.items_total} lessons and labs finished
+                                across all your courses
+                            </p>
+                            <dl className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                                {[
+                                    {
+                                        label: 'Courses cleared',
+                                        done: overall.courses_cleared,
+                                        total: overall.courses_total,
+                                    },
+                                    {
+                                        label: 'Modules cleared',
+                                        done: overall.modules_cleared,
+                                        total: overall.modules_total,
+                                    },
+                                    {
+                                        label: 'Lessons and labs',
+                                        done: overall.items_completed,
+                                        total: overall.items_total,
+                                    },
+                                    {
+                                        label: 'Labs cleared',
+                                        done: overall.labs_cleared,
+                                        total: overall.labs_total,
+                                    },
+                                ].map((stat) => (
+                                    <div
+                                        key={stat.label}
+                                        className="rounded-2xl bg-muted/60 px-4 py-3"
+                                    >
+                                        <dt className="text-xs font-bold text-muted-foreground">
+                                            {stat.label}
+                                        </dt>
+                                        <dd className="mt-1 font-display text-xl font-extrabold tabular-nums">
+                                            {stat.done}
+                                            <span className="text-sm font-bold text-muted-foreground">
+                                                {' '}
+                                                / {stat.total}
+                                            </span>
+                                        </dd>
+                                    </div>
+                                ))}
+                            </dl>
+                        </div>
+                    </section>
+                )}
+
+                {courses.length > 0 && (
+                    <section aria-labelledby="your-courses">
+                        <h2
+                            id="your-courses"
+                            className="text-xl font-bold tracking-[-0.02em]"
+                        >
+                            Your courses
                         </h2>
                         <ul className="mt-4 divide-y rounded-3xl border bg-card shadow-panel">
-                            {inProgress.map((m) => {
+                            {courses.map((c) => {
                                 const remaining =
-                                    m.total_contents - m.contents_completed;
+                                    c.items_total - c.items_completed;
 
                                 return (
-                                    <li key={m.module_id}>
+                                    <li key={c.course_id}>
                                         <Link
-                                            href={`/my-course/${m.course_id}`}
+                                            href={`/my-course/${c.course_id}`}
                                             prefetch
                                             className="group grid gap-3 px-5 py-4 transition-colors first:rounded-t-3xl last:rounded-b-3xl hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none sm:grid-cols-[minmax(0,1fr)_16rem_1.5rem] sm:items-center"
                                         >
                                             <div className="flex min-w-0 items-center gap-3">
                                                 <WorldEmblem
                                                     world={worldFor({
-                                                        title: m.course_title,
+                                                        title: c.course_title,
                                                     })}
                                                     size="sm"
                                                 />
                                                 <div className="min-w-0">
                                                     <p className="truncate font-bold">
-                                                        {m.module_title}
+                                                        {c.course_title}
                                                     </p>
                                                     <p className="truncate text-sm text-muted-foreground">
                                                         {[
-                                                            m.course_title,
-                                                            m.instructor,
+                                                            c.instructor,
+                                                            `${c.modules_cleared} of ${c.modules_total} ${c.modules_total === 1 ? 'module' : 'modules'} cleared`,
                                                         ]
                                                             .filter(Boolean)
                                                             .join(' · ')}
@@ -202,27 +288,41 @@ export default function MyProgress({
                                             <div>
                                                 <div className="flex items-center gap-3">
                                                     <ProgressTrack
-                                                        value={m.progress}
+                                                        value={c.progress}
                                                     />
                                                     <span className="w-10 shrink-0 text-right text-sm font-bold tabular-nums">
-                                                        {m.progress}%
+                                                        {c.progress}%
                                                     </span>
                                                 </div>
                                                 <p className="mt-1 text-xs text-muted-foreground">
-                                                    {remaining}{' '}
-                                                    {remaining === 1
-                                                        ? 'item'
-                                                        : 'items'}{' '}
-                                                    left
-                                                    {m.total_games > 0 &&
-                                                        ` · ${m.games_cleared} of ${m.total_games} ${m.total_games === 1 ? 'lab' : 'labs'} cleared`}
-                                                    <span className="font-bold text-primary">
-                                                        {' '}
-                                                        · +
-                                                        {remaining *
-                                                            XP_PER_ITEM}{' '}
-                                                        XP to earn
-                                                    </span>
+                                                    {c.complete ? (
+                                                        <span className="inline-flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400">
+                                                            <Check
+                                                                className="size-3.5"
+                                                                strokeWidth={3}
+                                                            />
+                                                            Cleared
+                                                            {c.completed_at &&
+                                                                ` ${c.completed_at}`}
+                                                        </span>
+                                                    ) : (
+                                                        <>
+                                                            {remaining}{' '}
+                                                            {remaining === 1
+                                                                ? 'item'
+                                                                : 'items'}{' '}
+                                                            left
+                                                            {c.labs_total > 0 &&
+                                                                ` · ${c.labs_cleared} of ${c.labs_total} ${c.labs_total === 1 ? 'lab' : 'labs'} cleared`}
+                                                            <span className="font-bold text-primary">
+                                                                {' '}
+                                                                · +
+                                                                {remaining *
+                                                                    XP_PER_ITEM}{' '}
+                                                                XP to earn
+                                                            </span>
+                                                        </>
+                                                    )}
                                                 </p>
                                             </div>
                                             <ChevronRight
@@ -233,52 +333,6 @@ export default function MyProgress({
                                     </li>
                                 );
                             })}
-                        </ul>
-                    </section>
-                )}
-
-                {earned.length > 0 && (
-                    <section aria-labelledby="cleared">
-                        <h2
-                            id="cleared"
-                            className="text-xl font-bold tracking-[-0.02em]"
-                        >
-                            Cleared
-                        </h2>
-                        <ul className="mt-4 divide-y rounded-3xl border bg-card shadow-panel">
-                            {earned.map((m) => (
-                                <li key={m.module_id}>
-                                    <Link
-                                        href={`/my-course/${m.course_id}`}
-                                        className="group flex items-center gap-3 px-5 py-4 transition-colors first:rounded-t-3xl last:rounded-b-3xl hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
-                                    >
-                                        <span className="grid size-10 shrink-0 place-items-center bg-linear-to-b from-emerald-400 to-emerald-600 text-white shadow-[0_3px_0_0_var(--color-emerald-800)] [clip-path:polygon(50%_0,93%_25%,93%_75%,50%_100%,7%_75%,7%_25%)]">
-                                            <Check
-                                                className="size-5"
-                                                strokeWidth={3}
-                                            />
-                                        </span>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="truncate font-bold">
-                                                {m.module_title}
-                                            </p>
-                                            <p className="truncate text-sm text-muted-foreground">
-                                                {m.course_title} · Cleared{' '}
-                                                {m.completed_at}
-                                            </p>
-                                        </div>
-                                        <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-extrabold text-primary tabular-nums">
-                                            +
-                                            {m.contents_completed * XP_PER_ITEM}{' '}
-                                            XP
-                                        </span>
-                                        <ChevronRight
-                                            aria-hidden
-                                            className="hidden size-5 text-muted-foreground transition-transform group-hover:translate-x-0.5 sm:block"
-                                        />
-                                    </Link>
-                                </li>
-                            ))}
                         </ul>
                     </section>
                 )}

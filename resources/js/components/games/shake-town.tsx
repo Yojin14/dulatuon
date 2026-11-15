@@ -1,5 +1,7 @@
 import { QuestionCard, type GameItem } from '@/components/games/question-card';
+import { GuideOverlay, GuideProvider } from '@/components/games/professor-say';
 import { RotatePrompt } from '@/components/games/rotate-prompt';
+import { StepHeading } from '@/components/games/simulation-shell';
 import { Button } from '@/components/ui/button';
 import { sfxCorrect, sfxPop, sfxQuake, sfxWrong } from '@/lib/game-audio';
 import {
@@ -319,11 +321,7 @@ export default function ShakeTown({ items, onFinish }: ShakeTownProps) {
 
                 return (
                     <div className="flex flex-col gap-4">
-                        <div>
-                            <p className="text-eyebrow text-violet-600 dark:text-violet-300">Experiment</p>
-                            <h2 className="mt-1.5 font-display text-xl leading-snug font-bold tracking-[-0.02em] text-foreground">{step.title}</h2>
-                            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{step.instruction}</p>
-                        </div>
+                        <StepHeading eyebrow="Experiment" title={step.title} text={step.instruction} />
 
                         <ul className="flex flex-col gap-1.5">
                             {step.goals.map((goal) => {
@@ -375,17 +373,11 @@ export default function ShakeTown({ items, onFinish }: ShakeTownProps) {
 
                 return (
                     <div className="flex flex-col gap-4">
-                        <div>
-                            <p className="text-eyebrow text-violet-600 dark:text-violet-300">Challenge</p>
-                            <h2 className="mt-1.5 font-display text-xl leading-snug font-bold tracking-[-0.02em] text-foreground">{items[step.item].prompt.replace(/^Challenge:\s*/, '')}</h2>
-                            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                                {solved
-                                    ? 'You did it.'
-                                    : scored
-                                      ? 'No points now, but keep trying.'
-                                      : `Set the magnitude and depth. ${triesLeft} ${triesLeft === 1 ? 'try' : 'tries'} left for points.`}
-                            </p>
-                        </div>
+                        <StepHeading
+                            eyebrow="Challenge"
+                            title={items[step.item].prompt.replace(/^Challenge:\s*/, '')}
+                            text={solved ? 'You did it.' : scored ? 'No points now, but keep trying.' : `Set the magnitude and depth. ${triesLeft} ${triesLeft === 1 ? 'try' : 'tries'} left for points.`}
+                        />
 
                         {!solved && renderControls()}
 
@@ -448,6 +440,7 @@ export default function ShakeTown({ items, onFinish }: ShakeTownProps) {
     }, [runs, step, answers]);
 
     return (
+        <GuideProvider>
         <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4">
             <RotatePrompt />
             <div className="flex flex-wrap items-center justify-between gap-2 max-lg:landscape:hidden">
@@ -462,10 +455,11 @@ export default function ShakeTown({ items, onFinish }: ShakeTownProps) {
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px] max-lg:landscape:grid-cols-[minmax(0,1fr)_300px] max-lg:landscape:gap-3">
                 <div className="relative overflow-hidden rounded-4xl bg-world-sky ring-1 ring-white/20">
                     <div ref={mount} className="h-[50svh] min-h-72 w-full lg:h-[calc(100svh-11rem)] lg:min-h-[520px] max-lg:landscape:h-[calc(100svh-7.5rem)] max-lg:landscape:min-h-48" />
-                    <p className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-slate-900/70 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">
+                    <p className="pointer-events-none absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-slate-900/70 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">
                         <Rotate3d className="h-3.5 w-3.5" />
                         Drag to look around
                     </p>
+                    <GuideOverlay />
                     {latest && !running && (
                         <p className="pointer-events-none absolute top-3 left-3 rounded-full bg-slate-900/60 px-2.5 py-1 text-[11px] font-semibold text-white">
                             Town A: Intensity {roman(latest.results[TOWN_A])} · {PEIS[latest.results[TOWN_A]]}
@@ -476,5 +470,6 @@ export default function ShakeTown({ items, onFinish }: ShakeTownProps) {
                 <div className="rounded-4xl border bg-card p-5 text-card-foreground shadow-float sm:p-7 max-lg:landscape:max-h-[calc(100svh-7.5rem)] max-lg:landscape:min-h-48 max-lg:landscape:overflow-y-auto max-lg:landscape:p-4">{renderPanel()}</div>
             </div>
         </div>
+        </GuideProvider>
     );
 }

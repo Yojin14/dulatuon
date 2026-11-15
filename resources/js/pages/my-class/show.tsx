@@ -706,9 +706,10 @@ function TeacherCourseDetail({ isStudent = false }: { isStudent?: boolean }) {
     type NavLesson = {
         key: string;
         session: Session;
-        kind: 'content' | 'assessment';
+        kind: 'content' | 'assessment' | 'game';
         content?: ContentItem;
         assessment?: Assessment;
+        game?: Game;
         title: string;
     };
     const navLessons = useMemo<NavLesson[]>(() => {
@@ -736,6 +737,14 @@ function TeacherCourseDetail({ isStudent = false }: { isStudent?: boolean }) {
                         assessment: a,
                         title: a.title,
                     });
+                for (const g of session.games ?? [])
+                    out.push({
+                        key: g.id,
+                        session,
+                        kind: 'game',
+                        game: g,
+                        title: g.title,
+                    });
             }
         }
         return out;
@@ -747,12 +756,15 @@ function TeacherCourseDetail({ isStudent = false }: { isStudent?: boolean }) {
                 handleSelectContent(n.session, n.content);
             } else if (n.kind === 'assessment' && n.assessment) {
                 handleSelectAssessment(n.session, n.assessment);
+            } else if (n.kind === 'game' && n.game) {
+                handleSelectGame(n.session, n.game);
             }
         },
-        [handleSelectContent, handleSelectAssessment],
+        [handleSelectContent, handleSelectAssessment, handleSelectGame],
     );
 
-    const currentNavKey = activeContent?.id ?? activeAssessment?.id ?? null;
+    const currentNavKey =
+        activeContent?.id ?? activeAssessment?.id ?? activeGame?.id ?? null;
     const currentNavIndex = currentNavKey
         ? navLessons.findIndex((n) => n.key === currentNavKey)
         : -1;
@@ -2246,6 +2258,40 @@ function TeacherCourseDetail({ isStudent = false }: { isStudent?: boolean }) {
                                     !isStudent && courseId ? courseId : null
                                 }
                             />
+                        ) : activeContent?.type === 'flipbook' ? (
+                            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                                <ContentViewer
+                                    content={activeContent}
+                                    flipbook={{
+                                        eyebrow: activeSession
+                                            ? lessonLabel(activeSession.title)
+                                            : undefined,
+                                        finish:
+                                            isStudent && activeContent.dbId ? (
+                                                completedContents.has(
+                                                    activeContent.dbId,
+                                                ) ? (
+                                                    <span className="inline-flex min-h-[44px] items-center gap-1.5 px-3 text-sm font-semibold text-emerald-600">
+                                                        <CheckCircle2 className="h-4 w-4 shrink-0" />
+                                                        Completed
+                                                    </span>
+                                                ) : (
+                                                    <Button
+                                                        onClick={() =>
+                                                            markContentDone(
+                                                                activeContent,
+                                                            )
+                                                        }
+                                                        className="min-h-[44px] gap-1.5 bg-emerald-600 px-5 text-white hover:bg-emerald-700"
+                                                    >
+                                                        <CheckCircle2 className="h-4 w-4 shrink-0" />
+                                                        Mark as Completed
+                                                    </Button>
+                                                )
+                                            ) : undefined,
+                                    }}
+                                />
+                            </div>
                         ) : activeContent ? (
                             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                                 {/* Fixed content header */}
@@ -2520,7 +2566,7 @@ function TeacherCourseDetail({ isStudent = false }: { isStudent?: boolean }) {
                         {!effectiveEditMode &&
                             !showAnnouncements &&
                             !showLeaderboard &&
-                            (activeContent || activeAssessment) &&
+                            (activeContent || activeAssessment || activeGame) &&
                             navLessons.length > 1 && (
                                 <div className="shrink-0 border-t border-border bg-card">
                                     <div

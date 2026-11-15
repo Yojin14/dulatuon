@@ -10,6 +10,7 @@ import {
     useSyncExternalStore,
     type KeyboardEvent,
     type PointerEvent,
+    type ReactNode,
 } from 'react';
 import { useFlipbookSheets, type SheetSize } from './flipbook-layout';
 import { FlipbookSheetView } from './flipbook-page';
@@ -69,11 +70,21 @@ export function FlipbookReader({
     title,
     initialPage = 0,
     className,
+    fill = false,
+    eyebrow,
+    note,
+    finish,
 }: {
     pages: FlipbookPage[];
     title?: string;
     initialPage?: number;
     className?: string;
+    /** Stretch to the parent's height so the book fills the space and nothing scrolls. */
+    fill?: boolean;
+    eyebrow?: string;
+    note?: string;
+    /** Replaces the Next button once the reader reaches the last page. */
+    finish?: ReactNode;
 }) {
     const spread = useMediaQuery(SPREAD_QUERY);
     const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
@@ -199,7 +210,10 @@ export function FlipbookReader({
     return (
         <section
             className={cn(
-                'flex flex-col gap-4 rounded-3xl bg-muted/60 p-3 outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-6',
+                'flex flex-col bg-muted/60 outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                fill
+                    ? 'h-full min-h-0 flex-1 gap-2 p-2 sm:gap-3 sm:p-4'
+                    : 'gap-4 rounded-3xl p-3 sm:p-6',
                 className,
             )}
             tabIndex={0}
@@ -209,9 +223,22 @@ export function FlipbookReader({
         >
             <div className="flex items-center justify-between gap-3 px-1">
                 {title ? (
-                    <h3 className="min-w-0 truncate font-display text-lg font-extrabold tracking-[-0.02em]">
-                        {title}
-                    </h3>
+                    <div className="min-w-0">
+                        {eyebrow && (
+                            <p className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+                                <BookOpen className="size-3 shrink-0" />
+                                {eyebrow}
+                            </p>
+                        )}
+                        <h3 className="truncate font-display text-lg font-extrabold tracking-[-0.02em]">
+                            {title}
+                        </h3>
+                        {note && (
+                            <p className="truncate text-xs text-muted-foreground">
+                                {note}
+                            </p>
+                        )}
+                    </div>
                 ) : (
                     <span />
                 )}
@@ -224,9 +251,14 @@ export function FlipbookReader({
             <div
                 className={cn(
                     'flipbook-stage relative mx-auto w-full touch-pan-y select-none',
-                    spread
-                        ? 'h-[min(78vh,780px)] max-w-6xl'
-                        : 'h-[min(74vh,680px)] max-w-xl',
+                    fill
+                        ? cn(
+                              'min-h-0 flex-1',
+                              spread ? 'max-w-6xl' : 'max-w-xl',
+                          )
+                        : spread
+                          ? 'h-[min(78vh,780px)] max-w-6xl'
+                          : 'h-[min(74vh,680px)] max-w-xl',
                 )}
                 onPointerDown={onPointerDown}
                 onPointerUp={onPointerUp}
@@ -374,14 +406,18 @@ export function FlipbookReader({
                     />
                 )}
 
-                <Button
-                    onClick={() => go(index + step)}
-                    disabled={index >= lastIndex || !!turn}
-                    aria-label="Next page"
-                >
-                    <span className="hidden sm:inline">Next</span>
-                    <ChevronRight />
-                </Button>
+                {finish && index >= lastIndex && !turn ? (
+                    finish
+                ) : (
+                    <Button
+                        onClick={() => go(index + step)}
+                        disabled={index >= lastIndex || !!turn}
+                        aria-label="Next page"
+                    >
+                        <span className="hidden sm:inline">Next</span>
+                        <ChevronRight />
+                    </Button>
+                )}
             </div>
             {measurer}
         </section>

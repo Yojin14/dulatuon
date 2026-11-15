@@ -27,6 +27,21 @@ class VerificationNotificationTest extends TestCase
         Notification::assertSentTo($user, VerifyEmail::class);
     }
 
+    public function test_verification_email_uses_dulatuon_branding_and_copy(): void
+    {
+        $user = User::factory()->create(['email_verified_at' => null]);
+
+        $mail = (new VerifyEmail)->toMail($user);
+        $html = (string) $mail->render();
+
+        $this->assertSame('Verify your email to start playing', $mail->subject);
+        $this->assertStringContainsString("Hi {$user->name}!", $html);
+        $this->assertStringContainsString('Verify my email', $html);
+        $this->assertStringContainsString('LEARN BY PLAYING', $html);
+        $this->assertStringContainsString('#7c1cff', $html);
+        $this->assertStringContainsString('/email/verify/', $html);
+    }
+
     public function test_does_not_send_verification_notification_if_email_is_verified(): void
     {
         Notification::fake();

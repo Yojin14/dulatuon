@@ -128,6 +128,49 @@ class MyProgressTest extends TestCase
         $this->actingAs($student)->get('/my-progress')->assertOk()->assertInertia(fn (Assert $page) => $page->has('modules', 0));
     }
 
+    public function test_overall_progress_rolls_up_every_enrolled_course(): void
+    {
+        ['student' => $student, 'course' => $course, 'contents' => $contents, 'game' => $game] = $this->enrolledCourse();
+        foreach ($contents as $content) {
+            StudentContentProgress::create(['user_id' => $student->id, 'course_id' => $course->id, 'content_id' => $content->id, 'completed_at' => now()]);
+        }
+        $this->attempt($student, $game, 5, 5);
+
+        $secondCourse = Course::factory()->create();
+        $module = CourseModule::create(['course_id' => $secondCourse->id, 'title' => 'Waves', 'sort_order' => 0]);
+        $session = CourseSession::create(['module_id' => $module->id, 'title' => 'Lesson 1', 'sort_order' => 0]);
+        CourseContentItem::create(['session_id' => $session->id, 'type' => 'youtube', 'title' => 'Intro', 'url' => 'https://youtu.be/ghi']);
+        CourseGame::create(['session_id' => $session->id, 'title' => 'Wave Tank', 'game_type' => 'wave_tank', 'points' => 100]);
+        Enrollment::create(['user_id' => $student->id, 'course_id' => $secondCourse->id, 'status' => 'active']);
+
+        $this->actingAs($student)->get('/my-progress')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('courses', 2)
+            ->where('courses.0.course_id', $secondCourse->id)
+            ->where('courses.0.progress', 0)
+            ->where('courses.1.course_id', $course->id)
+            ->where('courses.1.complete', true)
+            ->where('courses.1.labs_cleared', 1)
+            ->where('overall.progress', 60)
+            ->where('overall.items_completed', 3)
+            ->where('overall.items_total', 5)
+            ->where('overall.courses_total', 2)
+            ->where('overall.courses_cleared', 1)
+            ->where('overall.modules_cleared', 1)
+            ->where('overall.modules_total', 2)
+            ->where('overall.labs_cleared', 1)
+            ->where('overall.labs_total', 2));
+    }
+
+    public function test_overall_progress_is_zero_without_enrollments(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+
+        $this->actingAs($student)->get('/my-progress')->assertInertia(fn (Assert $page) => $page
+            ->has('courses', 0)
+            ->where('overall.progress', 0)
+            ->where('overall.courses_total', 0));
+    }
+
     public function test_completing_every_module_unlocks_the_course_certificate(): void
     {
         ['student' => $student, 'course' => $course, 'contents' => $contents, 'game' => $game] = $this->enrolledCourse();

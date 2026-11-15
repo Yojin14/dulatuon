@@ -52,6 +52,7 @@ import {
     useRef,
     useState,
     useSyncExternalStore,
+    type ReactNode,
 } from 'react';
 
 // The editor (tiptap) only downloads when a student opens a written answer.
@@ -159,7 +160,31 @@ export function PdfViewer({ content }: { content: ContentItem }) {
 }
 
 // ─── Content Viewer ───────────────────────────────────────────────────────────
-export function ContentViewer({ content }: { content: ContentItem }) {
+export function ContentViewer({
+    content,
+    flipbook,
+}: {
+    content: ContentItem;
+    flipbook?: { eyebrow?: string; finish?: ReactNode };
+}) {
+    if (content.type === 'flipbook' && flipbook) {
+        return (
+            <Suspense
+                fallback={
+                    <div className="h-full flex-1 animate-pulse bg-muted" />
+                }
+            >
+                <FlipbookReader
+                    fill
+                    pages={content.pages ?? []}
+                    title={content.title}
+                    eyebrow={flipbook.eyebrow}
+                    note={content.description || undefined}
+                    finish={flipbook.finish}
+                />
+            </Suspense>
+        );
+    }
     if (content.type === 'flipbook') {
         return (
             <div className="space-y-4">
@@ -312,7 +337,7 @@ export function GamePreview({
 
     return (
         <div className="flex flex-1 flex-col overflow-y-auto">
-            <div className="mx-auto w-full max-w-3xl p-4 sm:p-6">
+            <div className="mx-auto my-auto w-full max-w-3xl p-4 sm:p-6">
                 {canSeeInsights && (
                     <div
                         role="tablist"

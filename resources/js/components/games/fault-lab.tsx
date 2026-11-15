@@ -1,7 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { FaultLabScene, type ForceKind } from '@/lib/fault-lab-scene';
 import { QuestionCard, type GameItem } from '@/components/games/question-card';
+import { GuideOverlay, GuideProvider } from '@/components/games/professor-say';
 import { RotatePrompt } from '@/components/games/rotate-prompt';
+import { StepHeading } from '@/components/games/simulation-shell';
 import { sfxPop, sfxQuake } from '@/lib/game-audio';
 import { ArrowRight, CheckCircle2, Hand, Lightbulb, Rotate3d } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -212,13 +214,7 @@ export default function FaultLab({ items, onFinish }: FaultLabProps) {
             case 'choose':
                 return (
                     <div className="flex flex-col gap-4">
-                        <div>
-                            <p className="text-eyebrow text-violet-600 dark:text-violet-300">
-                                Experiment {completed.length + 1} of {KINDS.length}
-                            </p>
-                            <h2 className="mt-1.5 font-display text-xl leading-snug font-bold tracking-[-0.02em] text-foreground">Choose a force</h2>
-                            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">The fault is calm. Add a force and make an earthquake.</p>
-                        </div>
+                        <StepHeading eyebrow={`Experiment ${completed.length + 1} of ${KINDS.length}`} title="Choose a force" text="The fault is calm. Add a force and make an earthquake." />
                         <div className="flex flex-col gap-2">
                             {KINDS.map((kind) => {
                                 const done = completed.includes(kind);
@@ -274,11 +270,7 @@ export default function FaultLab({ items, onFinish }: FaultLabProps) {
             case 'slipping':
                 return (
                     <div className="flex flex-col gap-4">
-                        <div>
-                            <p className="text-eyebrow text-violet-600 dark:text-violet-300">Build the stress</p>
-                            <h2 className="mt-1.5 font-display text-xl leading-snug font-bold tracking-[-0.02em] text-foreground">{EXPERIMENTS[step.kind].action}</h2>
-                            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">Hold the button and watch the road bend.</p>
-                        </div>
+                        <StepHeading eyebrow="Build the stress" title={EXPERIMENTS[step.kind].action} text="Hold the button and watch the road bend." />
 
                         <div>
                             <div className="mb-1.5 flex items-center justify-between text-xs font-bold">
@@ -409,6 +401,7 @@ export default function FaultLab({ items, onFinish }: FaultLabProps) {
     };
 
     return (
+        <GuideProvider>
         <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4">
             <RotatePrompt />
             <div className="flex flex-wrap items-center justify-between gap-2 max-lg:landscape:hidden">
@@ -436,14 +429,16 @@ export default function FaultLab({ items, onFinish }: FaultLabProps) {
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px] max-lg:landscape:grid-cols-[minmax(0,1fr)_300px] max-lg:landscape:gap-3">
                 <div className="relative overflow-hidden rounded-4xl bg-world-sky ring-1 ring-white/20">
                     <div ref={mount} className="h-[50svh] min-h-72 w-full lg:h-[calc(100svh-11rem)] lg:min-h-[520px] max-lg:landscape:h-[calc(100svh-7.5rem)] max-lg:landscape:min-h-48" />
-                    <p className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-slate-900/70 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">
+                    <p className="pointer-events-none absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-slate-900/70 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">
                         <Rotate3d className="h-3.5 w-3.5" />
                         Drag to look around
                     </p>
+                    <GuideOverlay />
                 </div>
 
                 <div className="rounded-4xl border bg-card p-5 text-card-foreground shadow-float sm:p-7 max-lg:landscape:max-h-[calc(100svh-7.5rem)] max-lg:landscape:min-h-48 max-lg:landscape:overflow-y-auto max-lg:landscape:p-4">{renderPanel()}</div>
             </div>
         </div>
+        </GuideProvider>
     );
 }

@@ -37,6 +37,34 @@ class MyProgressController extends Controller
             ])
             ->values();
 
+        $modulesByCourse = collect($modules)->groupBy('course_id');
+
+        $courseRows = collect($courseSummaries)
+            ->filter(fn (array $course) => $course['items_total'] > 0)
+            ->map(function (array $course) use ($modulesByCourse): array {
+                $courseModules = $modulesByCourse->get($course['course_id'], collect());
+
+                return [
+                    'course_id' => $course['course_id'],
+                    'course_title' => $course['course_title'],
+                    'instructor' => $course['instructor'],
+                    'modules_cleared' => $course['modules_cleared'],
+                    'modules_total' => $course['modules_total'],
+                    'items_completed' => $course['items_completed'],
+                    'items_total' => $course['items_total'],
+                    'labs_cleared' => $courseModules->sum('games_cleared'),
+                    'labs_total' => $courseModules->sum('total_games'),
+                    'progress' => (int) round($course['items_completed'] / $course['items_total'] * 100),
+                    'complete' => $course['complete'],
+                    'completed_at' => $course['completed_on']?->format('F d, Y'),
+                ];
+            })
+            ->sortBy([['complete', 'asc'], ['progress', 'desc']])
+            ->values();
+
+        $itemsTotal = $courseRows->sum('items_total');
+        $itemsCompleted = $courseRows->sum('items_completed');
+
         return Inertia::render('my-progress/index', [
             'modules' => array_map(function (array $module): array {
                 $module['completed_at'] = $module['completed_on']?->format('F d, Y');
@@ -44,6 +72,18 @@ class MyProgressController extends Controller
 
                 return $module;
             }, $modules),
+            'courses' => $courseRows,
+            'overall' => [
+                'progress' => $itemsTotal > 0 ? (int) round($itemsCompleted / $itemsTotal * 100) : 0,
+                'items_completed' => $itemsCompleted,
+                'items_total' => $itemsTotal,
+                'courses_total' => $courseRows->count(),
+                'courses_cleared' => $courseRows->where('complete', true)->count(),
+                'modules_cleared' => $courseRows->sum('modules_cleared'),
+                'modules_total' => $courseRows->sum('modules_total'),
+                'labs_cleared' => $courseRows->sum('labs_cleared'),
+                'labs_total' => $courseRows->sum('labs_total'),
+            ],
             'certificates' => $certificates,
             'xp' => $xp,
         ]);

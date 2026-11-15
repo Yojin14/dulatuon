@@ -45,7 +45,7 @@ export function GenderChoice({
                                   onChange: () => onChange?.(option.value),
                               })}
                     />
-                    <span className="flex min-h-10 cursor-pointer items-center justify-center rounded-lg px-2 text-center text-sm leading-tight font-semibold text-muted-foreground transition-colors peer-checked:bg-card peer-checked:text-foreground peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40 hover:text-foreground">
+                    <span className="flex min-h-10 cursor-pointer items-center justify-center rounded-lg px-2 text-center text-sm leading-tight font-semibold text-muted-foreground transition-colors peer-checked:bg-primary peer-checked:text-primary-foreground peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40 hover:text-foreground peer-checked:hover:text-primary-foreground">
                         {option.label}
                     </span>
                 </label>

@@ -311,7 +311,7 @@ export default function WaveTank({ items, onFinish }: WaveTankProps) {
             total={items.length}
             unsupported={unsupported}
             name="Wave Tank"
-            overlay={<canvas ref={seismogram} className="pointer-events-none absolute inset-x-3 bottom-12 h-24 w-[calc(100%-1.5rem)] rounded-2xl bg-slate-900/70 max-lg:landscape:h-16" />}
+            overlay={<canvas ref={seismogram} className="pointer-events-none absolute inset-x-3 top-14 h-24 w-[calc(100%-1.5rem)] rounded-2xl bg-slate-900/70 max-lg:landscape:h-16" />}
         >
             {renderPanel()}
         </SimulationShell>

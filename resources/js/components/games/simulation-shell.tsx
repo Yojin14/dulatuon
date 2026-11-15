@@ -1,4 +1,5 @@
 import { RotatePrompt } from '@/components/games/rotate-prompt';
+import { GuideOverlay, GuideProvider, useGuideSpeech } from '@/components/games/professor-say';
 import { Rotate3d } from 'lucide-react';
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
 
@@ -52,6 +53,8 @@ interface SimulationShellProps {
     viewHint?: string;
     /** Extra elements drawn on top of the 3D view. */
     overlay?: ReactNode;
+    /** Positioning tweaks for Professor Sheng's speech, e.g. to sit above an overlay. */
+    guideClassName?: string;
     children: ReactNode;
 }
 
@@ -74,8 +77,9 @@ function CheckpointPips({ checkpoint, total }: { checkpoint: number; total: numb
 }
 
 /** Shared layout for the simulation games: big 3D view, question panel beside it. */
-export function SimulationShell({ mount, stepLabel, checkpoint, total, unsupported, name, viewHint = 'Drag to look around', overlay, children }: SimulationShellProps) {
+export function SimulationShell({ mount, stepLabel, checkpoint, total, unsupported, name, viewHint = 'Drag to look around', overlay, guideClassName, children }: SimulationShellProps) {
     return (
+        <GuideProvider>
         <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4">
             <RotatePrompt />
             <div className="flex flex-wrap items-center justify-between gap-2 max-lg:landscape:hidden">
@@ -89,11 +93,12 @@ export function SimulationShell({ mount, stepLabel, checkpoint, total, unsupport
                         ref={mount}
                         className="h-[50svh] min-h-72 w-full lg:h-[calc(100svh-11rem)] lg:min-h-[520px] max-lg:landscape:h-[calc(100svh-7.5rem)] max-lg:landscape:min-h-48"
                     />
-                    <p className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-slate-900/70 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">
+                    <p className="pointer-events-none absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-slate-900/70 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">
                         <Rotate3d className="size-3.5" />
                         {viewHint}
                     </p>
                     {overlay}
+                    <GuideOverlay className={guideClassName} />
                 </div>
 
                 <div className="rounded-4xl border bg-card p-5 text-card-foreground shadow-float sm:p-7 max-lg:landscape:max-h-[calc(100svh-7.5rem)] max-lg:landscape:min-h-48 max-lg:landscape:overflow-y-auto max-lg:landscape:p-4">
@@ -105,16 +110,18 @@ export function SimulationShell({ mount, stepLabel, checkpoint, total, unsupport
                 </div>
             </div>
         </div>
+        </GuideProvider>
     );
 }
 
 /** Small heading block used at the top of each step in the side panel. */
 export function StepHeading({ eyebrow, title, text }: { eyebrow: string; title: string; text?: string }) {
+    useGuideSpeech(text, title);
+
     return (
         <div>
             <p className="text-eyebrow text-violet-600 dark:text-violet-300">{eyebrow}</p>
             <h2 className="mt-1.5 font-display text-xl leading-snug font-bold tracking-[-0.02em] text-foreground">{title}</h2>
-            {text && <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{text}</p>}
         </div>
     );
 }
