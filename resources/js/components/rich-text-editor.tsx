@@ -1,6 +1,18 @@
-import { Editor, EditorContent, useEditor } from '@tiptap/react';
+import {
+    Editor,
+    EditorContent,
+    type Extensions,
+    useEditor,
+} from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { Bold, Italic, Link2, List, ListOrdered, Underline as UnderlineIcon } from 'lucide-react';
+import {
+    Bold,
+    Italic,
+    Link2,
+    List,
+    ListOrdered,
+    Underline as UnderlineIcon,
+} from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface RichTextEditorProps {
@@ -8,6 +20,16 @@ interface RichTextEditorProps {
     onChange: (html: string) => void;
     placeholder?: string;
     editable?: boolean;
+    /** No box and no toolbar: for editing text in place (e.g. on a flipbook page). */
+    bare?: boolean;
+    /** Classes for the editable area; replaces the default ones. */
+    contentClassName?: string;
+    /** Hands out the editor so an outside toolbar can drive it. */
+    onEditor?: (editor: Editor | null) => void;
+    /** Extra editor features (e.g. images and text colours on flipbook pages). */
+    extensions?: Extensions;
+    /** With an image extension: uploads pasted or dropped pictures and returns their URL. */
+    uploadImage?: (file: File) => Promise<string | null>;
 }
 
 function ToolbarButton({
@@ -40,10 +62,54 @@ function ToolbarButton({
     );
 }
 
-export function RichTextEditor({ value, onChange, placeholder, editable = true }: RichTextEditorProps) {
+export function RichTextEditor({
+    value,
+    onChange,
+    placeholder,
+    editable = true,
+    bare = false,
+    contentClassName,
+    onEditor,
+    extensions = [],
+    uploadImage,
+}: RichTextEditorProps) {
     const [linkOpen, setLinkOpen] = useState(false);
     const [linkValue, setLinkValue] = useState('');
     const openLinkRef = useRef<() => void>(() => {});
+    const uploadRef = useRef(uploadImage);
+    const editorRef = useRef<Editor | null>(null);
+    useEffect(() => {
+        uploadRef.current = uploadImage;
+    }, [uploadImage]);
+
+    /** Upload image files and place them at `position` (or the cursor). */
+    const insertImageFiles = (files: File[], position?: number) => {
+        const upload = uploadRef.current;
+        const images = files.filter((file) => file.type.startsWith('image/'));
+        if (!upload || images.length === 0) {
+            return false;
+        }
+        void (async () => {
+            for (const file of images) {
+                const src = await upload(file);
+                const current = editorRef.current;
+                if (!src || !current) {
+                    continue;
+                }
+                const content = { type: 'image', attrs: { src } };
+                if (position !== undefined) {
+                    current
+                        .chain()
+                        .focus()
+                        .insertContentAt(position, content)
+                        .run();
+                } else {
+                    current.chain().focus().insertContent(content).run();
+                }
+            }
+        })();
+        return true;
+    };
 
     const editor = useEditor({
         editable,
@@ -53,17 +119,44 @@ export function RichTextEditor({ value, onChange, placeholder, editable = true }
                 link: {
                     openOnClick: false,
                     autolink: true,
-                    HTMLAttributes: { class: 'text-violet-600 underline dark:text-violet-400' },
+                    HTMLAttributes: {
+                        class: 'text-violet-600 underline dark:text-violet-400',
+                    },
                 },
             }),
+            ...extensions,
         ],
         content: value,
         editorProps: {
             attributes: {
-                class: 'rte-content min-h-[150px] px-3.5 py-3 text-sm leading-relaxed text-gray-800 focus:outline-none dark:text-gray-100',
+                class:
+                    contentClassName ??
+                    'rte-content min-h-[150px] px-3.5 py-3 text-sm leading-relaxed text-gray-800 focus:outline-none dark:text-gray-100',
+            },
+            handlePaste(_view, event) {
+                const files = Array.from(event.clipboardData?.files ?? []);
+                return files.length > 0 && insertImageFiles(files);
+            },
+            handleDrop(view, event) {
+                const files = Array.from(event.dataTransfer?.files ?? []);
+                if (files.length === 0) {
+                    return false;
+                }
+                const position = view.posAtCoords({
+                    left: event.clientX,
+                    top: event.clientY,
+                })?.pos;
+                const handled = insertImageFiles(files, position);
+                if (handled) {
+                    event.preventDefault();
+                }
+                return handled;
             },
             handleKeyDown(_view, event) {
-                if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+                if (
+                    (event.metaKey || event.ctrlKey) &&
+                    event.key.toLowerCase() === 'k'
+                ) {
                     event.preventDefault();
                     openLinkRef.current();
                     return true;
@@ -86,6 +179,15 @@ export function RichTextEditor({ value, onChange, placeholder, editable = true }
         openLinkRef.current = openLink;
     }, [openLink]);
 
+    useEffect(() => {
+        editorRef.current = editor;
+        onEditor?.(editor);
+
+        return () => onEditor?.(null);
+        // Only when the editor instance itself changes.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editor]);
+
     // Sync external value changes (e.g. reset after submit, loading an existing draft).
     useEffect(() => {
         if (editor && value !== editor.getHTML()) {
@@ -101,8 +203,15 @@ export function RichTextEditor({ value, onChange, placeholder, editable = true }
         if (url === '') {
             editor.chain().focus().extendMarkRange('link').unsetLink().run();
         } else {
-            const href = /^(https?:\/\/|mailto:)/i.test(url) ? url : `https://${url}`;
-            editor.chain().focus().extendMarkRange('link').setLink({ href }).run();
+            const href = /^(https?:\/\/|mailto:)/i.test(url)
+                ? url
+                : `https://${url}`;
+            editor
+                .chain()
+                .focus()
+                .extendMarkRange('link')
+                .setLink({ href })
+                .run();
         }
         setLinkOpen(false);
     };
@@ -111,27 +220,73 @@ export function RichTextEditor({ value, onChange, placeholder, editable = true }
         return null;
     }
 
+    if (bare) {
+        return (
+            <div className="relative">
+                {editor.isEmpty && placeholder && (
+                    <p
+                        className="pointer-events-none absolute inset-x-0 top-0 opacity-45"
+                        aria-hidden
+                    >
+                        {placeholder}
+                    </p>
+                )}
+                <EditorContent editor={editor} />
+            </div>
+        );
+    }
+
     return (
         <div className="overflow-hidden rounded-xl border border-border bg-card">
             <div className="flex flex-wrap items-center gap-0.5 border-b border-gray-100 bg-gray-50/60 px-2 py-1.5 dark:border-gray-800 dark:bg-gray-900/60">
-                <ToolbarButton label="Bold (Ctrl+B)" active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
+                <ToolbarButton
+                    label="Bold (Ctrl+B)"
+                    active={editor.isActive('bold')}
+                    onClick={() => editor.chain().focus().toggleBold().run()}
+                >
                     <Bold className="h-4 w-4" />
                 </ToolbarButton>
-                <ToolbarButton label="Italic (Ctrl+I)" active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}>
+                <ToolbarButton
+                    label="Italic (Ctrl+I)"
+                    active={editor.isActive('italic')}
+                    onClick={() => editor.chain().focus().toggleItalic().run()}
+                >
                     <Italic className="h-4 w-4" />
                 </ToolbarButton>
-                <ToolbarButton label="Underline (Ctrl+U)" active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()}>
+                <ToolbarButton
+                    label="Underline (Ctrl+U)"
+                    active={editor.isActive('underline')}
+                    onClick={() =>
+                        editor.chain().focus().toggleUnderline().run()
+                    }
+                >
                     <UnderlineIcon className="h-4 w-4" />
                 </ToolbarButton>
                 <span className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
-                <ToolbarButton label="Bulleted list" active={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()}>
+                <ToolbarButton
+                    label="Bulleted list"
+                    active={editor.isActive('bulletList')}
+                    onClick={() =>
+                        editor.chain().focus().toggleBulletList().run()
+                    }
+                >
                     <List className="h-4 w-4" />
                 </ToolbarButton>
-                <ToolbarButton label="Numbered list" active={editor.isActive('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
+                <ToolbarButton
+                    label="Numbered list"
+                    active={editor.isActive('orderedList')}
+                    onClick={() =>
+                        editor.chain().focus().toggleOrderedList().run()
+                    }
+                >
                     <ListOrdered className="h-4 w-4" />
                 </ToolbarButton>
                 <span className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
-                <ToolbarButton label="Add link (Ctrl+K)" active={editor.isActive('link')} onClick={openLink}>
+                <ToolbarButton
+                    label="Add link (Ctrl+K)"
+                    active={editor.isActive('link')}
+                    onClick={openLink}
+                >
                     <Link2 className="h-4 w-4" />
                 </ToolbarButton>
             </div>
@@ -154,10 +309,18 @@ export function RichTextEditor({ value, onChange, placeholder, editable = true }
                         placeholder="Paste a link and press Enter…"
                         className="flex-1 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-800 outline-none focus:border-amber-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                     />
-                    <button type="button" onClick={applyLink} className="rounded-md bg-amber-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-amber-600">
+                    <button
+                        type="button"
+                        onClick={applyLink}
+                        className="rounded-md bg-amber-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-amber-600"
+                    >
                         Apply
                     </button>
-                    <button type="button" onClick={() => setLinkOpen(false)} className="rounded-md px-2 py-1 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                    <button
+                        type="button"
+                        onClick={() => setLinkOpen(false)}
+                        className="rounded-md px-2 py-1 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                    >
                         Cancel
                     </button>
                 </div>
@@ -165,7 +328,9 @@ export function RichTextEditor({ value, onChange, placeholder, editable = true }
 
             <div className="relative">
                 {editor.isEmpty && placeholder && (
-                    <p className="pointer-events-none absolute left-3.5 top-3 text-sm text-gray-400">{placeholder}</p>
+                    <p className="pointer-events-none absolute top-3 left-3.5 text-sm text-gray-400">
+                        {placeholder}
+                    </p>
                 )}
                 <EditorContent editor={editor} />
             </div>

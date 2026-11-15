@@ -94,7 +94,13 @@ function SidebarProvider({
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // While typing, Ctrl+B means bold, not "toggle the side menu".
+      const target = event.target as HTMLElement | null
+      const typing =
+        event.defaultPrevented ||
+        !!target?.closest('input, textarea, select, [contenteditable="true"]')
       if (
+        !typing &&
         event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
         (event.metaKey || event.ctrlKey)
       ) {
