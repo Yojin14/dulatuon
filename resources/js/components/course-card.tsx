@@ -1,7 +1,7 @@
 import { LowPolyBlock } from '@/components/game/low-poly-scene';
 import { WorldChip } from '@/components/world/world-scope';
 import { worldFor, type WorldTheme } from '@/lib/worlds';
-import type { LucideIcon } from 'lucide-react';
+import { Lock, type LucideIcon } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 
 export interface AccentColors {
@@ -93,6 +93,8 @@ interface CourseCardProps {
     titleExtra?: ReactNode;
     /** The course's world. Inferred from the title when omitted. */
     world?: WorldTheme;
+    /** A locked course is shown greyed out with a padlock over its cover. */
+    locked?: boolean;
 }
 
 export function CourseCard({
@@ -108,15 +110,18 @@ export function CourseCard({
     cta,
     titleExtra,
     world: worldProp,
+    locked = false,
 }: CourseCardProps) {
     const world = worldProp ?? worldFor({ title });
     const [failedSrc, setFailedSrc] = useState<string | null>(null);
     const showImage = Boolean(thumbnail) && failedSrc !== thumbnail;
 
     return (
-        <article className="group flex flex-col overflow-hidden rounded-3xl border bg-card shadow-panel transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-float">
+        <article
+            className={`group flex flex-col overflow-hidden rounded-3xl border bg-card shadow-panel transition-[box-shadow,transform] duration-200 ${locked ? '' : 'hover:-translate-y-0.5 hover:shadow-float'}`}
+        >
             {/* Cover: the course photo, or a low-poly diorama on sky */}
-            <div className="relative aspect-2/1 w-full overflow-hidden">
+            <div className={`relative aspect-2/1 w-full overflow-hidden ${locked ? 'grayscale' : ''}`}>
                 {showImage ? (
                     <img
                         src={thumbnail ?? undefined}
@@ -141,6 +146,13 @@ export function CourseCard({
                 <WorldChip world={world} className="absolute bottom-3 left-3 shadow-sm" />
                 <div className={`absolute top-3 ${badgeAlign === 'left' ? 'left-3' : 'right-3'}`}>{badge}</div>
                 {thumbnailOverlay}
+                {locked && (
+                    <div className="absolute inset-0 grid place-items-center bg-slate-900/35">
+                        <span className="grid size-14 place-items-center rounded-full bg-white/90 text-slate-700 shadow-lg">
+                            <Lock className="size-7" aria-hidden />
+                        </span>
+                    </div>
+                )}
             </div>
 
             <div className="flex flex-1 flex-col p-5">

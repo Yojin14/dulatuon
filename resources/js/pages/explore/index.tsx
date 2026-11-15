@@ -8,7 +8,7 @@ import AppLayout from '@/layouts/app-layout';
 import { toast } from '@/lib/toast';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ArrowRight, BookOpen, CheckCircle2, GraduationCap, Layers, Search, Users } from 'lucide-react';
+import { ArrowRight, BookOpen, CheckCircle2, GraduationCap, Layers, Lock, Search, Users } from 'lucide-react';
 import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -29,6 +29,7 @@ interface Course {
     description?: string;
     short_description?: string;
     level: string;
+    is_locked: boolean;
     course_code: string;
     thumbnail?: string | null;
     thumbnail_focus?: string;
@@ -46,6 +47,14 @@ function EnrollButton({ course, isStudent }: { course: Course; isStudent: boolea
     const [loading, setLoading] = useState(false);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [successOpen, setSuccessOpen] = useState(false);
+
+    if (course.is_locked && course.enrollment?.status !== 'active') {
+        return (
+            <Button variant="outline" className="w-full" disabled>
+                <Lock /> Locked · Coming soon
+            </Button>
+        );
+    }
 
     if (!isStudent || course.enrollment?.status === 'active') {
         return (
@@ -157,7 +166,7 @@ export default function ExploreIndex({ courses }: PageProps) {
                     <div>
                         <h1 className="font-display text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-extrabold tracking-[-0.035em]">Explore courses</h1>
                         <p className="mt-1.5 text-muted-foreground">
-                            {courses.length} {courses.length === 1 ? 'course' : 'courses'} open to join. Each one is packed with lessons, 3D labs and checkpoints.
+                            {courses.filter((c) => !c.is_locked).length} {courses.filter((c) => !c.is_locked).length === 1 ? 'course' : 'courses'} open to join. Each one is packed with lessons, 3D labs and checkpoints.
                         </p>
                     </div>
                     <div className="relative w-full sm:w-72">
@@ -198,8 +207,14 @@ export default function ExploreIndex({ courses }: PageProps) {
                                         thumbnailFocus={course.thumbnail_focus}
                                         description={course.short_description ?? course.description}
                                         colors={colors}
+                                        locked={course.is_locked && course.enrollment?.status !== 'active'}
                                         badge={
                                             <div className="flex flex-col items-end gap-1.5">
+                                                {course.is_locked && (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                                                        <Lock className="size-3" aria-hidden /> Locked
+                                                    </span>
+                                                )}
                                                 {course.enrollment?.status === 'active' && (
                                                     <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white">Joined</span>
                                                 )}

@@ -292,14 +292,14 @@ export function ContentPanelEditor({
                 {/* Materials */}
                 <div className="px-5 py-4">
                     <div className="mb-2 flex items-center justify-between">
-                        <span className="text-[11px] font-medium text-muted-foreground">
+                        <span className="text-xs font-bold text-foreground">
                             Materials
                         </span>
                         <button
                             onClick={() => setMode('add-content')}
-                            className="flex items-center gap-1 text-[11px] font-medium text-violet-500 transition-colors hover:text-violet-700"
+                            className="flex cursor-pointer items-center gap-1 rounded-full bg-violet-100 px-3 py-1.5 text-xs font-bold text-violet-700 transition-colors hover:bg-violet-200 dark:bg-violet-400/15 dark:text-violet-200 dark:hover:bg-violet-400/25"
                         >
-                            <Plus className="h-3 w-3" />
+                            <Plus className="h-3.5 w-3.5" />
                             Add
                         </button>
                     </div>
@@ -387,14 +387,14 @@ export function ContentPanelEditor({
                 {/* Assessments */}
                 <div className="px-5 py-4">
                     <div className="mb-2 flex items-center justify-between">
-                        <span className="text-[11px] font-medium text-muted-foreground">
+                        <span className="text-xs font-bold text-foreground">
                             Assessments
                         </span>
                         <button
                             onClick={() => setMode('add-assessment')}
-                            className="flex items-center gap-1 text-[11px] font-medium text-amber-500 transition-colors hover:text-amber-700"
+                            className="flex cursor-pointer items-center gap-1 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800 transition-colors hover:bg-amber-200 dark:bg-amber-400/15 dark:text-amber-200 dark:hover:bg-amber-400/25"
                         >
-                            <Plus className="h-3 w-3" />
+                            <Plus className="h-3.5 w-3.5" />
                             Add
                         </button>
                     </div>
@@ -460,7 +460,7 @@ export function ContentPanelEditor({
                 {/* Games */}
                 <div className="px-5 py-4">
                     <div className="mb-2 flex items-center justify-between">
-                        <span className="text-[11px] font-medium text-muted-foreground">
+                        <span className="text-xs font-bold text-foreground">
                             Games
                         </span>
                         <button
@@ -468,9 +468,9 @@ export function ContentPanelEditor({
                                 setEditingGame(null);
                                 setMode('add-game');
                             }}
-                            className="flex items-center gap-1 text-[11px] font-medium text-violet-500 transition-colors hover:text-violet-700"
+                            className="flex cursor-pointer items-center gap-1 rounded-full bg-violet-100 px-3 py-1.5 text-xs font-bold text-violet-700 transition-colors hover:bg-violet-200 dark:bg-violet-400/15 dark:text-violet-200 dark:hover:bg-violet-400/25"
                         >
-                            <Plus className="h-3 w-3" />
+                            <Plus className="h-3.5 w-3.5" />
                             Add
                         </button>
                     </div>
@@ -550,14 +550,14 @@ export function ContentPanelEditor({
                 {/* Meetings */}
                 <div className="px-5 py-4">
                     <div className="mb-2 flex items-center justify-between">
-                        <span className="text-[11px] font-medium text-muted-foreground">
+                        <span className="text-xs font-bold text-foreground">
                             Meetings
                         </span>
                         <button
                             onClick={() => setMode('add-meeting')}
-                            className="flex items-center gap-1 text-[11px] font-medium text-emerald-500 transition-colors hover:text-emerald-700"
+                            className="flex cursor-pointer items-center gap-1 rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-800 transition-colors hover:bg-emerald-200 dark:bg-emerald-400/15 dark:text-emerald-200 dark:hover:bg-emerald-400/25"
                         >
-                            <Plus className="h-3 w-3" />
+                            <Plus className="h-3.5 w-3.5" />
                             Add
                         </button>
                     </div>

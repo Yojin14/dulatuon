@@ -27,6 +27,7 @@ class ExploreController extends Controller
                 'description' => $course->description,
                 'short_description' => $course->short_description,
                 'level' => $course->level,
+                'is_locked' => $course->is_locked,
                 'course_code' => $course->course_code,
                 'thumbnail' => $course->thumbnail,
                 'thumbnail_focus' => $course->thumbnail_focus,

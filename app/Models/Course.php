@@ -28,12 +28,23 @@ class Course extends Model
         'short_description',
         'level',
         'status',
+        'is_locked',
         'thumbnail',
         'thumbnail_focus',
         'intro_video',
         'instructor_id',
         'max_students',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'is_locked' => 'boolean',
+        ];
+    }
 
     public function instructor(): BelongsTo
     {

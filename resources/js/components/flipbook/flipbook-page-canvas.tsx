@@ -45,9 +45,9 @@ const RichTextEditor = lazy(() =>
     })),
 );
 
-/** Sheet height for a given width; close to the student's two-page book on a laptop. */
-const SHEET_RATIO = 1.38;
-const MAX_SHEET_WIDTH = 600;
+/** Sheet height for a given width; every sheet is landscape (16:10), like the student's reader. */
+const SHEET_RATIO = 0.625;
+const MAX_SHEET_WIDTH = 960;
 /** Image heights as a share of the sheet, the same as the reader's `cqh` sizes. */
 const FIGURE_SHARE = { top: 0.32, pair: 0.24, side: 0.4, full: 0.78 };
 /** The reader puts text beside the image from 32rem of sheet width (`@lg`). */

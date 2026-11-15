@@ -55,58 +55,10 @@ class DemoDataSeeder extends Seeder
     private function courseBlueprints(): array
     {
         return [
-            [
-                'code' => 'DLT-101',
-                'title' => 'Earthquakes',
-                'short' => 'Why the ground shakes, how faults work, and how to stay safe when it does.',
-                'level' => 'Beginner',
-                'modules' => [
-                    'Inside the Earth' => [
-                        ['Earth\'s Layers', [
-                            ['Crust, mantle and core', '<p>Earth is built in layers. The <strong>crust</strong> is the thin rocky outer skin we live on. Beneath it, the <strong>mantle</strong> is hot rock that flows very slowly over millions of years. At the centre is the <strong>core</strong>, mostly iron and nickel.</p>', 'The crust is broken into large pieces that move on the slowly flowing mantle.'],
-                            ['Why the inside is hot', '<p>Heat left over from Earth\'s formation and heat from radioactive elements keep the interior hot. This heat drives slow currents in the mantle that move the pieces of crust above.</p>', null],
-                        ]],
-                        ['Tectonic Plates', [
-                            ['A broken shell', '<p>Earth\'s rigid outer layer is divided into large slabs called <strong>tectonic plates</strong>. They move only a few centimetres a year, about as fast as your fingernails grow.</p>', null],
-                            ['Three ways plates meet', '<ul><li><strong>Convergent:</strong> plates push together; one may slide beneath the other.</li><li><strong>Divergent:</strong> plates pull apart and new crust forms.</li><li><strong>Transform:</strong> plates slide past each other sideways.</li></ul>', 'The Philippines sits where several plates meet, which is why earthquakes are common here.'],
-                        ]],
-                    ],
-                    'Faults and Stress' => [
-                        ['Stress in Rocks', [
-                            ['Three kinds of stress', '<ul><li><strong>Tension</strong> pulls rocks apart.</li><li><strong>Compression</strong> pushes rocks together.</li><li><strong>Shear</strong> slides rocks past each other.</li></ul>', 'Stress builds slowly until rock breaks or suddenly slips.'],
-                        ]],
-                        ['Faults and Elastic Rebound', [
-                            ['What a fault is', '<p>A <strong>fault</strong> is a fracture in the crust where blocks of rock have moved. Friction can lock a fault while stress keeps building.</p>', null],
-                            ['The sudden slip', '<p>When stress beats friction, the fault slips and the stored energy is released as <strong>seismic waves</strong>. This is the elastic rebound theory.</p>', 'Stress builds → the fault slips → energy is released → the ground shakes.'],
-                        ]],
-                    ],
-                    'Staying Safe' => [
-                        ['Seismic Waves', [
-                            ['P, S and surface waves', '<p><strong>P-waves</strong> arrive first and push and pull the ground. <strong>S-waves</strong> follow and shake it side to side. <strong>Surface waves</strong> arrive last and usually cause the most damage.</p>', null],
-                        ]],
-                        ['Drop, Cover and Hold On', [
-                            ['During the shaking', '<p><strong>Drop</strong> to your hands and knees, take <strong>cover</strong> under a sturdy desk or table, and <strong>hold on</strong> until the shaking stops. Stay away from windows and heavy objects.</p>', 'Drop, Cover and Hold On: the safest thing to do in the first seconds.'],
-                        ]],
-                    ],
-                ],
-                'games' => [
-                    ['Fault Lab', 'fault_lab', 1],
-                    ['Shake Town', 'shake_town', 4],
-                    ['Quake Ready', 'quake_ready', 6],
-                ],
-                'quiz' => [
-                    'title' => 'Plates and Faults Checkpoint',
-                    'questions' => [
-                        ['Which layer of the Earth do we live on?', [['Crust', true], ['Mantle', false], ['Outer core', false], ['Inner core', false]]],
-                        ['Which stress pushes rocks together?', [['Compression', true], ['Tension', false], ['Shear', false], ['Rebound', false]]],
-                        ['Which seismic waves arrive first?', [['P-waves', true], ['S-waves', false], ['Surface waves', false], ['Love waves', false]]],
-                    ],
-                ],
-                'assignment' => ['Family Earthquake Plan', 'Make a one-page earthquake plan for your home: safe spots in each room, the exit route, and where your family meets after the shaking.'],
-                'activity' => ['Safe Spots Map', 'Walk through your classroom and mark the safest places to Drop, Cover and Hold On.'],
-            ],
+            EarthquakeCourseBlueprint::blueprint(),
             [
                 'code' => 'DLT-201',
+                'locked' => true,
                 'title' => 'Volcanoes',
                 'short' => 'How magma forms, why volcanoes erupt, and how communities prepare.',
                 'level' => 'Intermediate',
@@ -147,6 +99,7 @@ class DemoDataSeeder extends Seeder
             ],
             [
                 'code' => 'DLT-301',
+                'locked' => true,
                 'title' => 'Weather & Typhoons',
                 'short' => 'How weather forms, how typhoons grow, and how to read storm signals.',
                 'level' => 'Advanced',
@@ -248,9 +201,10 @@ class DemoDataSeeder extends Seeder
             'course_code' => $blueprint['code'],
             'title' => $blueprint['title'],
             'short_description' => $blueprint['short'],
-            'description' => $blueprint['short'].' Each lesson pairs a short flipbook reading with a 3D lab or game, and every module ends with a quick checkpoint.',
+            'description' => $blueprint['description'] ?? $blueprint['short'].' Each lesson pairs a short flipbook reading with a 3D lab or game, and every module ends with a quick checkpoint.',
             'level' => $blueprint['level'],
             'status' => 'published',
+            'is_locked' => $blueprint['locked'] ?? false,
             'instructor_id' => $instructor->id,
             'max_students' => 40,
         ]);
@@ -318,11 +272,11 @@ class DemoDataSeeder extends Seeder
                     'description' => 'Turn the pages, then try the lab or checkpoint.',
                     'pages' => array_map(fn (array $page, int $i) => [
                         'id' => "p{$courseSession->id}-{$i}",
-                        'layout' => 'text',
+                        'layout' => $page[4] ?? 'text',
                         'heading' => $page[0],
                         'body' => $page[1],
                         'highlight' => $page[2] ?? '',
-                        'images' => [],
+                        'images' => $page[3] ?? [],
                     ], $pages, array_keys($pages)),
                     'sort_order' => 0,
                 ]);
@@ -450,12 +404,16 @@ class DemoDataSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        $this->seedQuiz($course, $section, $instructor, $sessions, $blueprint['quiz']);
+        $quizzes = $blueprint['quizzes'] ?? [$blueprint['quiz'] + ['session' => 1]];
+
+        foreach ($quizzes as $plan) {
+            $this->seedQuiz($course, $section, $instructor, $sessions, $plan);
+        }
     }
 
     /**
      * @param  array<int, CourseSession>  $sessions
-     * @param  array{title: string, questions: array<int, array{0: string, 1: array<int, array{0: string, 1: bool}>}>}  $plan
+     * @param  array{title: string, session?: int, questions: array<int, array{0: string, 1: array<int, array{0: string, 1: bool}>}>}  $plan
      */
     private function seedQuiz(Course $course, Section $section, User $instructor, array $sessions, array $plan): void
     {
@@ -464,7 +422,7 @@ class DemoDataSeeder extends Seeder
             'description' => 'A quick checkpoint on what you just learned.',
             'course_id' => $course->id,
             'section_id' => $section->id,
-            'session_id' => ($sessions[1] ?? $sessions[0])->id,
+            'session_id' => ($sessions[$plan['session'] ?? 1] ?? $sessions[0])->id,
             'teacher_id' => $instructor->id,
             'time_limit' => 15,
             'number_of_questions' => count($plan['questions']),

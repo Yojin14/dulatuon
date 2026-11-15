@@ -15,6 +15,10 @@ class EnrollmentController extends Controller
             abort(403, 'Course is not available for enrollment.');
         }
 
+        if ($course->is_locked) {
+            return back()->with('error', 'This course is locked for now. It will open soon.');
+        }
+
         $enrollment = Enrollment::firstOrNew([
             'user_id' => $request->user()->id,
             'course_id' => $course->id,

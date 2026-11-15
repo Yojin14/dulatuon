@@ -550,7 +550,7 @@ export default function MyClassIndex({
                                                     onClick={() =>
                                                         handleEditCover(course)
                                                     }
-                                                    className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full border border-violet-300/20 bg-primary/55 px-2.5 py-1 text-[11px] font-medium text-violet-50 backdrop-blur-sm transition-colors hover:bg-primary/75"
+                                                    className="absolute right-2 bottom-2 flex items-center gap-1 rounded-full border border-violet-300/20 bg-primary/55 px-2.5 py-1 text-[11px] font-medium text-violet-50 backdrop-blur-sm transition-colors hover:bg-primary/75"
                                                 >
                                                     <Camera className="h-3 w-3" />
                                                     Edit cover

@@ -16,7 +16,8 @@ import { useFlipbookSheets, type SheetSize } from './flipbook-layout';
 import { FlipbookSheetView } from './flipbook-page';
 import { type FlipbookPage } from './flipbook-types';
 
-const SPREAD_QUERY = '(min-width: 1024px)';
+/** Every sheet is landscape, one at a time, on every screen. */
+const SHEET_ASPECT = 1.6;
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 function useMediaQuery(query: string): boolean {
@@ -62,8 +63,8 @@ function useElementSize<T extends HTMLElement>() {
 }
 
 /**
- * Reads a flipbook like a book: a two-page spread with a 3D page turn on wide screens,
- * a single page on phones. Arrow keys, swipe and the page scrubber all turn pages.
+ * Reads a flipbook one landscape page at a time with a page-turn animation.
+ * Arrow keys, swipe and the page scrubber all turn pages.
  */
 export function FlipbookReader({
     pages,
@@ -86,17 +87,13 @@ export function FlipbookReader({
     /** Replaces the Next button once the reader reaches the last page. */
     finish?: ReactNode;
 }) {
-    const spread = useMediaQuery(SPREAD_QUERY);
     const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
-    const step = spread ? 2 : 1;
+    const step = 1;
 
     // Pages flow onto fixed-size sheets (long pages continue on the next sheet), so nothing scrolls.
     const [bookRef, bookSize] = useElementSize<HTMLDivElement>();
     const sheetSize: SheetSize | null = bookSize
-        ? {
-              width: spread ? bookSize.width / 2 : bookSize.width,
-              height: bookSize.height,
-          }
+        ? { width: bookSize.width, height: bookSize.height }
         : null;
     const { sheets, measurer } = useFlipbookSheets(pages, sheetSize);
     const total = sheets.length;
@@ -111,20 +108,12 @@ export function FlipbookReader({
     const [turn, setTurn] = useState<Turn | null>(null);
     const pointerStart = useRef<number | null>(null);
 
-    const index = Math.min(
-        spread ? rawIndex - (rawIndex % 2) : rawIndex,
-        Math.max(total - 1, 0),
-    );
-    const lastIndex = spread
-        ? Math.max(total - 1, 0) - (Math.max(total - 1, 0) % 2)
-        : Math.max(total - 1, 0);
+    const index = rawIndex;
+    const lastIndex = Math.max(total - 1, 0);
 
     const go = useCallback(
         (target: number) => {
-            const to = Math.min(
-                Math.max(spread ? target - (target % 2) : target, 0),
-                lastIndex,
-            );
+            const to = Math.min(Math.max(target, 0), lastIndex);
             if (turn || to === index) {
                 return;
             }
@@ -134,7 +123,7 @@ export function FlipbookReader({
             }
             setTurn({ dir: to > index ? 'next' : 'prev', to });
         },
-        [index, lastIndex, reducedMotion, spread, turn],
+        [index, lastIndex, reducedMotion, turn],
     );
 
     const finishTurn = () => {
@@ -197,11 +186,7 @@ export function FlipbookReader({
         />
     );
 
-    const visibleEnd = spread ? Math.min(index + 2, total) : index + 1;
-    const label =
-        spread && visibleEnd - index === 2
-            ? `Pages ${index + 1}–${visibleEnd} of ${total}`
-            : `Page ${index + 1} of ${total}`;
+    const label = `Page ${index + 1} of ${total}`;
     const stops = Array.from(
         { length: Math.floor(lastIndex / step) + 1 },
         (_, i) => i * step,
@@ -250,110 +235,41 @@ export function FlipbookReader({
 
             <div
                 className={cn(
-                    'flipbook-stage relative mx-auto w-full touch-pan-y select-none',
-                    fill
-                        ? cn(
-                              'min-h-0 flex-1',
-                              spread ? 'max-w-6xl' : 'max-w-xl',
-                          )
-                        : spread
-                          ? 'h-[min(78vh,780px)] max-w-6xl'
-                          : 'h-[min(74vh,680px)] max-w-xl',
+                    'flipbook-stage relative mx-auto flex w-full touch-pan-y items-center justify-center select-none',
+                    fill ? 'min-h-0 flex-1' : 'max-w-5xl',
                 )}
+                style={fill ? { containerType: 'size' } : undefined}
                 onPointerDown={onPointerDown}
                 onPointerUp={onPointerUp}
             >
                 <div
                     ref={bookRef}
-                    className="relative grid h-full rounded-2xl shadow-[0_24px_60px_-24px_rgb(15_23_42/0.45)]"
-                    style={{ gridTemplateColumns: spread ? '1fr 1fr' : '1fr' }}
+                    className="relative rounded-2xl shadow-[0_24px_60px_-24px_rgb(15_23_42/0.45)]"
+                    style={
+                        fill
+                            ? {
+                                  width: `min(100cqw, calc(100cqh * ${SHEET_ASPECT}))`,
+                                  aspectRatio: SHEET_ASPECT,
+                              }
+                            : { width: '100%', aspectRatio: SHEET_ASPECT }
+                    }
                 >
-                    {spread ? (
-                        <>
-                            <div className="relative h-full overflow-hidden rounded-l-2xl">
-                                {sheet(turn?.dir === 'prev' ? turn.to : index)}
-                                <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-linear-to-l from-black/12 to-transparent" />
+                    <div className="relative h-full overflow-hidden rounded-2xl">
+                        {sheet(turn?.dir === 'next' ? turn.to : index)}
+                    </div>
+                    {turn && (
+                        <div
+                            key={`${turn.dir}-${turn.to}`}
+                            data-turn={turn.dir === 'next' ? 'next' : 'in'}
+                            onAnimationEnd={finishTurn}
+                            className="flipbook-leaf absolute inset-0 z-10"
+                        >
+                            <div className="flipbook-face absolute inset-0 overflow-hidden rounded-2xl">
+                                {sheet(turn.dir === 'next' ? index : turn.to)}
+                                <div className="flipbook-shade pointer-events-none absolute inset-0 bg-black/10" />
                             </div>
-                            <div className="relative h-full overflow-hidden rounded-r-2xl">
-                                {sheet(
-                                    turn?.dir === 'next'
-                                        ? turn.to + 1
-                                        : index + 1,
-                                )}
-                                <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-linear-to-r from-black/12 to-transparent" />
-                            </div>
-
-                            {turn && (
-                                <div
-                                    key={`${turn.dir}-${turn.to}`}
-                                    data-turn={turn.dir}
-                                    onAnimationEnd={finishTurn}
-                                    className={cn(
-                                        'flipbook-leaf absolute inset-y-0 z-10 w-1/2',
-                                        turn.dir === 'next'
-                                            ? 'left-1/2'
-                                            : 'left-0',
-                                    )}
-                                >
-                                    <div
-                                        className={cn(
-                                            'flipbook-face absolute inset-0 overflow-hidden',
-                                            turn.dir === 'next'
-                                                ? 'rounded-r-2xl'
-                                                : 'rounded-l-2xl',
-                                        )}
-                                    >
-                                        {sheet(
-                                            turn.dir === 'next'
-                                                ? index + 1
-                                                : index,
-                                        )}
-                                        <div className="flipbook-shade pointer-events-none absolute inset-0 bg-black/15" />
-                                    </div>
-                                    <div
-                                        className={cn(
-                                            'flipbook-face flipbook-face-back absolute inset-0 overflow-hidden',
-                                            turn.dir === 'next'
-                                                ? 'rounded-l-2xl'
-                                                : 'rounded-r-2xl',
-                                        )}
-                                    >
-                                        {sheet(
-                                            turn.dir === 'next'
-                                                ? turn.to
-                                                : turn.to + 1,
-                                        )}
-                                        <div className="flipbook-shade pointer-events-none absolute inset-0 bg-black/15" />
-                                    </div>
-                                </div>
-                            )}
-                        </>
-                    ) : (
-                        <>
-                            <div className="relative h-full overflow-hidden rounded-2xl">
-                                {sheet(turn?.dir === 'next' ? turn.to : index)}
-                            </div>
-                            {turn && (
-                                <div
-                                    key={`${turn.dir}-${turn.to}`}
-                                    data-turn={
-                                        turn.dir === 'next' ? 'next' : 'in'
-                                    }
-                                    onAnimationEnd={finishTurn}
-                                    className="flipbook-leaf absolute inset-0 z-10"
-                                >
-                                    <div className="flipbook-face absolute inset-0 overflow-hidden rounded-2xl">
-                                        {sheet(
-                                            turn.dir === 'next'
-                                                ? index
-                                                : turn.to,
-                                        )}
-                                        <div className="flipbook-shade pointer-events-none absolute inset-0 bg-black/10" />
-                                    </div>
-                                    <div className="flipbook-face flipbook-face-back flipbook-paper absolute inset-0 rounded-2xl" />
-                                </div>
-                            )}
-                        </>
+                            <div className="flipbook-face flipbook-face-back flipbook-paper absolute inset-0 rounded-2xl" />
+                        </div>
                     )}
                 </div>
             </div>

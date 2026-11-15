@@ -31,7 +31,7 @@ export type { FlipbookImageUploader } from './flipbook-upload';
 /** Body typing within this time is one undo step (the text editor's own grouping). */
 const BODY_GROUP_MS = 500;
 const THUMB_WIDTH = 132;
-const THUMB_SHEET = { width: 540, height: 745 };
+const THUMB_SHEET = { width: 800, height: 500 };
 
 /** A small, true-to-life picture of a page for the page list (first sheet only). */
 function PageThumb({ page }: { page: FlipbookPage }) {

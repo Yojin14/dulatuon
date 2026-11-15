@@ -33,6 +33,31 @@ class EnrollmentTest extends TestCase
             ->assertOk();
     }
 
+    public function test_student_cannot_enroll_in_a_locked_course(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        $course = Course::factory()->create(['is_locked' => true]);
+
+        $this->actingAs($student)
+            ->post(route('enrollments.store', $course))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('enrollments', ['user_id' => $student->id, 'course_id' => $course->id]);
+    }
+
+    public function test_explore_marks_locked_courses(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        Course::factory()->create(['title' => 'Open Course', 'is_locked' => false]);
+        Course::factory()->create(['title' => 'Locked Course', 'is_locked' => true]);
+
+        $this->actingAs($student)
+            ->get(route('explore.index'))
+            ->assertInertia(fn ($page) => $page
+                ->component('explore/index')
+                ->where('courses', fn ($courses) => collect($courses)->pluck('is_locked', 'title')->all() === ['Locked Course' => true, 'Open Course' => false]));
+    }
+
     public function test_student_cannot_enroll_twice(): void
     {
         $student = User::factory()->create(['role' => 'student']);
